@@ -1,101 +1,79 @@
-# Lidless
+# NightCat
 
-[![Downloads](https://img.shields.io/github/downloads/nghialuong/Lidless/total)](https://github.com/nghialuong/Lidless/releases)
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/nghialuong)
+macOS 菜单栏小工具：控制这台 Mac 什么时候可以睡、什么时候不许睡。
 
-A tiny macOS menu-bar app that keeps your Mac running **even with the lid closed** —
-so coding agents (Claude Code, Codex, etc.) keep working while you move around.
+定位很窄——**三档「保持唤醒」+ 防忘记关的安全网**。不是通用电源管理器。
 
-> Open source under the [MIT License](LICENSE).
+- 屏幕常亮：屏幕不熄灭，方便看盘 / 演示
+- 防空闲：系统不因空闲睡眠，屏幕可以灭（跑批、下载、长任务）
+- 合盖不睡：合上盖子继续跑（无人值守、塞在包里跑完）
 
-<p align="center">
-  <img src="docs/menu-popover.png" alt="Lidless menu bar popover — keep-awake toggle, helper status, battery, and safety controls" width="420">
-</p>
+## 当前状态
 
-## Features
+| 项 | 状态 |
+|---|---|
+| 功能规格 | ✅ 已定稿，见 `docs/SPEC.md` |
+| 代码基线 | ✅ 已 fork 上游 `nghialuong/Lidless` v0.1.3（含完整 git 历史） |
+| 改造 | ⬜ 未开始 |
+| UI 设计稿 | ⬜ 未出（面板 HTML 稿尚未产出） |
 
-- One-click **keep awake with the lid closed** (menu bar toggle).
-- Privileged background **helper** (`SMAppService`) so toggling never asks for a password.
-- **Watchdog**: if the app crashes or is force-quit, the helper auto-restores normal sleep — the Mac can't get stuck awake.
-- **Safety guards**: pause when running hot, only-while-charging, and a low-battery cutoff.
-- **Auto-off timer**: optionally turn keep-awake off after 15 min – 4 hours, with a live countdown.
-- **Automatic updates** via [Sparkle](https://sparkle-project.org) — EdDSA-signed appcast, notarized DMGs.
-- **Launch at login**, and a clean menu with battery/power status.
+**接手开发请先读 [`AGENTS.md`](AGENTS.md)。**
 
-## How it works
+## 来源与许可
 
-macOS sleeps when you close the lid. The reliable way to override that on Apple Silicon
-is the `SleepDisabled` flag in `IOPMrootDomain` (what `sudo pmset -a disablesleep 1` sets).
-`caffeinate` does **not** prevent lid-close sleep — only this flag does.
+本项目是 [`nghialuong/Lidless`](https://github.com/nghialuong/Lidless) 的 fork，基线为 tag `v0.1.3`（commit `1c432ed`）。
 
-The app talks to a root helper over XPC; the helper flips the flag with no admin prompt and
-runs a heartbeat watchdog. If the app stops checking in (>90s), the helper restores sleep.
+上游以 MIT 许可发布，版权归原作者 **Nghia Luong** 所有。本 fork 保留 `LICENSE` 中的原始版权声明，改造部分版权归本仓库所有者。上游 README 存档在 `docs/upstream-README.md`。
 
-## Architecture
-
-- **`Lidless`** — SwiftUI `MenuBarExtra` app (macOS 13+), not sandboxed, `LSUIElement`.
-- **`LidlessHelper`** — root LaunchDaemon, registered via `SMAppService`, serves `LidlessHelperProtocol` over XPC. Embedded at `Contents/MacOS/LidlessHelper` with its plist in `Contents/Library/LaunchDaemons/`.
-- **`Sources/Shared`** — pure, unit-tested logic: pmset parsers, watchdog, safety evaluator, settings.
-
-## Build (no Xcode GUI needed)
-
-Requires the Xcode command-line tools + [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+`upstream` 已配置为 git remote，便于日后对比与择取上游修复：
 
 ```bash
+git fetch upstream && git log --oneline HEAD..upstream/main
+```
+
+## 文档索引
+
+| 文件 | 内容 |
+|---|---|
+| `AGENTS.md` | 接手开发的操作说明：环境、构建、必改项、坑 |
+| `docs/SPEC.md` | 功能规格定稿（三档、图标、锁定、电池、定时） |
+| `docs/DECISIONS.md` | 已拍板决策与理由，含被砍掉的范围 |
+| `docs/FORK-NOTES.md` | 上游代码侦察：架构、关键文件、必须改的硬编码、改造映射 |
+| `docs/PLAN.md` | 分阶段任务清单与验收标准 |
+| `docs/upstream-README.md` | 上游 README 存档 |
+
+## 环境要求
+
+| 项 | 版本 / 位置 |
+|---|---|
+| macOS | 13.0+（由 `project.yml` 的 `deploymentTarget` 决定） |
+| Xcode | 26.6（本机已装） |
+| Swift | 6.3.3（工程 `SWIFT_VERSION` 仍为 5.0） |
+| XcodeGen | **未安装**，需 `brew install xcodegen`（本机 brew 位于 `/opt/homebrew/bin/brew`） |
+| 签名 | 本机已有 `Apple Development: xiaohees@foxmail.com (5V2J4DPU4L)` 与 `Developer ID Application: TAO LIU (UAT3Y8UXCQ)` |
+
+## 快速开始
+
+```bash
+# 生成 .xcodeproj（该文件被 gitignore，project.yml 才是唯一事实来源）
 xcodegen generate
-xcodebuild test -scheme Lidless-CI -destination 'platform=macOS' | xcbeautify
+
+# 跑单元测试
+xcodebuild test -scheme Lidless-CI -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
+
+# 构建 App
+xcodebuild build -scheme Lidless -destination 'generic/platform=macOS' \
+  -configuration Debug CODE_SIGNING_ALLOWED=NO
 ```
 
-The `.xcodeproj` is gitignored — `project.yml` is the source of truth.
+测试必须以 `** TEST SUCCEEDED **` 结束。
 
-## App icon
+> `CODE_SIGNING_ALLOWED=NO` 只够跑构建和测试。**要真正运行 App 并让特权 helper 生效，必须正常签名**——helper 会校验对端 App 的代码签名。细节见 `docs/FORK-NOTES.md` 的签名章节。
 
-The app icon and the menu-bar glyphs are committed assets under
-`Resources/Assets.xcassets/` (`AppIcon.appiconset` plus the `MenubarLaptop` /
-`MenubarLaptopActive` template imagesets that mark keep-awake off / on).
+## 架构速览
 
-`scripts/make_iconset.sh` is kept as a helper for regenerating an icon set from a
-single master if you want to swap the artwork:
+- **App**：SwiftUI `MenuBarExtra`，`LSUIElement`（无 Dock 图标、不进 Cmd+Tab），非沙盒
+- **Helper**：root LaunchDaemon，经 `SMAppService` 注册，通过 XPC 响应 App 请求
+- **`Sources/Shared`**：纯逻辑，可单测（pmset 解析、看门狗、安全评估、设置存储）
 
-```bash
-bash scripts/make_iconset.sh   # renders icon + emits Assets.xcassets/AppIcon.appiconset
-```
-
-## Release
-
-Signed + notarized DMG plus the EdDSA-signed Sparkle appcast (needs a Developer ID
-cert, a notarytool keychain profile, and the Sparkle signing key in the keychain):
-
-```bash
-./scripts/release.sh   # archive → export → notarize → staple → DMG → appcast → publish
-```
-
-Publishes the DMG to a GitHub Release and writes the feed to `docs/appcast.xml`
-(served at the `SUFeedURL` in `project.yml`).
-
-## Milestones
-
-- **M0** — spike, verified lid-closed on real Apple Silicon (`scripts/lidless.sh`). ✅
-- **M1 / M1.5** — menu-bar app + privileged helper + XPC + watchdog. ✅
-- **M2** — safety preferences (thermal / charging / battery) + persistence. ✅
-- **App complete** — icon, launch-at-login, onboarding, About, release pipeline. ✅
-- **Auto-update** — Sparkle with an EdDSA-signed appcast, shipped from `release.sh`. ✅
-- **Later** — signed runtime verification on device.
-
-## Safety
-
-Running with the lid closed under heavy load can heat the machine and drain the battery.
-Keep it plugged in and ventilated. The safety guards auto-pause on heat / low battery,
-and a reboot always resets the underlying flag.
-
-To report a security issue, see [SECURITY.md](SECURITY.md).
-
-## Support
-
-Lidless is free and open source. If it saves you some hassle, you can
-[buy me a coffee on Ko-fi](https://ko-fi.com/nghialuong) ☕ — completely optional,
-and much appreciated.
-
-## License
-
-[MIT](LICENSE) © 2026 Nghia Luong
+详细架构、关键文件与坑见 `docs/FORK-NOTES.md`。

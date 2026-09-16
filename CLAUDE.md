@@ -1,5 +1,10 @@
 # Lidless — contributor & agent notes
 
+> **本仓库已 fork 为 NightCat。** 这份文档来自上游，构建/架构信息仍然有效。
+> **动手前请先读 [`AGENTS.md`](AGENTS.md)**（环境、必改项、签名坑、交付习惯），
+> 以及 `docs/` 下的规格与决策记录。下面「提 PR 前必须跑测试」那条是上游的协作约定，
+> 本项目阶段不适用，以 `AGENTS.md` 的「交付与验证习惯」为准。
+
 ## Always verify locally before opening a PR
 
 GitHub Actions CI is currently unavailable (account billing), so **local
