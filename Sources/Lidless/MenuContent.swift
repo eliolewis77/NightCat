@@ -32,6 +32,12 @@ struct MenuContent: View {
             ModePickerRow()
                 .padding(.horizontal, hInset)
 
+            if state.batteryWarning != nil {
+                BatteryWarningBanner()
+                    .padding(.horizontal, hInset)
+                    .padding(.bottom, 10)
+            }
+
             KeepAwakeDurationRow()
                 .padding(.horizontal, hInset)
 
@@ -217,6 +223,46 @@ private struct ModePickerRow: View {
         case .preventIdle: return "The system won’t idle-sleep; the screen may turn off."
         case .lidClosed:   return "Stays awake with the lid closed. Highest power use."
         }
+    }
+}
+
+// MARK: - Battery warning banner
+
+/// SPEC §8's inline warning (no system dialogs): the lid tier is requested —
+/// or already running — on battery, and the user decides. Continues are never
+/// offered for hard refusals (low battery, thermal): those never produce a
+/// banner in the first place.
+private struct BatteryWarningBanner: View {
+    @EnvironmentObject var state: AppState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label {
+                Text("Running on battery. Lid-closed keep-awake uses roughly 8–12% per hour and traps heat with the lid closed.")
+                    .fixedSize(horizontal: false, vertical: true)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(Color(nsColor: .systemYellow))
+            }
+            .font(.callout)
+
+            Toggle("Don’t remind me again this session",
+                   isOn: $state.suppressBatteryWarningThisSession)
+                .font(.caption)
+                .controlSize(.small)
+
+            HStack(spacing: 8) {
+                Button("Continue") { state.resolveBatteryWarning(.keepLid) }
+                    .buttonStyle(.borderedProminent)
+                Button("Use Idle Instead") { state.resolveBatteryWarning(.useIdle) }
+                Button("Cancel") { state.resolveBatteryWarning(.cancel) }
+                Spacer(minLength: 0)
+            }
+            .controlSize(.small)
+        }
+        .padding(10)
+        .background(Color(nsColor: .unemphasizedSelectedContentBackgroundColor).opacity(0.35))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 

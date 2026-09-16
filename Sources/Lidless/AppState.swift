@@ -30,6 +30,18 @@ final class AppState: ObservableObject {
     /// confirmation dialog. Non-nil only while that dialog is up.
     @Published var pendingLockedSwitch: KeepAwakeMode?
 
+    /// The battery warning banner (SPEC §8): non-nil while the user is
+    /// deciding what to do about the lid tier on battery power. Set when the
+    /// user asks for the lid tier on battery, or when the charger comes out
+    /// from under a running lid tier — never by a silent downgrade.
+    @Published var batteryWarning: BatteryWarningContext?
+
+    /// "Don't remind again this session". Session-only by design: a persisted
+    /// suppression could quietly make every future battery-lid decision for
+    /// the user, which is exactly the silent downgrade SPEC §8 forbids.
+    /// No `store.save` call may ever touch this.
+    @Published var suppressBatteryWarningThisSession = false
+
     @Published var helperInstalled = false
     @Published var helperNeedsApproval = false
     @Published var batteryDescription = ""
@@ -136,6 +148,16 @@ final class AppState: ObservableObject {
     /// True while the onboarding window is open and not yet completed.
     private var onboardingActive = false
     private var didBecomeActiveObserver: NSObjectProtocol?
+    /// The value the `SleepDisabled` flag had before our most recent takeover
+    /// (SPEC §9). Non-nil means we turned a 0 into a 1 and owe a restore on a
+    /// normal exit; nil means the flag was (or was read as) already held, so
+    /// restoring is not ours to do.
+    private var exitBaseline: ExitRestore.Baseline?
+    /// The previous sample's power source, for detecting the charger coming
+    /// out — the event that triggers the battery warning under a running lid
+    /// tier. Level-triggered checks can't: re-asking every 30-second tick
+    /// would nag the user about a decision they just made.
+    private var lastBatteryOnAC: Bool?
 
     init() {
         settings = store.load()
@@ -143,6 +165,7 @@ final class AppState: ObservableObject {
         autoOffMinutes = store.loadAutoOffMinutes()
         onboardingComplete = store.loadOnboardingComplete()
         launchAtLogin = loginItem.isEnabled
+        ExitRestoreBridge.appState = self
         caffeinate.onError = { [weak self] message in self?.lastError = message }
         refreshHelperStatus()
         refreshHelperRegistrationIfUpdated()
@@ -458,6 +481,57 @@ final class AppState: ObservableObject {
         }
     }
 
+    // MARK: Battery warning (SPEC §8: no silent downgrade on battery)
+
+    /// Whether the lid tier on battery should ask first. Only true for the
+    /// case the safety policy *permits*: at/below the low-battery cutoff, hot,
+    /// or under "Only while charging", `setEnabled` refuses outright (and
+    /// SPEC §8 says there is no "Continue" to offer there) — so this gate
+    /// never fires on a case that would be refused two lines later anyway.
+    private func shouldWarnOnBattery() -> Bool {
+        guard !suppressBatteryWarningThisSession, !currentBattery.onAC else { return false }
+        return SafetyEvaluator.reasonToDisable(battery: currentBattery,
+                                               thermalSerious: thermalSerious(),
+                                               settings: settings) == nil
+    }
+
+    /// One of the banner's buttons. See `BatteryWarningChoice` for what each
+    /// choice means per context; the banner closes first so a re-trigger
+    /// during the switch (e.g. the safety check re-firing) starts clean.
+    func resolveBatteryWarning(_ choice: BatteryWarningChoice) {
+        let context = batteryWarning
+        batteryWarning = nil
+        switch choice {
+        case .keepLid:
+            // Enabling: proceed for real, past this gate only. Power lost:
+            // the tier never stopped — confirming is the whole action.
+            if context == .enabling {
+                setMode(.lidClosed, origin: .user, bypassBatteryWarning: true)
+            }
+        case .useIdle:
+            setMode(.preventIdle, origin: .user)
+        case .cancel:
+            // Enabling: nothing was turned on; off is where it stays. Power
+            // lost: "cancel" is the user declining the battery run, so the
+            // tier comes off rather than sitting on until the cutoff.
+            if context == .powerLost {
+                setMode(.off, note: "Turned off — running on battery.", origin: .safety)
+            }
+        }
+    }
+
+    /// The charger came out from under a running lid tier. Hard policy
+    /// violations (cutoff, thermal, "Only while charging") are handled by
+    /// `evaluateSafety` on the same tick — those are decisions the user
+    /// already made in Settings. Everything else asks (SPEC §8), keeping the
+    /// tier running while the banner is up: stopping or downgrading without
+    /// asking is precisely what the spec forbids.
+    private func handlePowerDisconnected() {
+        guard mode == .lidClosed, batteryWarning == nil,
+              shouldWarnOnBattery() else { return }
+        batteryWarning = .powerLost
+    }
+
     // MARK: Helper lifecycle
 
     func refreshHelperStatus() {
@@ -626,9 +700,26 @@ final class AppState: ObservableObject {
             hasConfirmedState = true
             // Set before adopting: adopting `true` can synchronously trip a safety
             // pause, and the notice should already be in place when it does.
-            externalNotice = change.message
+            // An enable we can't attribute gets the generic wording — claiming
+            // a holder we couldn't parse would be worse than naming none.
+            externalNotice = change.nowEnabled
+                ? StateReconciler.externalTakeoverMessage(holders: externalSleepAssertionHolders())
+                : change.message
             adoptSystemState(change.nowEnabled)
         }
+    }
+
+    /// Sleep-assertion holders other than ourselves, for attributing an
+    /// externally-enabled flag (SPEC §9). Our own `caffeinate` shows up in
+    /// `pmset -g assertions` holding `PreventUserIdleSystemSleep`, so the
+    /// live pid is filtered out before attribution.
+    private func externalSleepAssertionHolders() -> [String] {
+        guard let out = Shell.capture("/usr/bin/pmset", ["-g", "assertions"]) else { return [] }
+        var ownPids: Set<Int32> = []
+        if let pid = caffeinate.runningPID { ownPids.insert(pid) }
+        return PowerParsers.sleepAssertionHolders(pmsetAssertions: out)
+            .filter { !ownPids.contains($0.pid) }
+            .map { $0.processName }
     }
 
     /// Bring `mode` in line with reality *without* touching the flag, running
@@ -644,6 +735,11 @@ final class AppState: ObservableObject {
         // owned the flag, so there's nothing to turn off.
         if enabled {
             mode = .lidClosed
+            // This 1 wasn't written by us, so the exit restore isn't ours to
+            // issue either (SPEC §9): void any stale baseline rather than
+            // clear someone else's session on quit. The crash-path watchdog
+            // still covers the case where nobody restores at all.
+            exitBaseline = nil
         } else if mode == .lidClosed {
             mode = .off
         }
@@ -667,11 +763,22 @@ final class AppState: ObservableObject {
     /// write through the flag machinery, so auto mode's claim, read-back
     /// verification, and the heartbeat all stay consistent. A tier change that
     /// doesn't touch the flag lands immediately.
+    ///
+    /// SPEC §8: a *user* request for the lid tier on battery (with enough
+    /// charge — the hard refusals stay inside `setEnabled`) parks on the
+    /// battery warning banner instead of switching. `bypassBatteryWarning` is
+    /// set only by the banner's own "Continue", which is the user confirming.
     func setMode(_ newMode: KeepAwakeMode,
                  note: String? = nil,
                  origin: SetOrigin = .user,
-                 conditions: SafetySnapshot? = nil) {
+                 conditions: SafetySnapshot? = nil,
+                 bypassBatteryWarning: Bool = false) {
         guard newMode != mode else { return }
+        if newMode == .lidClosed, origin == .user,
+           !bypassBatteryWarning, shouldWarnOnBattery() {
+            batteryWarning = .enabling
+            return
+        }
         caffeinate.apply(newMode)
         let target = newMode == .lidClosed
         if target != isEnabled {
@@ -735,6 +842,14 @@ final class AppState: ObservableObject {
                 if origin == .auto { autoWrite.clear() }
                 return
             }
+            // About to write 1: snapshot the flag for the exit restore (SPEC
+            // §9). `capture` returns nil when it already reads 1 — someone
+            // else's session — which also voids any earlier baseline of ours.
+            // A failed read captures as false: same value the crash-path
+            // watchdog would restore anyway, so it errs no harder than the
+            // safety net already does.
+            let observed = power.isSleepDisabled()
+            exitBaseline = ExitRestore.capture(current: observed ?? false)
         }
         let resultMessage = note
 
@@ -984,8 +1099,41 @@ final class AppState: ObservableObject {
 
     func refreshBattery() {
         let info = battery.read()
+        let wasOnAC = lastBatteryOnAC
         batteryPercent = info.percent
         batteryOnAC = info.onAC
         batteryDescription = "\(info.source) · \(info.percent)%"
+        lastBatteryOnAC = info.onAC
+        if let wasOnAC, wasOnAC, !info.onAC {
+            handlePowerDisconnected()
+        }
+    }
+
+    // MARK: Exit restoration (SPEC §9)
+
+    /// Called from `applicationShouldTerminate` on a normal quit. Puts the
+    /// flag back to the pre-takeover baseline — only when the lid tier is
+    /// live *and* we own the takeover (a baseline exists). An externally-held
+    /// flag (baseline nil) is left alone, and an off flag needs no write.
+    ///
+    /// Crash paths never reach this: the helper's 90-second watchdog writes 0
+    /// there, and that unconditional net is deliberately untouched.
+    func restoreOnExit() -> NSApplication.TerminateReply {
+        // Dies with us anyway via `-w <pid>`; stopping it first keeps the exit
+        // tidy and keeps it out of any last assertion listing.
+        caffeinate.stop()
+        guard isEnabled, exitBaseline != nil else { return .terminateNow }
+        let value = ExitRestore.restoreValue(of: exitBaseline)
+        if helperInstalled {
+            helper.setKeepAwake(value) { _, _ in
+                NSApp.reply(toApplicationShouldTerminate: true)
+            }
+            return .terminateLater
+        }
+        // Fallback path: the admin prompt may appear (same as every other
+        // write without the helper); cancelling it just leaves the flag as-is,
+        // and the worst case equals the crash path's delayed 0.
+        do { try power.setSleepDisabled(value) } catch { }
+        return .terminateNow
     }
 }

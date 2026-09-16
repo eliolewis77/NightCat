@@ -17,6 +17,10 @@ final class CaffeinateManager {
     private var process: Process?
     private var runningFlags: [String] = []
 
+    /// The pid of the live caffeinate, for attribution filtering: our own
+    /// assertion holder must never be reported as an external takeover.
+    var runningPID: Int32? { process?.processIdentifier }
+
     /// Make the running caffeinate match `mode`: a no-op when it already
     /// does, otherwise stop the old process and start the new one.
     func apply(_ mode: KeepAwakeMode) {
