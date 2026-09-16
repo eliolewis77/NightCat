@@ -46,10 +46,10 @@ public enum SafetyReason: Equatable {
 
     public var message: String {
         switch self {
-        case .highThermal:        return "Auto-paused: the Mac is running hot."
-        case .notCharging:        return "Auto-paused: not on charger."
-        case .lowBattery(let p):  return "Auto-paused: battery \(p)% on battery power."
-        case .notOnPower:         return "Auto-paused: not connected to power."
+        case .highThermal:        return "已自动暂停：Mac 正在过热。"
+        case .notCharging:        return "已自动暂停：未连接充电器。"
+        case .lowBattery(let p):  return "已自动暂停：使用电池，电量 \(p)%。"
+        case .notOnPower:         return "已自动暂停：未连接电源。"
         }
     }
 
@@ -57,10 +57,10 @@ public enum SafetyReason: Equatable {
     /// won't allow it (vs. `message`, which describes a background auto-pause).
     public var blockedMessage: String {
         switch self {
-        case .highThermal:        return "Your Mac is running hot, so keep-awake is paused. It'll be available again once the Mac cools down."
-        case .notCharging:        return "\u{201C}Only while charging\u{201D} is on, so connect your Mac to power to keep it awake."
-        case .lowBattery(let p):  return "Battery is at \(p)%. Charge above the low-battery cutoff to keep your Mac awake."
-        case .notOnPower:         return "Connect your Mac to power to keep it awake."
+        case .highThermal:        return "Mac 正在过热，保持唤醒已暂停，待冷却后可继续使用。"
+        case .notCharging:        return "「仅插电时保持」已开启，请连接电源后再保持唤醒。"
+        case .lowBattery(let p):  return "当前电量 \(p)%，低于低电量阈值，请先充电。"
+        case .notOnPower:         return "请连接电源后再保持唤醒。"
         }
     }
 
@@ -68,10 +68,10 @@ public enum SafetyReason: Equatable {
     /// to power"). Reflects the *current* unmet condition, not an auto-pause event.
     public var checkLabel: String {
         switch self {
-        case .highThermal:        return "Running hot"
-        case .notCharging:        return "Not on charger"
-        case .lowBattery(let p):  return "Battery \(p)% is at or below the cutoff"
-        case .notOnPower:         return "Not connected to power"
+        case .highThermal:        return "过热"
+        case .notCharging:        return "未连接充电器"
+        case .lowBattery(let p):  return "电量 \(p)% 已到低电量阈值"
+        case .notOnPower:         return "未连接电源"
         }
     }
 }

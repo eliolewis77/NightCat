@@ -146,7 +146,7 @@ final class StateReconcilerTests: XCTestCase {
         // Must stay true after a safety pause flips the state straight back, so
         // it may not promise anything about what the Mac is doing now.
         for change in [ExternalChange.enabledOutside, .disabledOutside] {
-            XCTAssertTrue(change.message.contains("outside Lidless"))
+            XCTAssertTrue(change.message.contains("NightCat 之外"))
             XCTAssertFalse(change.message.contains("will"))
         }
     }
@@ -171,8 +171,8 @@ final class StateReconcilerTests: XCTestCase {
     }
 
     func testUnverifiedMessageDoesNotClaimSuccess() {
-        XCTAssertTrue(StateReconciler.unverifiedMessage(target: true).contains("Couldn’t confirm"))
-        XCTAssertTrue(StateReconciler.unverifiedMessage(target: false).contains("Couldn’t confirm"))
+        XCTAssertTrue(StateReconciler.unverifiedMessage(target: true).contains("无法"))
+        XCTAssertTrue(StateReconciler.unverifiedMessage(target: false).contains("无法"))
         XCTAssertNotEqual(StateReconciler.unverifiedMessage(target: true),
                           StateReconciler.unverifiedMessage(target: false))
     }
@@ -211,7 +211,7 @@ final class StateReconcilerTests: XCTestCase {
 
         for message in verification {
             XCTAssertFalse(external.contains(message))
-            XCTAssertFalse(message.contains("outside Lidless"))
+            XCTAssertFalse(message.contains("NightCat 之外"))
         }
     }
 }

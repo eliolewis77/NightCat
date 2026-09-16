@@ -12,8 +12,8 @@ public enum ExternalChange: Equatable {
     /// flip the state back while this notice is still on screen.
     public var message: String {
         switch self {
-        case .enabledOutside:  return "Sleep prevention was turned on outside Lidless."
-        case .disabledOutside: return "Sleep prevention was turned off outside Lidless."
+        case .enabledOutside:  return "保持唤醒已在 NightCat 之外被开启。"
+        case .disabledOutside: return "保持唤醒已在 NightCat 之外被关闭。"
         }
     }
 }
@@ -133,16 +133,16 @@ public enum StateReconciler {
     /// is restored sends a running Mac into a bag.
     public static func unverifiedMessage(target: Bool) -> String {
         target
-            ? "Couldn’t confirm keep-awake with the system — it may not hold when you close the lid."
-            : "Couldn’t confirm sleep was restored — your Mac may still stay awake."
+            ? "无法向系统确认保持唤醒已生效——合盖后可能不会保持唤醒。"
+            : "无法确认睡眠已恢复——Mac 可能仍处于保持唤醒。"
     }
 
     /// Wording for a write that demonstrably didn't hold. Kept distinct from
     /// `ExternalChange.message`, which attributes the change to someone else.
     public static func writeMismatchMessage(actual: Bool) -> String {
         actual
-            ? "The change didn’t hold — the system reports keep-awake is on."
-            : "The change didn’t hold — the system reports keep-awake is off."
+            ? "更改未生效——系统显示保持唤醒仍处于开启。"
+            : "更改未生效——系统显示保持唤醒已关闭。"
     }
 
     // MARK: External takeover attribution (SPEC §9)
@@ -164,7 +164,7 @@ public enum StateReconciler {
         var seen = Set<String>()
         let named = holders.filter { seen.insert($0).inserted }
         guard !named.isEmpty else { return ExternalChange.enabledOutside.message }
-        return "Currently held by \(named.joined(separator: " and "))."
+        return "当前由 \(named.joined(separator: " 和 "))控制。"
     }
 }
 

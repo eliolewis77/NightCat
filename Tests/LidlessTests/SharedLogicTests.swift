@@ -203,17 +203,17 @@ final class SharedLogicTests: XCTestCase {
     }
 
     func testDurationLabelNamesTheNoLimitCase() {
-        XCTAssertEqual(AutoOff.durationLabel(minutes: 0), "No limit")
-        XCTAssertEqual(AutoOff.durationLabel(minutes: 15), "15 min")
-        XCTAssertEqual(AutoOff.durationLabel(minutes: 60), "1 hour")
+        XCTAssertEqual(AutoOff.durationLabel(minutes: 0), "不限时")
+        XCTAssertEqual(AutoOff.durationLabel(minutes: 15), "15 分钟")
+        XCTAssertEqual(AutoOff.durationLabel(minutes: 60), "1 小时")
     }
 
     func testAutoOffOptionLabels() {
-        XCTAssertEqual(AutoOff.optionLabel(minutes: 15), "15 min")
-        XCTAssertEqual(AutoOff.optionLabel(minutes: 30), "30 min")
-        XCTAssertEqual(AutoOff.optionLabel(minutes: 60), "1 hour")
-        XCTAssertEqual(AutoOff.optionLabel(minutes: 120), "2 hours")
-        XCTAssertEqual(AutoOff.optionLabel(minutes: 240), "4 hours")
+        XCTAssertEqual(AutoOff.optionLabel(minutes: 15), "15 分钟")
+        XCTAssertEqual(AutoOff.optionLabel(minutes: 30), "30 分钟")
+        XCTAssertEqual(AutoOff.optionLabel(minutes: 60), "1 小时")
+        XCTAssertEqual(AutoOff.optionLabel(minutes: 120), "2 小时")
+        XCTAssertEqual(AutoOff.optionLabel(minutes: 240), "4 小时")
     }
 
     // MARK: SettingsStore onboarding flag
