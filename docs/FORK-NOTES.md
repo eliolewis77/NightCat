@@ -141,7 +141,7 @@ xcodebuild test -scheme Lidless-CI -destination 'platform=macOS' CODE_SIGNING_AL
 xcodebuild build -scheme Lidless -destination 'generic/platform=macOS' -configuration Debug CODE_SIGNING_ALLOWED=NO
 ```
 
-发布（本项目暂不需要）：`scripts/release.sh` — archive → export → notarize → staple → DMG → EdDSA appcast → 发布到 GitHub Release。需要 Developer ID 证书、notarytool keychain profile、Sparkle 签名密钥。`ExportOptions.plist` 和 `scripts/sparkle/bin/*` 都是这条链路的组件。
+发布（本项目不做）：上游的 `scripts/release.sh`、`ExportOptions.plist`、`scripts/sparkle/` 已在 M6 清理删除（Sparkle 在 M1 已拆，这条链路整体作废）。真要分发时从 Developer ID archive 手动导出。
 
 `scripts/lidless.sh` 是最早的 M0 spike 脚本（`pmset disablesleep` 的 shell 版），保留作参考。
 

@@ -126,11 +126,11 @@ final class HelperManager {
             }
         }
         guard let proxy = remote({ finish(false, $0) }) else {
-            finish(false, "No helper connection")
+            finish(false, "无 Helper 连接")
             return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
-            finish(false, "The background helper isn’t responding.")
+            finish(false, "后台 Helper 未响应。")
         }
         body(proxy) { ok, err in finish(ok, err) }
     }

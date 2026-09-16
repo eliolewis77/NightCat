@@ -32,7 +32,7 @@ targets:
         NSHumanReadableCopyright: "© 2026 Nghia Luong. © 2026 TAO LIU"
     settings:
       base:
-        MARKETING_VERSION: "0.1.3"
+        MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
         ENABLE_HARDENED_RUNTIME: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
