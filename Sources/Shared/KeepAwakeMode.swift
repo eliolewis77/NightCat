@@ -36,13 +36,33 @@ public enum KeepAwakeMode: Int, CaseIterable, Identifiable {
     /// Whether the tier owns the privileged helper's `disablesleep` flag.
     public var usesHelper: Bool { self == .lidClosed }
 
-    /// Segment label (English; localized with the rest of the UI later).
+    /// Segment label (the picker's short names; UI copy is Chinese per SPEC).
     public var label: String {
         switch self {
-        case .off:         return "Off"
-        case .screen:      return "Screen"
-        case .preventIdle: return "Idle"
-        case .lidClosed:   return "Lid"
+        case .off:         return "关闭"
+        case .screen:      return "常亮"
+        case .preventIdle: return "防空闲"
+        case .lidClosed:   return "合盖"
+        }
+    }
+
+    /// Full name for the status row (and any sentence naming the tier).
+    public var displayName: String {
+        switch self {
+        case .off:         return "关闭"
+        case .screen:      return "屏幕常亮"
+        case .preventIdle: return "防空闲"
+        case .lidClosed:   return "合盖不睡"
+        }
+    }
+
+    /// The one-line meaning shown under the tier name (panel-mockup §2).
+    public var explanation: String {
+        switch self {
+        case .off:         return "跟随 Mac 的正常睡眠设置"
+        case .screen:      return "屏幕保持点亮 · 系统仍可睡眠"
+        case .preventIdle: return "系统不因空闲睡眠 · 屏幕可熄灭"
+        case .lidClosed:   return "合上盖子继续运行 · 需要特权 Helper"
         }
     }
 }

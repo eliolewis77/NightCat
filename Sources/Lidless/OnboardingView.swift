@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// First-run setup walkthrough. Explains what Lidless does and walks the user
+/// First-run setup walkthrough. Explains what NightCat does and walks the user
 /// through the one optional system step — installing the background helper —
 /// then hands off to the menu bar. Surfaces existing `AppState` flows only; it
 /// introduces no new permission logic.
@@ -46,12 +46,12 @@ struct OnboardingView: View {
                     .frame(width: 88, height: 88)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
-            Text("Welcome to NightCat")
+            Text("欢迎使用 NightCat")
                 .font(.largeTitle.weight(.semibold))
-            Text("Keep your Mac awake — even with the lid closed.")
+            Text("让 Mac 保持唤醒——合上盖子也不睡。")
                 .font(.title3)
                 .foregroundStyle(.secondary)
-            Text("Perfect for letting coding agents, downloads, or builds keep running while you close the lid and carry your Mac around. `caffeinate` can't do this — NightCat can.")
+            Text("合上盖子带走 Mac 时，编码代理、下载和构建仍可继续运行。系统自带的 `caffeinate` 做不到这一点——NightCat 可以。")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -60,13 +60,13 @@ struct OnboardingView: View {
 
     private var howItWorksStep: some View {
         VStack(alignment: .leading, spacing: 20) {
-            header(symbol: "bolt.fill", title: "How it works")
+            header(symbol: "bolt.fill", title: "工作原理")
             VStack(alignment: .leading, spacing: 16) {
-                bullet("macbook", "Overrides the lid-close sleep that normally stops everything when you shut the lid.")
-                bullet("thermometer.medium", "Auto-pauses if the Mac runs hot or the battery runs low — so it stays safe unattended.")
-                bullet("shield.lefthalf.filled", "A watchdog restores normal sleep if NightCat ever quits or crashes, so your Mac can never get stuck awake.")
+                bullet("macbook", "覆盖「合盖即睡眠」的系统行为——合上盖子，一切照常运行。")
+                bullet("thermometer.medium", "Mac 过热或电量过低时自动暂停，无人值守也安全。")
+                bullet("shield.lefthalf.filled", "NightCat 退出或崩溃时，看门狗会自动恢复正常睡眠，Mac 不会卡在保持唤醒状态。")
             }
-            Label("Keep your Mac plugged in and ventilated under heavy use.", systemImage: "info.circle")
+            Label("高负载运行时请保持通风和供电。", systemImage: "info.circle")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .padding(.top, 4)
@@ -75,15 +75,15 @@ struct OnboardingView: View {
 
     private var helperStep: some View {
         VStack(alignment: .leading, spacing: 20) {
-            header(symbol: "key.fill", title: "Skip the password prompts")
-            Text("Install a small background helper so turning keep-awake on and off never asks for your admin password — and the safety watchdog can run.")
+            header(symbol: "key.fill", title: "免去密码弹窗")
+            Text("安装一个很小的后台 Helper，开关保持唤醒时便不再询问管理员密码，安全看门狗也随之可用。")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             helperStatusBox
 
-            Text("Optional — NightCat still works without it; it'll just ask for your password each time you toggle.")
+            Text("可选——不安装也能用，只是每次切换档位时会询问密码。")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -94,15 +94,15 @@ struct OnboardingView: View {
     private var helperStatusBox: some View {
         VStack(alignment: .leading, spacing: 10) {
             if state.usingHelper {
-                Label("Background helper installed and active.", systemImage: "checkmark.circle.fill")
+                Label("后台 Helper 已安装并运行。", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             } else if state.helperNeedsApproval {
-                Label("Approve NightCat under System Settings ▸ Login Items, then come back here.", systemImage: "exclamationmark.circle.fill")
+                Label("请在 系统设置 ▸ 登录项 中批准 NightCat，然后回到这里。", systemImage: "exclamationmark.circle.fill")
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
-                Button("Open Login Items to approve…") { state.installHelper() }
+                Button("前往登录项批准…") { state.installHelper() }
             } else {
-                Button("Install background helper…") { state.installHelper() }
+                Button("安装后台 Helper…") { state.installHelper() }
                     .buttonStyle(.borderedProminent)
             }
 
@@ -120,13 +120,13 @@ struct OnboardingView: View {
 
     private var doneStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            header(symbol: "checkmark.circle.fill", title: "You're all set")
-            Text("Click the NightCat icon in the menu bar and flip **Keep awake with lid closed** whenever you need it. Safety options live in Settings.")
+            header(symbol: "checkmark.circle.fill", title: "一切就绪")
+            Text("点击菜单栏的 NightCat 图标，按需在「关闭 / 常亮 / 防空闲 / 合盖」四个档位间切换。安全选项在「设置…」里。")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Toggle("Launch NightCat at login", isOn: Binding(
+            Toggle("登录时启动 NightCat", isOn: Binding(
                 get: { state.launchAtLogin },
                 set: { state.setLaunchAtLogin($0) }
             ))
@@ -139,7 +139,7 @@ struct OnboardingView: View {
 
     private var footer: some View {
         HStack {
-            Button("Back") {
+            Button("上一步") {
                 withAnimation { step -= 1 }
             }
             .disabled(step == 0)
@@ -157,7 +157,7 @@ struct OnboardingView: View {
 
             Spacer()
 
-            Button(step == lastStep ? "Done" : "Continue") {
+            Button(step == lastStep ? "完成" : "继续") {
                 if step == lastStep {
                     state.completeOnboarding()
                 } else {

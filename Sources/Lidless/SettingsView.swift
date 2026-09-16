@@ -1,12 +1,13 @@
 import SwiftUI
 
 /// The Settings window. Holds the secondary controls and the detailed
-/// explanations that used to clutter the menu bar popover: launch at login,
-/// background-helper setup, the auto-off timer, and About/GitHub.
+/// explanations that would clutter the menu bar popover (panel-mockup §2):
+/// general preferences, the safety checks, auto mode, background-helper
+/// setup, and About.
 struct SettingsView: View {
     /// Fixed size of the window this view lives in — the view isn't resizable,
     /// so `SettingsWindowController` sizes the window from the same constant.
-    static let preferredSize = CGSize(width: 420, height: 460)
+    static let preferredSize = CGSize(width: 420, height: 560)
 
     @EnvironmentObject var state: AppState
 
@@ -14,47 +15,57 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("General") {
-                Toggle("Launch at login", isOn: Binding(
+            Section("通用") {
+                Toggle("登录时启动 NightCat", isOn: Binding(
                     get: { state.launchAtLogin },
                     set: { state.setLaunchAtLogin($0) }
                 ))
-                Toggle("Lock mode when a timer starts", isOn: Binding(
+                Toggle("启动定时时自动锁定档位", isOn: Binding(
                     get: { state.settings.autoLockOnTimerStart },
                     set: { v in var s = state.settings; s.autoLockOnTimerStart = v; state.updateSettings(s) }
                 ))
-                Button("Show Setup Guide…") { state.showOnboarding() }
+                Button("查看设置指南…") { state.showOnboarding() }
             }
 
-            Section {
-                LabeledContent("Status") {
+            Section("安全") {
+                Toggle("仅插电时保持", isOn: Binding(
+                    get: { state.settings.onlyWhileCharging },
+                    set: { v in var s = state.settings; s.onlyWhileCharging = v; state.updateSettings(s) }
+                ))
+                Toggle("过热时自动暂停", isOn: Binding(
+                    get: { state.settings.pauseOnHighThermal },
+                    set: { v in var s = state.settings; s.pauseOnHighThermal = v; state.updateSettings(s) }
+                ))
+                LowBatteryCutoffRow()
+            }
+
+            Section("自动") {
+                Toggle("充电时自动开启（合盖档）", isOn: Binding(
+                    get: { state.settings.autoEnableWhenCharging },
+                    set: { v in var s = state.settings; s.autoEnableWhenCharging = v; state.updateSettings(s) }
+                ))
+            }
+
+            Section("后台 Helper") {
+                LabeledContent("状态") {
                     HStack(spacing: 6) {
                         Image(systemName: state.usingHelper ? "checkmark.shield.fill" : "exclamationmark.shield")
                             .foregroundStyle(state.usingHelper ? .green : .orange)
-                        Text(state.usingHelper ? "Active" : "Using admin prompt")
+                        Text(state.usingHelper ? "已启用" : "未安装")
                             .foregroundStyle(.secondary)
                     }
                 }
                 if !state.helperInstalled {
-                    Text("Install the background helper once so toggling never asks for your password and the watchdog can protect against a stuck-awake Mac.")
+                    Text("安装一次后台 Helper，切换档位时便不再询问管理员密码，看门狗也能防止 Mac 卡在保持唤醒状态。")
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                    Button(state.helperNeedsApproval ? "Open Login Items to approve…" : "Install background helper…") {
+                    Button(state.helperNeedsApproval ? "前往登录项批准…" : "安装后台 Helper…") {
                         state.installHelper()
                     }
                 }
-            } header: {
-                Text("Background helper")
             }
 
-            // The auto-off timer used to live here as a preference — set a
-            // duration, then separately remember to flip the switch. It's now a
-            // "Keep awake for…" control in the popover next to the toggle it
-            // governs, where choosing a duration also turns keep-awake on. One
-            // concept, one place; a second entry point here would only be a
-            // second thing to keep in step.
-
-            Section("About") {
+            Section("关于") {
                 HStack(spacing: 12) {
                     if let icon = NSApp.applicationIconImage {
                         Image(nsImage: icon)
@@ -63,18 +74,72 @@ struct SettingsView: View {
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text("NightCat").font(.headline)
-                        Text("Version \(state.appVersion)")
+                        Text("版本 \(state.appVersion)")
                             .font(.callout)
                             .foregroundStyle(.secondary)
-                        Text("Created by Nghia Luong")
+                        Text("TAO LIU · 基于 Nghia Luong 的开源项目 Lidless")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
                 }
-                Link("View on GitHub", destination: repoURL)
+                Link("在 GitHub 上查看上游 Lidless", destination: repoURL)
             }
         }
         .formStyle(.grouped)
         .frame(width: Self.preferredSize.width, height: Self.preferredSize.height)
+    }
+}
+
+/// Low-battery cutoff slider (0–100%, snapping in 5% steps). `0` means
+/// 「不限」 — the low-battery check is disabled entirely.
+private struct LowBatteryCutoffRow: View {
+    @EnvironmentObject var state: AppState
+
+    /// The value shown while dragging. Committing on every step would write
+    /// UserDefaults — and, in auto mode, run a reconcile that can reach the
+    /// privileged helper — once per 5% of travel, so the commit waits for the
+    /// drag to end.
+    @State private var dragging: Double?
+
+    private var threshold: Int { state.settings.lowBatteryThreshold }
+
+    /// The committed value, or the in-flight one while a drag is in progress.
+    private var shown: Int { Int((dragging ?? Double(threshold)).rounded()) }
+
+    private var value: Binding<Double> {
+        Binding(get: { dragging ?? Double(threshold) },
+                set: { dragging = $0 })
+    }
+
+    /// Commit the dragged value once the drag ends, and only if it actually moved.
+    private func commit(editing: Bool) {
+        guard !editing, let value = dragging else { return }
+        dragging = nil
+        var updated = state.settings
+        updated.lowBatteryThreshold = Int(value.rounded())
+        guard updated != state.settings else { return }
+        state.updateSettings(updated)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 12) {
+                Text("低电量阈值")
+                Spacer(minLength: 16)
+                Text(shown == 0 ? "不限" : "\(shown)%")
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+
+            Slider(value: value,
+                   in: 0...100,
+                   step: 5,
+                   label: { Text("低电量阈值") },
+                   minimumValueLabel: { Text("不限").font(.caption2).foregroundStyle(.secondary) },
+                   maximumValueLabel: { Text("100%").font(.caption2).foregroundStyle(.secondary) },
+                   onEditingChanged: commit)
+                .labelsHidden()
+        }
+        .padding(.vertical, 4)
     }
 }

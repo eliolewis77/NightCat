@@ -2,112 +2,74 @@ import SwiftUI
 
 /// Shared horizontal inset so every row, divider, and the footer line up on the
 /// same leading/trailing columns.
-private let hInset: CGFloat = 20
+private let hInset: CGFloat = 14
 
-/// The menu bar popover.
-///
-/// The tier picker, a compact status strip, and the core safety controls.
-/// Everything secondary (helper setup, launch at login, GitHub) lives in the
-/// Settings window.
+/// The menu bar popover (panel-mockup §2): status row, tier segments, inline
+/// warnings, timer chips, battery + helper rows, footer. Secondary settings
+/// live in the Settings window.
 struct MenuContent: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            PopoverHeader()
-                .padding(.horizontal, hInset)
-                .padding(.top, 18)
+            StatusRow()
 
-            Text("Control when your Mac sleeps.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, hInset)
-                .padding(.top, 8)
+            TierSegmentRow()
 
-            Divider()
-                .padding(.horizontal, hInset)
-                .padding(.top, 14)
-
-            ModePickerRow()
-                .padding(.horizontal, hInset)
-
-            if state.batteryWarning != nil {
-                BatteryWarningBanner()
-                    .padding(.horizontal, hInset)
-                    .padding(.bottom, 10)
-            }
-
-            KeepAwakeDurationRow()
-                .padding(.horizontal, hInset)
-
+            // Neutral notices first (external takeover / verification / the
+            // ordinary error or safety note), strongest slot above the picker
+            // so they're read before any decision (mockup §3 variant 2).
             if !state.autoWarningReasons.isEmpty {
-                AutoDisabledWarning(reasons: state.autoWarningReasons)
-                    .padding(.horizontal, hInset)
-                    .padding(.bottom, 10)
+                NoticeBanner(text: "自动模式已开启，但当前条件不满足：\(state.autoWarningReasons.map { $0.checkLabel }.joined(separator: "、"))。",
+                             systemImage: "exclamationmark.circle.fill",
+                             tint: Color(nsColor: .systemYellow))
             }
 
-            Divider()
-                .padding(.horizontal, hInset)
-
-            StatusStrip()
-                .padding(.horizontal, hInset)
-                .padding(.vertical, 10)
-
-            // Three disjoint slots, strongest first: something changed the flag
-            // behind our back, we couldn't confirm our own change, and the
-            // ordinary error/safety note.
             if let notice = state.externalNotice {
-                Label(notice, systemImage: "exclamationmark.triangle.fill")
-                    .font(.callout)
-                    .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, hInset)
-                    .padding(.bottom, 10)
+                NoticeBanner(text: notice, systemImage: "exclamationmark.triangle.fill",
+                             tint: Color(nsColor: .systemYellow))
             }
 
             if let notice = state.verificationNotice {
-                Label(notice, systemImage: "questionmark.circle.fill")
-                    .font(.callout)
-                    .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, hInset)
-                    .padding(.bottom, 10)
+                NoticeBanner(text: notice, systemImage: "questionmark.circle.fill",
+                             tint: Color(nsColor: .systemYellow))
             }
 
             if let err = state.lastError {
-                Label(err, systemImage: "info.circle")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, hInset)
-                    .padding(.bottom, 10)
+                NoticeBanner(text: err, systemImage: "info.circle",
+                             tint: Color.secondary)
             }
 
-            Divider()
-                .padding(.horizontal, hInset)
+            if state.batteryWarning != nil {
+                BatteryWarningBanner()
+            }
 
-            SafetySection()
-                .padding(.horizontal, hInset)
-                .padding(.top, 12)
-
-            Divider()
-                .padding(.horizontal, hInset)
-                .padding(.top, 12)
-
-            AutomaticSection()
-                .padding(.horizontal, hInset)
-                .padding(.top, 12)
+            TimerSection()
 
             Divider()
                 .padding(.horizontal, hInset)
-                .padding(.top, 12)
+                .padding(.top, 13)
 
-            FooterActions()
-                .padding(.horizontal, hInset)
-                .padding(.bottom, 14)
+            BatteryRow()
+            HelperRow()
+
+            HStack {
+                SettingsButton()
+                Spacer()
+                Button {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    Label("退出 NightCat", systemImage: "power")
+                        .foregroundStyle(.secondary)
+                }
+                .keyboardShortcut("q")
+            }
+            .buttonStyle(.plain)
+            .font(.callout)
+            .padding(.horizontal, hInset)
+            .padding(.vertical, 10)
         }
-        .frame(width: 360)
+        .frame(width: 324)
         // The popover is the moment the user actually looks at the toggle, so
         // it's the moment it most needs to be true.
         .onAppear { state.refreshState() }
@@ -122,71 +84,99 @@ struct MenuContent: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("Switch & Unlock") { state.confirmLockedSwitch() }
-            Button("Cancel", role: .cancel) { state.cancelLockedSwitch() }
+            Button("切换并解除锁定") { state.confirmLockedSwitch() }
+            Button("取消", role: .cancel) { state.cancelLockedSwitch() }
         }
     }
 
-    /// SPEC §6's wording, with the target tier's segment name in place.
+    /// SPEC §6's wording, with the target tier's full name in place.
     private var lockedSwitchMessage: String {
-        let name = state.pendingLockedSwitch?.label ?? ""
-        return "Mode is locked. Switching to “\(name)” may interrupt running tasks."
+        let name = state.pendingLockedSwitch?.displayName ?? ""
+        return "档位已锁定。切换到「\(name)」可能中断正在运行的任务。"
     }
 }
 
-// MARK: - Reusable row
+// MARK: - Status row
 
-/// A native settings-style row: leading label, flexible gap, trailing control
-/// pinned to the shared right edge. Used for the primary toggle and every
-/// safety row so all controls share one trailing column.
-private struct SettingRow<Trailing: View>: View {
-    let title: String
-    var titleFont: Font = .callout
-    var minHeight: CGFloat = 36
-    @ViewBuilder var trailing: () -> Trailing
+/// Top row (mockup §2): tier full name in the tier's color, one-line meaning,
+/// remaining time in monospaced digits, lock button at the trailing edge.
+private struct StatusRow: View {
+    @EnvironmentObject var state: AppState
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var tierColor: Color {
+        MenubarStyle.tierColor(state.controlMode, colorScheme: colorScheme)
+    }
+
+    private var countdown: String? {
+        MenubarStyle.countdownText(mode: state.controlMode,
+                                   autoOffRemaining: state.autoOffRemaining)
+    }
 
     var body: some View {
-        HStack(spacing: 12) {
-            Text(title)
-                .font(titleFont)
-                .lineLimit(1)
-            Spacer(minLength: 16)
-            trailing()
-                .fixedSize()
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(state.controlMode.displayName)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(tierColor)
+                Text(state.controlMode.explanation)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            if let countdown {
+                Text(countdown)
+                    .font(.system(size: 13).monospacedDigit())
+                    .foregroundStyle(.primary.opacity(0.85))
+            }
+            ModeLockButton()
         }
-        .frame(minHeight: minHeight)
+        .padding(.horizontal, hInset)
+        .padding(.top, 14)
+        .padding(.bottom, 12)
     }
 }
 
-// MARK: - Header
-
-private struct PopoverHeader: View {
+/// The mode lock: lit pins the current tier. Tapping it while locked releases
+/// the pin — and drops any switch still awaiting confirmation.
+private struct ModeLockButton: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text("NightCat").font(.headline)
-            Spacer()
-            Text("v\(state.appVersion)")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+        Button {
+            state.setModeLocked(!state.isModeLocked)
+        } label: {
+            Image(systemName: state.isModeLocked ? "lock.fill" : "lock.open")
+                .font(.system(size: 12, weight: .medium))
+                .frame(width: 27, height: 27)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(state.isModeLocked ? Color.accentColor : Color.clear)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(Color.primary.opacity(0.12))
+                        )
+                )
+                .foregroundColor(state.isModeLocked ? .white : Color(white: 0.55))
         }
+        .buttonStyle(.plain)
+        .help(state.isModeLocked ? "已锁定，点击解锁" : "锁定当前档位")
+        .accessibilityLabel(state.isModeLocked ? "档位已锁定" : "档位未锁定")
     }
 }
 
-// MARK: - Mode picker
+// MARK: - Tier segments
 
-/// The strongest row in the popover: the tier picker. One control, four
-/// states — the tiers are a ladder of intrusion, not independent switches,
-/// so only one can be active at a time.
-private struct ModePickerRow: View {
+/// The four-tier segmented picker (mockup §2). Short names; the status row
+/// above carries the full name, so segments stay narrow enough for four.
+private struct TierSegmentRow: View {
     @EnvironmentObject var state: AppState
 
     private var autoMode: Bool { state.settings.autoEnableWhenCharging }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Picker("Mode", selection: Binding(
+        VStack(alignment: .leading, spacing: 7) {
+            Picker("档位", selection: Binding(
                 get: { state.controlMode },
                 set: { state.setControlMode($0) }
             )) {
@@ -201,375 +191,303 @@ private struct ModePickerRow: View {
             // while locked can only arrive before the disabled view lands.
             .disabled(state.isModeLocked)
 
-            Text(explanation(for: state.controlMode))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if autoMode {
-                Text("Screen and Idle aren’t used while “Automatically enable when charging” is on — it drives the Lid tier.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            if state.isModeLocked {
+                Label("档位已锁定，点击其他档需二次确认 · 重启后自动解锁", systemImage: "lock")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.tertiary)
+                    .labelStyle(.titleAndIcon)
+            } else if autoMode {
+                Text("自动模式开启时不使用常亮与防空闲档——它只驱动合盖档。")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, 8)
-    }
-
-    private func explanation(for mode: KeepAwakeMode) -> String {
-        switch mode {
-        case .off:         return "Following your Mac’s normal sleep settings."
-        case .screen:      return "The screen stays on. The system may still sleep."
-        case .preventIdle: return "The system won’t idle-sleep; the screen may turn off."
-        case .lidClosed:   return "Stays awake with the lid closed. Highest power use."
-        }
+        .padding(.horizontal, hInset)
+        .padding(.bottom, 2)
     }
 }
 
-// MARK: - Battery warning banner
+// MARK: - Notices
 
-/// SPEC §8's inline warning (no system dialogs): the lid tier is requested —
-/// or already running — on battery, and the user decides. Continues are never
-/// offered for hard refusals (low battery, thermal): those never produce a
-/// banner in the first place.
+/// A quiet inline bar for transient explanations (mockup §3): neutral tint,
+/// no actions.
+private struct NoticeBanner: View {
+    let text: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Label {
+            Text(text)
+                .font(.system(size: 12))
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: systemImage)
+                .foregroundStyle(tint)
+        }
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, hInset)
+        .padding(.top, 6)
+    }
+}
+
+// MARK: - Battery warning banner (SPEC §8)
+
+/// The inline battery warning: the lid tier is requested — or already
+/// running — on battery, and the user decides. Continues are never offered
+/// for hard refusals (low battery, thermal): those never produce a banner.
 private struct BatteryWarningBanner: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label {
-                Text("Running on battery. Lid-closed keep-awake uses roughly 8–12% per hour and traps heat with the lid closed.")
+                Text("当前使用电池。合盖不睡约每小时耗电 8–12%，且合盖散热受限。")
+                    .font(.system(size: 12))
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(Color(nsColor: .systemYellow))
+                    .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
             }
-            .font(.callout)
+            .foregroundStyle(.primary.opacity(0.85))
 
-            Toggle("Don’t remind me again this session",
-                   isOn: $state.suppressBatteryWarningThisSession)
-                .font(.caption)
-                .controlSize(.small)
-
-            HStack(spacing: 8) {
-                Button("Continue") { state.resolveBatteryWarning(.keepLid) }
+            HStack(spacing: 7) {
+                Button("继续") { state.resolveBatteryWarning(.keepLid) }
                     .buttonStyle(.borderedProminent)
-                Button("Use Idle Instead") { state.resolveBatteryWarning(.useIdle) }
-                Button("Cancel") { state.resolveBatteryWarning(.cancel) }
+                    .tint(Color(red: 0.937, green: 0.624, blue: 0.153))
+                Button("改用防空闲") { state.resolveBatteryWarning(.useIdle) }
+                Button("取消") { state.resolveBatteryWarning(.cancel) }
                 Spacer(minLength: 0)
             }
             .controlSize(.small)
+
+            Toggle("本次会话不再提醒（重启前）",
+                   isOn: $state.suppressBatteryWarningThisSession)
+                .font(.system(size: 11.5))
+                .controlSize(.small)
+                .tint(Color(red: 0.937, green: 0.624, blue: 0.153))
         }
-        .padding(10)
-        .background(Color(nsColor: .unemphasizedSelectedContentBackgroundColor).opacity(0.35))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(11)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(red: 0.937, green: 0.624, blue: 0.153).opacity(0.13))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(Color(red: 0.937, green: 0.624, blue: 0.153).opacity(0.38))
+                )
+        )
+        .padding(.horizontal, hInset)
+        .padding(.top, 10)
     }
 }
 
-// MARK: - Keep-awake duration
+// MARK: - Timer (SPEC §7)
 
-/// "Keep awake for 15 minutes" as a single gesture: picking a duration turns
-/// keep-awake on and starts the countdown that turns it back off.
-///
-/// Sits directly under the toggle because it modifies it — this is how long the
-/// switch above stays on, not a setting that lives somewhere else.
-private struct KeepAwakeDurationRow: View {
+/// Timer chips (mockup §2A): 不限时 / presets / 自定义…. Selecting a duration
+/// both sets it and (via `keepAwakeFor`) turns keep-awake on when off — one
+/// gesture. D8's note under the chips: expiry closes every tier at once.
+private struct TimerSection: View {
     @EnvironmentObject var state: AppState
+    @State private var isEditingCustom = false
+    @State private var customDraft = ""
 
     private var autoMode: Bool { state.settings.autoEnableWhenCharging }
 
+    private var isPreset: Bool {
+        state.autoOffMinutes == 0 || AutoOff.presetMinutes.contains(state.autoOffMinutes)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            SettingRow(title: "Keep awake for", minHeight: 32) {
-                // A Menu of buttons rather than a Picker: a Picker's binding only
-                // fires when the value *changes*, so after a timer had elapsed,
-                // choosing the same duration again would do nothing at all —
-                // exactly when someone wants another fifteen minutes.
-                Menu {
-                    Button(AutoOff.durationLabel(minutes: 0)) { state.keepAwakeFor(minutes: 0) }
-                    ForEach(AutoOff.presetMinutes, id: \.self) { minutes in
-                        Button(AutoOff.optionLabel(minutes: minutes)) {
-                            state.keepAwakeFor(minutes: minutes)
-                        }
-                    }
-                } label: {
-                    Text(AutoOff.durationLabel(minutes: state.autoOffMinutes))
+        VStack(alignment: .leading, spacing: 8) {
+            Label("定时关闭", systemImage: "timer")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+
+            if isEditingCustom {
+                HStack(spacing: 8) {
+                    TextField("分钟（1–240）", text: $customDraft)
+                        .textFieldStyle(.roundedBorder)
+                        .controlSize(.small)
+                        .onSubmit(applyCustom)
+                    Button("好", action: applyCustom)
+                        .controlSize(.small)
+                    Button("取消") { isEditingCustom = false }
+                        .controlSize(.small)
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
+            } else {
+                FlowChips(selected: chipSelection) { minutes, label in
+                    state.keepAwakeFor(minutes: minutes)
+                } custom: {
+                    isEditingCustom = true
+                    customDraft = isPreset ? "" : String(state.autoOffMinutes)
+                }
                 .disabled(autoMode)
-            }
 
-            if !state.autoOffRemaining.isEmpty {
-                Label("Turning off in \(state.autoOffRemaining)", systemImage: "timer")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            } else if autoMode {
-                // Auto mode decides activation itself, so a countdown would
-                // disarm the feature behind its back. Say so rather than leaving
-                // a control that looks live and does nothing.
-                Text("Not used while “Automatically enable when charging” is on.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if autoMode {
+                    Text("自动模式开启时不使用定时——由充电状态自动控制。")
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("到点将直接关闭全部档位，不逐级回落")
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.tertiary)
+                }
             }
         }
-        .padding(.bottom, 8)
+        .padding(.horizontal, hInset)
+        .padding(.top, 11)
+        .padding(.bottom, 2)
+    }
+
+    /// `nil` selects nothing (a custom value keeps 自定义… lit via the flag).
+    private var chipSelection: Int? {
+        isPreset ? state.autoOffMinutes : nil
+    }
+
+    private func applyCustom() {
+        defer { isEditingCustom = false }
+        guard let minutes = Int(customDraft.trimmingCharacters(in: .whitespaces)),
+              (1...240).contains(minutes) else { return }
+        state.keepAwakeFor(minutes: minutes)
     }
 }
 
-// MARK: - Status strip
+/// Chip row: leading 不限时 chip, preset chips, trailing 自定义…. The custom
+/// chip lights whenever the current value is neither 0 nor a preset.
+private struct FlowChips: View {
+    let selected: Int?
+    let choose: (Int, String) -> Void
+    let custom: () -> Void
+    @EnvironmentObject private var state: AppState
 
-/// Essential live status only: helper health + battery level, with the mode
-/// lock at the trailing edge (SPEC §6: a small padlock on the status row's
-/// right; lit = the current tier is pinned).
-private struct StatusStrip: View {
-    @EnvironmentObject var state: AppState
-
-    var body: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 6) {
-                Image(systemName: state.usingHelper ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                    .foregroundStyle(state.usingHelper ? .green : .orange)
-                Text(state.usingHelper ? "Helper active" : "Helper inactive")
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(state.usingHelper ? "Background helper active" : "Background helper inactive")
-
-            Spacer(minLength: 12)
-
-            HStack(spacing: 6) {
-                Image(systemName: batterySymbol)
-                Text("Battery \(state.batteryPercent)%")
-                    .monospacedDigit()
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Battery \(state.batteryPercent) percent\(state.batteryOnAC ? ", on power" : "")")
-
-            ModeLockButton()
-        }
-        .font(.callout)
-        .foregroundStyle(.secondary)
+    private var isCustomActive: Bool {
+        state.autoOffMinutes > 0 && !AutoOff.presetMinutes.contains(state.autoOffMinutes)
     }
 
-    /// Closest native battery glyph for the current charge (names available on
-    /// macOS 13+).
-    private var batterySymbol: String {
-        switch state.batteryPercent {
-        case 88...:   return "battery.100"
-        case 63..<88: return "battery.75"
-        case 38..<63: return "battery.50"
-        case 13..<38: return "battery.25"
-        default:      return "battery.0"
+    var body: some View {
+        HStack(spacing: 6) {
+            chip(0, "不限时")
+            ForEach(AutoOff.presetMinutes, id: \.self) { minutes in
+                chip(minutes, AutoOff.optionLabel(minutes: minutes))
+            }
+            customChip()
+            Spacer(minLength: 0)
         }
     }
-}
 
-/// The mode lock: lit (`lock.fill`) pins the current tier. Tapping it while
-/// locked releases the pin — and drops any switch still awaiting confirmation.
-private struct ModeLockButton: View {
-    @EnvironmentObject var state: AppState
-
-    var body: some View {
+    private func chip(_ minutes: Int, _ label: String) -> some View {
         Button {
-            state.setModeLocked(!state.isModeLocked)
+            choose(minutes, label)
         } label: {
-            Image(systemName: state.isModeLocked ? "lock.fill" : "lock.open")
+            Text(label)
+                .font(.system(size: 11.5))
+                .padding(.horizontal, 9)
+                .padding(.vertical, 3.5)
+                .background(
+                    Capsule().fill(selected == minutes
+                        ? Color.primary.opacity(0.14)
+                        : Color.clear)
+                )
+                .overlay(
+                    Capsule().strokeBorder(Color.primary.opacity(0.14))
+                )
+                .foregroundStyle(selected == minutes ? .primary : .secondary)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(state.isModeLocked ? Color.accentColor : Color.secondary)
-        .help(state.isModeLocked
-              ? "Mode locked — unlock to allow switching"
-              : "Lock the current mode")
-        .accessibilityLabel(state.isModeLocked ? "Mode locked" : "Mode unlocked")
+    }
+
+    private func customChip() -> some View {
+        Button(action: custom) {
+            Text("自定义…")
+                .font(.system(size: 11.5))
+                .padding(.horizontal, 9)
+                .padding(.vertical, 3.5)
+                .background(
+                    Capsule().fill(isCustomActive
+                        ? Color.primary.opacity(0.14)
+                        : Color.clear)
+                )
+                .overlay(
+                    Capsule().strokeBorder(Color.primary.opacity(0.14))
+                )
+                .foregroundStyle(isCustomActive ? .primary : .secondary)
+        }
+        .buttonStyle(.plain)
     }
 }
 
-// MARK: - Safety
+// MARK: - Battery + helper rows
 
-private struct SafetySection: View {
+/// Power row (mockup §2): source icon + label, thin charge bar, percentage.
+/// The bar stays neutral — color is the tier channel, not a battery channel.
+private struct BatteryRow: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Safety")
-                .font(.subheadline.weight(.semibold))
+        HStack(spacing: 9) {
+            Image(systemName: state.batteryOnAC ? "bolt.fill" : "battery.75")
+                .font(.system(size: 11))
+                .foregroundStyle(state.batteryOnAC
+                    ? Color(red: 0.941, green: 0.780, blue: 0.369)   // #F0C75E
+                    : Color.secondary)
+            Text(state.batteryOnAC ? "电源适配器" : "电池")
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-                .padding(.bottom, 2)
-
-            SettingRow(title: "Only while charging") {
-                Toggle("Only while charging", isOn: Binding(
-                    get: { state.settings.onlyWhileCharging },
-                    set: { v in var s = state.settings; s.onlyWhileCharging = v; state.updateSettings(s) }
-                ))
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.small)
-            }
-
-            SettingRow(title: "Pause when running hot") {
-                Toggle("Pause when running hot", isOn: Binding(
-                    get: { state.settings.pauseOnHighThermal },
-                    set: { v in var s = state.settings; s.pauseOnHighThermal = v; state.updateSettings(s) }
-                ))
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.small)
-            }
-
-            LowBatteryCutoffRow()
-        }
-    }
-}
-
-/// Full-width low-battery cutoff slider (0–100%, snapping in 5% steps). `0` means
-/// "Never" — the low-battery check is disabled entirely.
-private struct LowBatteryCutoffRow: View {
-    @EnvironmentObject var state: AppState
-
-    /// The value shown while dragging. Committing on every step would write
-    /// UserDefaults — and, in auto mode, run a reconcile that can reach the
-    /// privileged helper — once per 5% of travel, so the commit waits for the
-    /// drag to end.
-    @State private var dragging: Double?
-
-    private var threshold: Int { state.settings.lowBatteryThreshold }
-
-    /// The committed value, or the in-flight one while a drag is in progress.
-    private var shown: Int { Int((dragging ?? Double(threshold)).rounded()) }
-
-    /// The cutoff only ever fires off power, so it's meaningless whenever
-    /// keep-awake is already gated on being plugged in — under "Only while
-    /// charging", and equally under auto mode, which requires external power.
-    private var isInactive: Bool {
-        state.settings.onlyWhileCharging || state.settings.autoEnableWhenCharging
-    }
-
-    private var value: Binding<Double> {
-        Binding(get: { dragging ?? Double(threshold) },
-                set: { dragging = $0 })
-    }
-
-    /// Commit the dragged value once the drag ends, and only if it actually moved.
-    private func commit(editing: Bool) {
-        guard !editing, let value = dragging else { return }
-        dragging = nil
-        var updated = state.settings
-        updated.lowBatteryThreshold = Int(value.rounded())
-        guard updated != state.settings else { return }
-        state.updateSettings(updated)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 12) {
-                Text("Low-battery cutoff")
-                    .font(.callout)
-                    .lineLimit(1)
-                Spacer(minLength: 16)
-                Text(shown == 0 ? "Never" : "\(shown)%")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-
-            Slider(value: value,
-                   in: 0...100,
-                   step: 5,
-                   label: { Text("Low-battery cutoff") },
-                   minimumValueLabel: { Text("Never").font(.caption2).foregroundStyle(.secondary) },
-                   maximumValueLabel: { Text("100%").font(.caption2).foregroundStyle(.secondary) },
-                   onEditingChanged: commit)
-            .labelsHidden()
-            .controlSize(.small)
-        }
-        .frame(minHeight: 36)
-        .padding(.vertical, 4)
-        .disabled(isInactive)
-    }
-}
-
-// MARK: - Auto-mode warning
-
-/// Shown directly under the primary toggle when auto mode is armed but keep-awake
-/// isn't live right now, listing every safety check currently blocking it.
-private struct AutoDisabledWarning: View {
-    let reasons: [SafetyReason]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Image(systemName: "exclamationmark.circle.fill")
-                    .foregroundStyle(Color(nsColor: .systemYellow))
-                Text("Automatic mode is on, but keep-awake isn’t active right now.")
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .font(.callout)
-
-            Text("Temporarily disabled because the following check(s) failed:")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(Array(reasons.enumerated()), id: \.offset) { _, reason in
-                    Text("• \(reason.checkLabel)")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.primary.opacity(0.12))
+                    Capsule()
+                        .fill(Color.primary.opacity(0.55))
+                        .frame(width: geo.size.width * CGFloat(state.batteryPercent) / 100)
                 }
             }
-            .padding(.leading, 4)
+            .frame(height: 4)
+            Text("\(state.batteryPercent)%")
+                .font(.system(size: 11.5).monospacedDigit())
+                .foregroundStyle(.secondary)
         }
+        .padding(.horizontal, hInset)
+        .padding(.top, 10)
     }
 }
 
-// MARK: - Automatic
-
-private struct AutomaticSection: View {
+/// Helper availability (mockup §2): a quiet green line when installed; when
+/// not, an orange line with the install action — the lid tier is unusable
+/// without it, so the panel must say so where the tier is picked.
+private struct HelperRow: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Automatic")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 2)
-
-            SettingRow(title: "Automatically enable when charging") {
-                Toggle("Automatically enable when charging", isOn: Binding(
-                    get: { state.settings.autoEnableWhenCharging },
-                    set: { v in var s = state.settings; s.autoEnableWhenCharging = v; state.updateSettings(s) }
-                ))
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.small)
+        HStack(spacing: 9) {
+            if state.usingHelper {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.365, green: 0.796, blue: 0.647))
+                Text("特权 Helper 已安装 · 合盖档可用")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+            } else {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
+                Text("未安装特权 Helper · 合盖档不可用")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Button("安装…") { state.installHelper() }
+                    .controlSize(.small)
+                    .buttonStyle(.link)
             }
         }
+        .padding(.horizontal, hInset)
+        .padding(.top, 6)
+        .padding(.bottom, 4)
     }
 }
 
 // MARK: - Footer
-
-private struct FooterActions: View {
-    var body: some View {
-        HStack {
-            SettingsButton()
-            Spacer()
-            Button {
-                NSApplication.shared.terminate(nil)
-            } label: {
-                Label("Quit NightCat", systemImage: "power")
-                    .foregroundStyle(.secondary)
-            }
-            .keyboardShortcut("q")
-        }
-        .buttonStyle(.plain)
-        .font(.callout)
-        .frame(minHeight: 36)
-    }
-}
 
 /// Opens the Settings window. Neither `SettingsLink` nor `showSettingsWindow:`
 /// reliably activates an LSUIElement app (issue #22), so a plain button drives
@@ -584,9 +502,10 @@ private struct SettingsButton: View {
             MenuBarExtraPanel.dismiss()
             state.showSettings()
         } label: {
-            Label("Settings…", systemImage: "gearshape")
+            Label("设置…", systemImage: "gearshape")
                 .foregroundStyle(.secondary)
         }
         .keyboardShortcut(",", modifiers: .command)
+        .buttonStyle(.plain)
     }
 }

@@ -18,7 +18,13 @@ struct LidlessApp: App {
             MenuContent()
                 .environmentObject(state)
         } label: {
-            Image(state.isActive ? "MenubarLaptopActive" : "MenubarLaptop")
+            // Panel-mockup §1: tier color + optional countdown + lock badge.
+            // `mode` (the live tier), not `controlMode`: the bar shows what
+            // the Mac is actually doing, and in auto mode that can differ
+            // from the armed intent the picker displays.
+            MenubarIndicator(mode: state.mode,
+                             autoOffRemaining: state.autoOffRemaining,
+                             isModeLocked: state.isModeLocked)
         }
         .menuBarExtraStyle(.window)
         // No `Settings` scene: it doesn't reliably surface in an LSUIElement app

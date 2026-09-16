@@ -316,7 +316,7 @@ final class AppState: ObservableObject {
         case .lidClosed: setArmed(true)
         case .off:       setArmed(false)
         case .screen, .preventIdle:
-            lastError = "Screen and Idle aren’t used while “Automatically enable when charging” is on — it drives the Lid tier."
+            lastError = "自动模式开启时不使用常亮与防空闲档——它只驱动合盖档。"
         }
     }
 
@@ -515,7 +515,7 @@ final class AppState: ObservableObject {
             // lost: "cancel" is the user declining the battery run, so the
             // tier comes off rather than sitting on until the cutoff.
             if context == .powerLost {
-                setMode(.off, note: "Turned off — running on battery.", origin: .safety)
+                setMode(.off, note: "已关闭——正在使用电池。", origin: .safety)
             }
         }
     }
@@ -587,10 +587,10 @@ final class AppState: ObservableObject {
 
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
-        alert.messageText = "Background helper enabled"
-        alert.informativeText = "Restart NightCat to finish connecting to the background helper."
-        alert.addButton(withTitle: "Restart Now")
-        alert.addButton(withTitle: "Later")
+        alert.messageText = "后台 Helper 已启用"
+        alert.informativeText = "重启 NightCat 以完成与后台 Helper 的连接。"
+        alert.addButton(withTitle: "立即重启")
+        alert.addButton(withTitle: "稍后")
         if alert.runModal() == .alertFirstButtonReturn {
             relaunch()
         }
@@ -620,7 +620,7 @@ final class AppState: ObservableObject {
             refreshHelperStatus()
             helperWasUsable = usingHelper
             if helper.requiresApproval {
-                lastError = "Approve NightCat in System Settings ▸ Login Items."
+                lastError = "请在 系统设置 ▸ 登录项 中批准 NightCat。"
                 helper.openLoginItemsSettings()
             } else {
                 lastError = nil
@@ -640,7 +640,7 @@ final class AppState: ObservableObject {
     /// Kept separate from `installHelper()` so re-registration can never swallow
     /// the open.
     func openLoginItems() {
-        lastError = "Approve NightCat in System Settings ▸ Login Items."
+        lastError = "请在 系统设置 ▸ 登录项 中批准 NightCat。"
         helper.openLoginItemsSettings()
         refreshHelperStatus()
     }
@@ -874,7 +874,7 @@ final class AppState: ObservableObject {
                     // The helper can fail without a message (e.g. a dropped XPC
                     // reply, or the daemon failing to launch after an update);
                     // surface it instead of letting the toggle silently no-op.
-                    let message = err ?? "The background helper didn’t respond."
+                    let message = err ?? "后台 Helper 未响应。"
                     self.lastError = message
                     if origin == .user { self.presentHelperFailureAlert(message: message) }
                     self.recoverStateAfterFailedWrite()
@@ -955,9 +955,9 @@ final class AppState: ObservableObject {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = target ? "Couldn’t keep your Mac awake" : "Couldn’t turn keep-awake off"
+        alert.messageText = target ? "无法保持 Mac 唤醒" : "无法关闭保持唤醒"
         alert.informativeText = message
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "好")
         alert.runModal()
     }
 
@@ -969,10 +969,10 @@ final class AppState: ObservableObject {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = "Couldn’t keep your Mac awake"
-        alert.informativeText = "\(message)\n\nThis usually happens after an update. Reinstalling the background helper fixes it."
-        alert.addButton(withTitle: "Reinstall Helper…")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = "无法连接后台 Helper"
+        alert.informativeText = "\(message)\n\n这通常发生在更新之后，重新安装后台 Helper 即可修复。"
+        alert.addButton(withTitle: "重新安装 Helper…")
+        alert.addButton(withTitle: "取消")
         if alert.runModal() == .alertFirstButtonReturn {
             repairHelper()
         }
@@ -989,10 +989,10 @@ final class AppState: ObservableObject {
             if let error {
                 self.lastError = error.localizedDescription
             } else if self.helper.requiresApproval {
-                self.lastError = "Approve NightCat in System Settings ▸ Login Items, then try the switch again."
+                self.lastError = "请在 系统设置 ▸ 登录项 中批准 NightCat，然后重试切换。"
                 self.helper.openLoginItemsSettings()
             } else {
-                self.lastError = "Background helper reinstalled — try the switch again."
+                self.lastError = "后台 Helper 已重新安装——请重试切换。"
             }
         }
     }
@@ -1061,7 +1061,7 @@ final class AppState: ObservableObject {
             // "may interrupt running tasks" caveat is no longer true.
             setModeLocked(false)
             setMode(landed,
-                    note: "Auto-off: \(AutoOff.optionLabel(minutes: minutes)) elapsed.",
+                    note: "定时已到：已按 \(AutoOff.optionLabel(minutes: minutes)) 自动关闭。",
                     origin: .autoOff)
         } else {
             refreshAutoOffRemaining()
