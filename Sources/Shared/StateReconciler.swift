@@ -144,6 +144,28 @@ public enum StateReconciler {
             ? "The change didn’t hold — the system reports keep-awake is on."
             : "The change didn’t hold — the system reports keep-awake is off."
     }
+
+    // MARK: External takeover attribution (SPEC §9)
+
+    /// Worded notice for keep-awake that was turned on outside Lidless *and*
+    /// can be attributed: "Currently held by Amphetamine." — another tool's
+    /// session must never be presented as Lidless's own doing.
+    ///
+    /// `holders` are process names from
+    /// `PowerParsers.sleepAssertionHolders(pmsetAssertions:)` after the app
+    /// layer has filtered out its own processes (by pid — NightCat's own
+    /// `caffeinate` shows up in the list too). Duplicate names collapse
+    /// keeping first-seen order, since one process may hold several
+    /// assertions. With no names left the wording falls back to the existing
+    /// generic external-change notice rather than claiming an empty roster.
+    ///
+    /// English only for now — full localisation belongs to M5.
+    public static func externalTakeoverMessage(holders: [String]) -> String {
+        var seen = Set<String>()
+        let named = holders.filter { seen.insert($0).inserted }
+        guard !named.isEmpty else { return ExternalChange.enabledOutside.message }
+        return "Currently held by \(named.joined(separator: " and "))."
+    }
 }
 
 /// Decides which async replies are still worth applying.
