@@ -105,6 +105,26 @@ struct MenuContent: View {
         // The popover is the moment the user actually looks at the toggle, so
         // it's the moment it most needs to be true.
         .onAppear { state.refreshState() }
+        // Second confirmation for a switch the mode lock intercepted. The
+        // dialog's presence *is* the pending intent: dismissing it any other
+        // way (Esc, clicking away) cancels.
+        .confirmationDialog(
+            lockedSwitchMessage,
+            isPresented: Binding(
+                get: { state.pendingLockedSwitch != nil },
+                set: { if !$0 { state.cancelLockedSwitch() } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Switch & Unlock") { state.confirmLockedSwitch() }
+            Button("Cancel", role: .cancel) { state.cancelLockedSwitch() }
+        }
+    }
+
+    /// SPEC §6's wording, with the target tier's segment name in place.
+    private var lockedSwitchMessage: String {
+        let name = state.pendingLockedSwitch?.label ?? ""
+        return "Mode is locked. Switching to “\(name)” may interrupt running tasks."
     }
 }
 
@@ -170,6 +190,10 @@ private struct ModePickerRow: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            // A locked mode can't be clicked away — the whole point of the
+            // lock is that a stray click mustn't change the tier. Selections
+            // while locked can only arrive before the disabled view lands.
+            .disabled(state.isModeLocked)
 
             Text(explanation(for: state.controlMode))
                 .font(.caption)
@@ -250,7 +274,9 @@ private struct KeepAwakeDurationRow: View {
 
 // MARK: - Status strip
 
-/// Essential live status only: helper health + battery level.
+/// Essential live status only: helper health + battery level, with the mode
+/// lock at the trailing edge (SPEC §6: a small padlock on the status row's
+/// right; lit = the current tier is pinned).
 private struct StatusStrip: View {
     @EnvironmentObject var state: AppState
 
@@ -273,6 +299,8 @@ private struct StatusStrip: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Battery \(state.batteryPercent) percent\(state.batteryOnAC ? ", on power" : "")")
+
+            ModeLockButton()
         }
         .font(.callout)
         .foregroundStyle(.secondary)
@@ -288,6 +316,26 @@ private struct StatusStrip: View {
         case 13..<38: return "battery.25"
         default:      return "battery.0"
         }
+    }
+}
+
+/// The mode lock: lit (`lock.fill`) pins the current tier. Tapping it while
+/// locked releases the pin — and drops any switch still awaiting confirmation.
+private struct ModeLockButton: View {
+    @EnvironmentObject var state: AppState
+
+    var body: some View {
+        Button {
+            state.setModeLocked(!state.isModeLocked)
+        } label: {
+            Image(systemName: state.isModeLocked ? "lock.fill" : "lock.open")
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(state.isModeLocked ? Color.accentColor : Color.secondary)
+        .help(state.isModeLocked
+              ? "Mode locked — unlock to allow switching"
+              : "Lock the current mode")
+        .accessibilityLabel(state.isModeLocked ? "Mode locked" : "Mode unlocked")
     }
 }
 

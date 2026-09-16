@@ -19,6 +19,10 @@ struct SettingsView: View {
                     get: { state.launchAtLogin },
                     set: { state.setLaunchAtLogin($0) }
                 ))
+                Toggle("Lock mode when a timer starts", isOn: Binding(
+                    get: { state.settings.autoLockOnTimerStart },
+                    set: { v in var s = state.settings; s.autoLockOnTimerStart = v; state.updateSettings(s) }
+                ))
                 Button("Show Setup Guide…") { state.showOnboarding() }
             }
 

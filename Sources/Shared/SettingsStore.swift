@@ -10,6 +10,7 @@ public struct SettingsStore {
         static let onlyCharging = "onlyWhileCharging"
         static let pauseThermal = "pauseOnHighThermal"
         static let autoEnable   = "autoEnableWhenCharging"
+        static let autoLock     = "autoLockOnTimerStart"
         static let armed        = "keepAwakeArmed"
         static let seeded       = "settingsSeeded"
         static let autoOff      = "autoOffMinutes"
@@ -24,11 +25,14 @@ public struct SettingsStore {
 
     public func load() -> SafetySettings {
         guard defaults.bool(forKey: Key.seeded) else { return .default }
+        // `bool(forKey:)` is false when the key is absent, so an install from
+        // before `autoLockOnTimerStart` existed falls back to off on its own.
         return SafetySettings(
             lowBatteryThreshold: defaults.integer(forKey: Key.lowBattery),
             onlyWhileCharging: defaults.bool(forKey: Key.onlyCharging),
             pauseOnHighThermal: defaults.bool(forKey: Key.pauseThermal),
-            autoEnableWhenCharging: defaults.bool(forKey: Key.autoEnable)
+            autoEnableWhenCharging: defaults.bool(forKey: Key.autoEnable),
+            autoLockOnTimerStart: defaults.bool(forKey: Key.autoLock)
         )
     }
 
@@ -37,6 +41,7 @@ public struct SettingsStore {
         defaults.set(settings.onlyWhileCharging, forKey: Key.onlyCharging)
         defaults.set(settings.pauseOnHighThermal, forKey: Key.pauseThermal)
         defaults.set(settings.autoEnableWhenCharging, forKey: Key.autoEnable)
+        defaults.set(settings.autoLockOnTimerStart, forKey: Key.autoLock)
         defaults.set(true, forKey: Key.seeded)
     }
 
