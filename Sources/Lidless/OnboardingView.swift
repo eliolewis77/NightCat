@@ -46,12 +46,12 @@ struct OnboardingView: View {
                     .frame(width: 88, height: 88)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
-            Text("Welcome to Lidless")
+            Text("Welcome to NightCat")
                 .font(.largeTitle.weight(.semibold))
             Text("Keep your Mac awake — even with the lid closed.")
                 .font(.title3)
                 .foregroundStyle(.secondary)
-            Text("Perfect for letting coding agents, downloads, or builds keep running while you close the lid and carry your Mac around. `caffeinate` can't do this — Lidless can.")
+            Text("Perfect for letting coding agents, downloads, or builds keep running while you close the lid and carry your Mac around. `caffeinate` can't do this — NightCat can.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -64,7 +64,7 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 16) {
                 bullet("macbook", "Overrides the lid-close sleep that normally stops everything when you shut the lid.")
                 bullet("thermometer.medium", "Auto-pauses if the Mac runs hot or the battery runs low — so it stays safe unattended.")
-                bullet("shield.lefthalf.filled", "A watchdog restores normal sleep if Lidless ever quits or crashes, so your Mac can never get stuck awake.")
+                bullet("shield.lefthalf.filled", "A watchdog restores normal sleep if NightCat ever quits or crashes, so your Mac can never get stuck awake.")
             }
             Label("Keep your Mac plugged in and ventilated under heavy use.", systemImage: "info.circle")
                 .font(.callout)
@@ -83,7 +83,7 @@ struct OnboardingView: View {
 
             helperStatusBox
 
-            Text("Optional — Lidless still works without it; it'll just ask for your password each time you toggle.")
+            Text("Optional — NightCat still works without it; it'll just ask for your password each time you toggle.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -97,7 +97,7 @@ struct OnboardingView: View {
                 Label("Background helper installed and active.", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             } else if state.helperNeedsApproval {
-                Label("Approve Lidless under System Settings ▸ Login Items, then come back here.", systemImage: "exclamationmark.circle.fill")
+                Label("Approve NightCat under System Settings ▸ Login Items, then come back here.", systemImage: "exclamationmark.circle.fill")
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
                 Button("Open Login Items to approve…") { state.installHelper() }
@@ -121,12 +121,12 @@ struct OnboardingView: View {
     private var doneStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             header(symbol: "checkmark.circle.fill", title: "You're all set")
-            Text("Click the Lidless icon in the menu bar and flip **Keep awake with lid closed** whenever you need it. Safety options live in Settings.")
+            Text("Click the NightCat icon in the menu bar and flip **Keep awake with lid closed** whenever you need it. Safety options live in Settings.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Toggle("Launch Lidless at login", isOn: Binding(
+            Toggle("Launch NightCat at login", isOn: Binding(
                 get: { state.launchAtLogin },
                 set: { state.setLaunchAtLogin($0) }
             ))

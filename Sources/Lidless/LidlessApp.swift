@@ -9,7 +9,7 @@ struct LidlessApp: App {
             MenuContent()
                 .environmentObject(state)
         } label: {
-            Image(state.isEnabled ? "MenubarLaptopActive" : "MenubarLaptop")
+            Image(state.isActive ? "MenubarLaptopActive" : "MenubarLaptop")
         }
         .menuBarExtraStyle(.window)
         // No `Settings` scene: it doesn't reliably surface in an LSUIElement app

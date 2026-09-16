@@ -4,7 +4,18 @@ import Foundation
 
 @MainActor
 final class AppState: ObservableObject {
-    @Published var isEnabled = false
+    /// The active keep-awake tier. `.screen`/`.preventIdle` run an App-layer
+    /// caffeinate process; `.lidClosed` owns the privileged `disablesleep`
+    /// flag. Everything below that reconciles a Bool (StateReconciler,
+    /// verification, auto mode) is scoped to that flag — i.e. to this tier.
+    @Published var mode: KeepAwakeMode = .off
+
+    /// The lid tier's flag, as the app believes it.
+    var isEnabled: Bool { mode == .lidClosed }
+
+    /// Whether any tier is currently keeping the Mac awake.
+    var isActive: Bool { mode != .off }
+
     @Published var helperInstalled = false
     @Published var helperNeedsApproval = false
     @Published var batteryDescription = ""
@@ -46,10 +57,12 @@ final class AppState: ObservableObject {
                                                requirePower: true)
     }
 
-    /// The value the main "Keep awake with lid closed" toggle should show: the
-    /// armed intent in auto mode, the live state in manual mode.
-    var masterToggleOn: Bool {
-        settings.autoEnableWhenCharging ? armed : isEnabled
+    /// What the mode picker displays. Auto mode operates the lid tier only,
+    /// so the picker collapses to lid-armed/off there; screen and idle are
+    /// manual-mode tiers.
+    var controlMode: KeepAwakeMode {
+        guard settings.autoEnableWhenCharging else { return mode }
+        return armed ? .lidClosed : .off
     }
 
     /// Launch-at-login state (the app itself).
@@ -67,6 +80,8 @@ final class AppState: ObservableObject {
     @Published var onboardingComplete = false
 
     private let helper = HelperManager()
+    /// App-layer assertions for the screen / prevent-idle tiers.
+    private let caffeinate = CaffeinateManager()
     /// Reads the flag on every path — `pmset -g` needs no privileges — and also
     /// writes it when the helper isn't installed.
     private let power = PowerManager()
@@ -75,10 +90,6 @@ final class AppState: ObservableObject {
     private let loginItem = LoginItemManager()
     private lazy var onboarding = OnboardingController(state: self)
 
-    /// The app's Sparkle updater. Owned here rather than by `LidlessApp` so the
-    /// settings window controller below can hand it to `SettingsView`.
-    let updater = UpdaterController()
-
     private lazy var settingsWindow = SettingsWindowController(
         contentSize: SettingsView.preferredSize
     ) { [weak self] in
@@ -86,7 +97,6 @@ final class AppState: ObservableObject {
         return AnyView(
             SettingsView()
                 .environmentObject(self)
-                .environmentObject(self.updater)
         )
     }
 
@@ -119,6 +129,7 @@ final class AppState: ObservableObject {
         autoOffMinutes = store.loadAutoOffMinutes()
         onboardingComplete = store.loadOnboardingComplete()
         launchAtLogin = loginItem.isEnabled
+        caffeinate.onError = { [weak self] message in self?.lastError = message }
         refreshHelperStatus()
         refreshHelperRegistrationIfUpdated()
         helperWasUsable = usingHelper
@@ -245,14 +256,19 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// The main toggle was flipped. In auto mode it sets the armed intent (and
-    /// lets `reconcile()` gate the live state); in manual mode it directly turns
-    /// keep-awake on/off, surfacing any failure/refusal as an alert.
-    func setMasterToggle(_ on: Bool) {
-        if settings.autoEnableWhenCharging {
-            setArmed(on)
-        } else {
-            setEnabled(on, origin: .user)
+    /// The mode picker's set action. In auto mode a lid/off selection maps to
+    /// the armed intent; screen and idle aren't auto-mode tiers, so the picker
+    /// snaps back (its `get` re-derives from `armed`) and a note explains why.
+    func setControlMode(_ newMode: KeepAwakeMode) {
+        guard settings.autoEnableWhenCharging else {
+            setMode(newMode, origin: .user)
+            return
+        }
+        switch newMode {
+        case .lidClosed: setArmed(true)
+        case .off:       setArmed(false)
+        case .screen, .preventIdle:
+            lastError = "Screen and Idle aren’t used while “Automatically enable when charging” is on — it drives the Lid tier."
         }
     }
 
@@ -344,8 +360,10 @@ final class AppState: ObservableObject {
     /// — flat battery, running hot — no timer is left counting down for a state
     /// the Mac never entered.
     func keepAwakeFor(minutes: Int) {
+        // Timed runs apply to whatever tier is active; from `off`, the gesture
+        // enables the lid tier (the upstream "keep awake" meaning).
         let request = AutoOff.request(minutes: minutes,
-                                      isEnabled: isEnabled,
+                                      isEnabled: isActive,
                                       autoModeOn: settings.autoEnableWhenCharging)
         guard request != .ignoredInAutoMode else { return }
         autoOffMinutes = minutes
@@ -358,7 +376,7 @@ final class AppState: ObservableObject {
         case .armTimer:
             armAutoOff()
         case .enableThenArmTimer:
-            setEnabled(true, origin: .user)
+            setMode(.lidClosed, origin: .user)
         }
     }
 
@@ -378,15 +396,17 @@ final class AppState: ObservableObject {
     }
 
     /// Auto-disable keep-awake if current conditions violate the safety policy.
+    /// Applies to every tier: a hot Mac or a dying battery is a reason to stop
+    /// holding the machine awake however the holding is done.
     func evaluateSafety() {
-        guard isEnabled else { return }
+        guard isActive else { return }
         let info = battery.read()
         if let reason = SafetyEvaluator.reasonToDisable(battery: info,
                                                         thermalSerious: thermalSerious(),
                                                         settings: settings) {
             // Pass the message through so it survives the async helper callback
             // (which would otherwise clear lastError on success).
-            setEnabled(false, note: reason.message, origin: .safety)
+            setMode(.off, note: reason.message, origin: .safety)
         }
     }
 
@@ -446,7 +466,7 @@ final class AppState: ObservableObject {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.messageText = "Background helper enabled"
-        alert.informativeText = "Restart Lidless to finish connecting to the background helper."
+        alert.informativeText = "Restart NightCat to finish connecting to the background helper."
         alert.addButton(withTitle: "Restart Now")
         alert.addButton(withTitle: "Later")
         if alert.runModal() == .alertFirstButtonReturn {
@@ -478,7 +498,7 @@ final class AppState: ObservableObject {
             refreshHelperStatus()
             helperWasUsable = usingHelper
             if helper.requiresApproval {
-                lastError = "Approve Lidless in System Settings ▸ Login Items."
+                lastError = "Approve NightCat in System Settings ▸ Login Items."
                 helper.openLoginItemsSettings()
             } else {
                 lastError = nil
@@ -498,7 +518,7 @@ final class AppState: ObservableObject {
     /// Kept separate from `installHelper()` so re-registration can never swallow
     /// the open.
     func openLoginItems() {
-        lastError = "Approve Lidless in System Settings ▸ Login Items."
+        lastError = "Approve NightCat in System Settings ▸ Login Items."
         helper.openLoginItemsSettings()
         refreshHelperStatus()
     }
@@ -563,17 +583,26 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Bring `isEnabled` in line with reality *without* touching the flag, running
+    /// Bring `mode` in line with reality *without* touching the flag, running
     /// the side effects `setEnabled` would have run for this state.
     ///
     /// Only ever reached for a real transition — `reconcile` returns `.inSync`
     /// when the values already agree — so the 30-second poll can't re-arm the
     /// auto-off timer or restart the heartbeat on every pass.
     private func adoptSystemState(_ enabled: Bool) {
-        isEnabled = enabled
+        // An observed flag *is* the lid tier (ours, adopted; or someone else's,
+        // which M4's external-takeover work will attribute). An observed-off
+        // while a caffeinate tier is showing must keep that tier — it never
+        // owned the flag, so there's nothing to turn off.
+        if enabled {
+            mode = .lidClosed
+        } else if mode == .lidClosed {
+            mode = .off
+        }
+        caffeinate.apply(mode)
         sync.beginMutation()            // supersede every read and write still in flight
         manageHeartbeat()
-        updateAutoOff(for: enabled)
+        updateAutoOff(for: mode != .off)
         // Auto mode owns the live state, so route through `reconcile()` rather
         // than the manual safety pass: adopting an outside change must be settled
         // by the same rule that set the state in the first place, or the toggle
@@ -585,25 +614,53 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// User flipped the toggle: `.user` origin so any failure or refusal surfaces
-    /// a visible alert (not just the easy-to-miss inline note).
-    func toggle() { setEnabled(!isEnabled, origin: .user) }
+    /// Switch the keep-awake tier. `.screen`/`.preventIdle` run or stop the
+    /// App-layer caffeinate process; entering or leaving `.lidClosed` routes a
+    /// write through the flag machinery, so auto mode's claim, read-back
+    /// verification, and the heartbeat all stay consistent. A tier change that
+    /// doesn't touch the flag lands immediately.
+    func setMode(_ newMode: KeepAwakeMode,
+                 note: String? = nil,
+                 origin: SetOrigin = .user,
+                 conditions: SafetySnapshot? = nil) {
+        guard newMode != mode else { return }
+        caffeinate.apply(newMode)
+        let target = newMode == .lidClosed
+        if target != isEnabled {
+            // The flag has to move; the write's success lands the new mode.
+            setEnabled(target, note: note, origin: origin,
+                       conditions: conditions, landingMode: newMode)
+        } else {
+            mode = newMode
+            lastError = note
+        }
+    }
 
-    /// Set keep-awake. `note` is shown to the user on a successful change
-    /// (used when an auto-pause or the auto-off timer disables it); nil clears
-    /// any prior message. When `origin` is `.user` (the user flipped the toggle),
-    /// a failure or policy refusal also pops a blocking alert so it can't go
-    /// unnoticed; background callers pass their own origin to stay quiet.
+    /// Write the `disablesleep` flag (the lid tier's channel). `note` is shown
+    /// to the user on a successful change (used when an auto-pause or the
+    /// auto-off timer disables it); nil clears any prior message. When `origin`
+    /// is `.user` (the user acted on a control), a failure or policy refusal
+    /// also pops a blocking alert so it can't go unnoticed; background callers
+    /// pass their own origin to stay quiet.
+    ///
+    /// `landingMode` is the tier the UI lands on when the write concludes —
+    /// callers switching tiers pass the tier they're switching *to*, since e.g.
+    /// leaving the lid tier writes `false` but must land on that tier, not on
+    /// `off`. Defaults to the flag's own Bool semantics (auto mode, the timer,
+    /// safety — all of which operate the lid tier).
+    ///
     /// `conditions` is the sample a caller already made its decision from. The
     /// safety check below still runs — this is not a bypass — but it runs against
     /// those conditions rather than a fresh reading, so a decision and the write
     /// it authorises can't be judged against different worlds. Callers that have
-    /// no decision to be consistent with (the user flipping the switch) omit it
+    /// no decision to be consistent with (the user flipping a control) omit it
     /// and get the fresh reading, which is what they want.
     func setEnabled(_ target: Bool,
                     note: String? = nil,
                     origin: SetOrigin = .user,
-                    conditions: SafetySnapshot? = nil) {
+                    conditions: SafetySnapshot? = nil,
+                    landingMode: KeepAwakeMode? = nil) {
+        let land = landingMode ?? (target ? .lidClosed : .off)
         if StateReconciler.clearsExternalNotice(origin) { externalNotice = nil }
         // Any other origin takes the flag away from auto mode: its claim is void
         // and its reply, if one is still in flight, will be rejected as superseded
@@ -642,10 +699,10 @@ final class AppState: ObservableObject {
             helper.setKeepAwake(target) { [weak self] ok, err in
                 guard let self, self.sync.shouldApply(token) else { return }   // superseded write
                 if ok {
-                    self.isEnabled = target
+                    self.mode = land
                     self.lastError = resultMessage
                     self.manageHeartbeat()
-                    self.updateAutoOff(for: target)
+                    self.updateAutoOff(for: land != .off)
                     // Deliberately not `hasConfirmedState`: the helper's success
                     // reply is a claim about the flag, not a reading of it.
                     self.pendingVerification = PendingVerification(target: target)
@@ -663,9 +720,9 @@ final class AppState: ObservableObject {
         } else {
             do {
                 try power.setSleepDisabled(target)
-                isEnabled = target
+                mode = land
                 lastError = resultMessage
-                updateAutoOff(for: target)
+                updateAutoOff(for: land != .off)
                 pendingVerification = PendingVerification(target: target)
                 verifySetApplied(target: target)
             } catch {
@@ -769,7 +826,7 @@ final class AppState: ObservableObject {
             if let error {
                 self.lastError = error.localizedDescription
             } else if self.helper.requiresApproval {
-                self.lastError = "Approve Lidless in System Settings ▸ Login Items, then try the switch again."
+                self.lastError = "Approve NightCat in System Settings ▸ Login Items, then try the switch again."
                 self.helper.openLoginItemsSettings()
             } else {
                 self.lastError = "Background helper reinstalled — try the switch again."
@@ -791,16 +848,22 @@ final class AppState: ObservableObject {
 
     // MARK: Auto-off timer
 
-    /// Arm when keep-awake turns on, cancel when it turns off.
-    private func updateAutoOff(for enabled: Bool) {
-        if enabled { armAutoOff() } else { cancelAutoOff() }
+    /// Arm when keep-awake turns on, cancel when it turns off. A countdown
+    /// already running isn't reset: switching between tiers keeps counting the
+    /// same keep-awake session.
+    private func updateAutoOff(for active: Bool) {
+        if active {
+            if autoOffTimer == nil { armAutoOff() }
+        } else {
+            cancelAutoOff()
+        }
     }
 
     private func armAutoOff() {
         cancelAutoOff()
         // Auto mode manages activation on its own; a countdown would disarm the
         // feature out from under it, so auto-off is inert while auto mode is on.
-        guard isEnabled, autoOffMinutes > 0, !settings.autoEnableWhenCharging else { return }
+        guard isActive, autoOffMinutes > 0, !settings.autoEnableWhenCharging else { return }
         let deadline = AutoOff.deadline(from: Date(), minutes: autoOffMinutes)
         autoOffDeadline = deadline
         refreshAutoOffRemaining()
@@ -823,9 +886,9 @@ final class AppState: ObservableObject {
         if AutoOff.isExpired(deadline: deadline, now: Date()) {
             let minutes = autoOffMinutes
             cancelAutoOff()
-            setEnabled(false,
-                       note: "Auto-off: \(AutoOff.optionLabel(minutes: minutes)) elapsed.",
-                       origin: .autoOff)
+            setMode(.off,
+                    note: "Auto-off: \(AutoOff.optionLabel(minutes: minutes)) elapsed.",
+                    origin: .autoOff)
         } else {
             refreshAutoOffRemaining()
         }

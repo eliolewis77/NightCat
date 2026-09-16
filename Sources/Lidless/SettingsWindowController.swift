@@ -22,7 +22,7 @@ final class SettingsWindowController {
 
     private(set) var window: NSWindow?
 
-    init(title: String = "Lidless Settings",
+    init(title: String = "NightCat Settings",
          contentSize: CGSize,
          frameAutosaveName: String = "LidlessSettingsWindow",
          makeContent: @escaping () -> AnyView) {

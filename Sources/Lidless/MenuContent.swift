@@ -4,11 +4,11 @@ import SwiftUI
 /// same leading/trailing columns.
 private let hInset: CGFloat = 20
 
-/// The menu bar popover — "Minimal Quick Toggle".
+/// The menu bar popover.
 ///
-/// Keeps only the essentials: the primary keep-awake switch, a compact status
-/// strip, and the core safety controls. Everything secondary (helper setup,
-/// launch at login, auto-off timer, GitHub) lives in the Settings window.
+/// The tier picker, a compact status strip, and the core safety controls.
+/// Everything secondary (helper setup, launch at login, GitHub) lives in the
+/// Settings window.
 struct MenuContent: View {
     @EnvironmentObject var state: AppState
 
@@ -18,7 +18,7 @@ struct MenuContent: View {
                 .padding(.horizontal, hInset)
                 .padding(.top, 18)
 
-            Text("Keep your Mac awake when the lid is closed.")
+            Text("Control when your Mac sleeps.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -29,7 +29,7 @@ struct MenuContent: View {
                 .padding(.horizontal, hInset)
                 .padding(.top, 14)
 
-            PrimaryToggleRow()
+            ModePickerRow()
                 .padding(.horizontal, hInset)
 
             KeepAwakeDurationRow()
@@ -139,7 +139,7 @@ private struct PopoverHeader: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text("Lidless").font(.headline)
+            Text("NightCat").font(.headline)
             Spacer()
             Text("v\(state.appVersion)")
                 .font(.callout)
@@ -148,24 +148,50 @@ private struct PopoverHeader: View {
     }
 }
 
-// MARK: - Primary control
+// MARK: - Mode picker
 
-/// The strongest row in the popover: the main keep-awake action.
-private struct PrimaryToggleRow: View {
+/// The strongest row in the popover: the tier picker. One control, four
+/// states — the tiers are a ladder of intrusion, not independent switches,
+/// so only one can be active at a time.
+private struct ModePickerRow: View {
     @EnvironmentObject var state: AppState
 
+    private var autoMode: Bool { state.settings.autoEnableWhenCharging }
+
     var body: some View {
-        SettingRow(title: "Keep awake with lid closed",
-                   titleFont: .body.weight(.semibold),
-                   minHeight: 42) {
-            Toggle("Keep awake with lid closed", isOn: Binding(
-                get: { state.masterToggleOn },
-                set: { state.setMasterToggle($0) }
-            ))
+        VStack(alignment: .leading, spacing: 6) {
+            Picker("Mode", selection: Binding(
+                get: { state.controlMode },
+                set: { state.setControlMode($0) }
+            )) {
+                ForEach(KeepAwakeMode.allCases) { mode in
+                    Text(mode.label).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
             .labelsHidden()
-            .toggleStyle(.switch)
-            .controlSize(.regular)
-            .tint(.accentColor)
+
+            Text(explanation(for: state.controlMode))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if autoMode {
+                Text("Screen and Idle aren’t used while “Automatically enable when charging” is on — it drives the Lid tier.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
+    private func explanation(for mode: KeepAwakeMode) -> String {
+        switch mode {
+        case .off:         return "Following your Mac’s normal sleep settings."
+        case .screen:      return "The screen stays on. The system may still sleep."
+        case .preventIdle: return "The system won’t idle-sleep; the screen may turn off."
+        case .lidClosed:   return "Stays awake with the lid closed. Highest power use."
         }
     }
 }
@@ -440,7 +466,7 @@ private struct FooterActions: View {
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
-                Label("Quit Lidless", systemImage: "power")
+                Label("Quit NightCat", systemImage: "power")
                     .foregroundStyle(.secondary)
             }
             .keyboardShortcut("q")

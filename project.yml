@@ -1,6 +1,6 @@
 name: Lidless
 options:
-  bundleIdPrefix: com.nghialuong
+  bundleIdPrefix: com.eliokit
   deploymentTarget:
     macOS: "13.0"
   createIntermediateGroups: true
@@ -8,13 +8,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    DEVELOPMENT_TEAM: TAFDRXJZSR
+    DEVELOPMENT_TEAM: UAT3Y8UXCQ
     CODE_SIGN_STYLE: Automatic
-
-packages:
-  Sparkle:
-    url: https://github.com/sparkle-project/Sparkle
-    from: 2.6.0
 
 targets:
   Lidless:
@@ -28,17 +23,13 @@ targets:
       path: Sources/Lidless/Info.plist
       properties:
         LSUIElement: true
-        CFBundleName: Lidless
-        CFBundleDisplayName: Lidless
+        CFBundleName: NightCat
+        CFBundleDisplayName: NightCat
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleIconName: AppIcon
         LSMinimumSystemVersion: "13.0"
-        NSHumanReadableCopyright: "© 2026 Nghia Luong"
-        SUFeedURL: https://raw.githubusercontent.com/nghialuong/Lidless/main/docs/appcast.xml
-        SUPublicEDKey: pmOUhSI4qLDIbgndphAMYGc/oZJIk9Nw9KdEcmJBSOY=
-        SUEnableAutomaticChecks: true
-        SUScheduledCheckInterval: 86400
+        NSHumanReadableCopyright: "© 2026 Nghia Luong. © 2026 TAO LIU"
     settings:
       base:
         MARKETING_VERSION: "0.1.3"
@@ -49,15 +40,13 @@ targets:
         # Debug builds get a `.dev` bundle id so a dev build coexists with the
         # released app — separate UserDefaults, login item, and helper daemon.
         Debug:
-          PRODUCT_BUNDLE_IDENTIFIER: com.nghialuong.lidless.dev
+          PRODUCT_BUNDLE_IDENTIFIER: com.eliokit.nightcat.dev
         Release:
-          PRODUCT_BUNDLE_IDENTIFIER: com.nghialuong.lidless
+          PRODUCT_BUNDLE_IDENTIFIER: com.eliokit.nightcat
     dependencies:
       - target: LidlessHelper
         copy:
           destination: executables
-      - package: Sparkle
-        product: Sparkle
     postBuildScripts:
       # Generate the privileged helper's LaunchDaemon plist from the app's bundle
       # id so the Release and `.dev` builds register isolated daemons. Runs before
@@ -110,9 +99,9 @@ targets:
       configs:
         # Helper bundle id tracks the app's (`<app id>.helper`) per build config.
         Debug:
-          PRODUCT_BUNDLE_IDENTIFIER: com.nghialuong.lidless.dev.helper
+          PRODUCT_BUNDLE_IDENTIFIER: com.eliokit.nightcat.dev.helper
         Release:
-          PRODUCT_BUNDLE_IDENTIFIER: com.nghialuong.lidless.helper
+          PRODUCT_BUNDLE_IDENTIFIER: com.eliokit.nightcat.helper
 
   LidlessTests:
     type: bundle.unit-test
@@ -121,12 +110,12 @@ targets:
       - Tests/LidlessTests
       - Sources/Shared
       # Depend only on AppKit/SwiftUI, so they compile straight into the test
-      # bundle — which can't link the app target (Sparkle).
+      # bundle — which doesn't link the app target.
       - Sources/Lidless/SettingsWindowController.swift
       - Sources/Lidless/MenuBarExtraPanel.swift
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.nghialuong.lidlessTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.eliokit.nightcatTests
         GENERATE_INFOPLIST_FILE: YES
 
 schemes:

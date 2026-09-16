@@ -9,7 +9,6 @@ struct SettingsView: View {
     static let preferredSize = CGSize(width: 420, height: 460)
 
     @EnvironmentObject var state: AppState
-    @EnvironmentObject var updater: UpdaterController
 
     private let repoURL = URL(string: "https://github.com/nghialuong/Lidless")!
 
@@ -51,12 +50,6 @@ struct SettingsView: View {
             // concept, one place; a second entry point here would only be a
             // second thing to keep in step.
 
-            Section("Updates") {
-                Toggle("Check for updates automatically", isOn: $updater.automaticallyChecksForUpdates)
-                Button("Check for Updates…") { updater.checkForUpdates() }
-                    .disabled(!updater.canCheckForUpdates)
-            }
-
             Section("About") {
                 HStack(spacing: 12) {
                     if let icon = NSApp.applicationIconImage {
@@ -65,7 +58,7 @@ struct SettingsView: View {
                             .frame(width: 48, height: 48)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Lidless").font(.headline)
+                        Text("NightCat").font(.headline)
                         Text("Version \(state.appVersion)")
                             .font(.callout)
                             .foregroundStyle(.secondary)
