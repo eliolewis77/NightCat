@@ -11,31 +11,43 @@ public enum AutoOff {
     /// What picking a duration should do.
     ///
     /// "Keep awake for 15 minutes" is one intention, and asking someone to
-    /// perform it as two steps — flip the switch, then find the timer — is
+    /// perform it as two steps — pick the tier, then find the timer — is
     /// asking them to do the app's bookkeeping. So choosing a duration turns
-    /// keep-awake on if it isn't already.
+    /// keep-awake on (at the lid tier) if no tier is active.
     public enum Request: Equatable {
         /// Auto mode decides activation from power and safety; a countdown would
         /// disarm the feature out from under it, so the control does nothing
         /// while that's on. (The UI disables it and says why rather than letting
         /// it look live.)
         case ignoredInAutoMode
-        /// "No limit" — drop any countdown. Deliberately does *not* turn
-        /// keep-awake off: removing the time limit is not the same request as
-        /// stopping, and the master toggle is right there for stopping.
+        /// "No limit" — drop any countdown. Deliberately does *not* turn every
+        /// tier off: removing the time limit is not the same request as
+        /// stopping, and the mode picker is right there for stopping.
         case cancelTimer
-        /// Already on, so there's nothing to switch — just (re)start the count.
+        /// Some tier is already active, so there's nothing to switch — just
+        /// (re)start the count.
         case armTimer(minutes: Int)
-        /// Off, and a duration was asked for. Turn it on; the countdown starts
-        /// when the write is confirmed, so a refusal on safety grounds leaves no
-        /// timer running for a state that never happened.
+        /// Every tier is off, and a duration was asked for. Turn keep-awake on;
+        /// the countdown starts when the write is confirmed, so a refusal on
+        /// safety grounds leaves no timer running for a state that never
+        /// happened.
         case enableThenArmTimer(minutes: Int)
     }
 
-    public static func request(minutes: Int, isEnabled: Bool, autoModeOn: Bool) -> Request {
+    /// - Parameter anyTierActive: whether *any* tier is currently keeping the
+    ///   Mac awake (`mode != .off`), not the old on/off-lid flag — the gesture
+    ///   applies to whichever tier is running.
+    public static func request(minutes: Int, anyTierActive: Bool, autoModeOn: Bool) -> Request {
         if autoModeOn { return .ignoredInAutoMode }
         guard minutes > 0 else { return .cancelTimer }
-        return isEnabled ? .armTimer(minutes: minutes) : .enableThenArmTimer(minutes: minutes)
+        return anyTierActive ? .armTimer(minutes: minutes) : .enableThenArmTimer(minutes: minutes)
+    }
+
+    /// The mode the countdown lands on when it fires, from wherever it was
+    /// running: always `off` — every tier releases at once, never stepping
+    /// down through lower tiers (SPEC §7: the behaviour stays predictable).
+    public static func modeOnExpiry(from currentMode: KeepAwakeMode) -> KeepAwakeMode {
+        .off
     }
 
     /// Label for the duration control, e.g. `No limit`, `15 min`, `1 hour`.

@@ -8,22 +8,30 @@ public struct SafetySettings: Equatable {
     /// When true, keep-awake automatically (re-)activates while the Mac is on
     /// external power and every enabled safety check passes. See `AutoEnablePolicy`.
     public var autoEnableWhenCharging: Bool
+    /// When true, a genuinely-armed auto-off timer also locks the current mode
+    /// (SPEC §6's batch-run helper: a countdown running means something is
+    /// mid-run, so pin the tier against stray clicks). The lock itself stays
+    /// session-only — this only automates setting it.
+    public var autoLockOnTimerStart: Bool
 
     public static let `default` = SafetySettings(
         lowBatteryThreshold: 20,
         onlyWhileCharging: false,
         pauseOnHighThermal: true,
-        autoEnableWhenCharging: false
+        autoEnableWhenCharging: false,
+        autoLockOnTimerStart: false
     )
 
     public init(lowBatteryThreshold: Int,
                 onlyWhileCharging: Bool,
                 pauseOnHighThermal: Bool,
-                autoEnableWhenCharging: Bool = false) {
+                autoEnableWhenCharging: Bool = false,
+                autoLockOnTimerStart: Bool = false) {
         self.lowBatteryThreshold = lowBatteryThreshold
         self.onlyWhileCharging = onlyWhileCharging
         self.pauseOnHighThermal = pauseOnHighThermal
         self.autoEnableWhenCharging = autoEnableWhenCharging
+        self.autoLockOnTimerStart = autoLockOnTimerStart
     }
 }
 

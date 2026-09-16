@@ -16,6 +16,20 @@ final class AppState: ObservableObject {
     /// Whether any tier is currently keeping the Mac awake.
     var isActive: Bool { mode != .off }
 
+    /// Session-level mode lock (SPEC §6): while on, a mode *change* by the
+    /// user — including to `off`, which is a tier change like any other — is
+    /// held for confirmation instead of applied. Exists so a stray click can't
+    /// interrupt a batch run mid-flight.
+    ///
+    /// Deliberately **not persisted**: a lock that survived a relaunch could
+    /// pin a forgotten tier on, so a restart always unlocks. No `store.save`
+    /// call may ever touch this.
+    @Published var isModeLocked = false
+
+    /// The mode switch the lock is currently holding, awaiting the
+    /// confirmation dialog. Non-nil only while that dialog is up.
+    @Published var pendingLockedSwitch: KeepAwakeMode?
+
     @Published var helperInstalled = false
     @Published var helperNeedsApproval = false
     @Published var batteryDescription = ""
@@ -259,7 +273,18 @@ final class AppState: ObservableObject {
     /// The mode picker's set action. In auto mode a lid/off selection maps to
     /// the armed intent; screen and idle aren't auto-mode tiers, so the picker
     /// snaps back (its `get` re-derives from `armed`) and a note explains why.
+    ///
+    /// Guarded by the session lock: when locked, any selection other than the
+    /// currently displayed mode — off included — is parked on
+    /// `pendingLockedSwitch` for the confirmation dialog instead of applied.
+    /// Background transitions (the timer, safety, adopted external changes)
+    /// don't come through here and are never blocked: the lock protects
+    /// against *user* mis-clicks, not against the app's own machinery.
     func setControlMode(_ newMode: KeepAwakeMode) {
+        if isModeLocked, newMode != controlMode {
+            pendingLockedSwitch = newMode
+            return
+        }
         guard settings.autoEnableWhenCharging else {
             setMode(newMode, origin: .user)
             return
@@ -270,6 +295,29 @@ final class AppState: ObservableObject {
         case .screen, .preventIdle:
             lastError = "Screen and Idle aren’t used while “Automatically enable when charging” is on — it drives the Lid tier."
         }
+    }
+
+    /// Toggle the session lock from the panel's lock button. Unlocking also
+    /// drops any switch still awaiting confirmation — with the lock gone there
+    /// is nothing left to confirm it against.
+    func setModeLocked(_ locked: Bool) {
+        isModeLocked = locked
+        if !locked { pendingLockedSwitch = nil }
+    }
+
+    /// The confirmation dialog's "Switch & Unlock": release the lock and
+    /// perform the switch that was held.
+    func confirmLockedSwitch() {
+        guard let target = pendingLockedSwitch else { return }
+        pendingLockedSwitch = nil
+        isModeLocked = false
+        setControlMode(target)
+    }
+
+    /// The confirmation dialog's "Cancel": drop the held switch. The mode —
+    /// and the lock — stay exactly as they were.
+    func cancelLockedSwitch() {
+        pendingLockedSwitch = nil
     }
 
     /// Set the auto-mode armed intent, persist it, and reconcile the live state.
@@ -363,7 +411,7 @@ final class AppState: ObservableObject {
         // Timed runs apply to whatever tier is active; from `off`, the gesture
         // enables the lid tier (the upstream "keep awake" meaning).
         let request = AutoOff.request(minutes: minutes,
-                                      isEnabled: isActive,
+                                      anyTierActive: isActive,
                                       autoModeOn: settings.autoEnableWhenCharging)
         guard request != .ignoredInAutoMode else { return }
         autoOffMinutes = minutes
@@ -864,6 +912,10 @@ final class AppState: ObservableObject {
         // Auto mode manages activation on its own; a countdown would disarm the
         // feature out from under it, so auto-off is inert while auto mode is on.
         guard isActive, autoOffMinutes > 0, !settings.autoEnableWhenCharging else { return }
+        // The batch-run helper (SPEC §6): only reached once the timer is
+        // genuinely armed (past the guard above), so a refused or auto-mode
+        // arming never locks anything.
+        if settings.autoLockOnTimerStart { isModeLocked = true }
         let deadline = AutoOff.deadline(from: Date(), minutes: autoOffMinutes)
         autoOffDeadline = deadline
         refreshAutoOffRemaining()
@@ -886,7 +938,14 @@ final class AppState: ObservableObject {
         if AutoOff.isExpired(deadline: deadline, now: Date()) {
             let minutes = autoOffMinutes
             cancelAutoOff()
-            setMode(.off,
+            // SPEC §7: expiry releases every tier at once — straight to `off`
+            // from wherever the countdown ran, never stepping down.
+            let landed = AutoOff.modeOnExpiry(from: mode)
+            // The run the lock was protecting is over; leave it on and the
+            // picker would sit disabled at Off, demanding a confirmation whose
+            // "may interrupt running tasks" caveat is no longer true.
+            setModeLocked(false)
+            setMode(landed,
                     note: "Auto-off: \(AutoOff.optionLabel(minutes: minutes)) elapsed.",
                     origin: .autoOff)
         } else {

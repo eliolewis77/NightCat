@@ -150,22 +150,24 @@ final class SharedLogicTests: XCTestCase {
     /// The point of the change: asking for fifteen minutes of keep-awake turns
     /// keep-awake on. Before, it only armed a countdown for a switch the user
     /// still had to find and flip themselves.
-    func testRequestEnablesKeepAwakeWhenItIsOff() {
-        XCTAssertEqual(AutoOff.request(minutes: 15, isEnabled: false, autoModeOn: false),
+    func testRequestEnablesKeepAwakeWhenNoTierIsActive() {
+        XCTAssertEqual(AutoOff.request(minutes: 15, anyTierActive: false, autoModeOn: false),
                        .enableThenArmTimer(minutes: 15))
     }
 
-    func testRequestJustArmsTimerWhenAlreadyOn() {
-        XCTAssertEqual(AutoOff.request(minutes: 30, isEnabled: true, autoModeOn: false),
+    /// Any tier counts: the gesture extends whatever is running, not just the
+    /// lid tier the old `isEnabled` flag described.
+    func testRequestJustArmsTimerWhenAnyTierIsActive() {
+        XCTAssertEqual(AutoOff.request(minutes: 30, anyTierActive: true, autoModeOn: false),
                        .armTimer(minutes: 30))
     }
 
-    /// "No limit" removes the countdown. It must not also turn keep-awake off —
-    /// that's a different request, and the master toggle already expresses it.
+    /// "No limit" removes the countdown. It must not also turn every tier off —
+    /// that's a different request, and the mode picker already expresses it.
     func testRequestForNoLimitCancelsTimerWithoutDisabling() {
-        XCTAssertEqual(AutoOff.request(minutes: 0, isEnabled: true, autoModeOn: false),
+        XCTAssertEqual(AutoOff.request(minutes: 0, anyTierActive: true, autoModeOn: false),
                        .cancelTimer)
-        XCTAssertEqual(AutoOff.request(minutes: 0, isEnabled: false, autoModeOn: false),
+        XCTAssertEqual(AutoOff.request(minutes: 0, anyTierActive: false, autoModeOn: false),
                        .cancelTimer)
     }
 
@@ -173,18 +175,30 @@ final class SharedLogicTests: XCTestCase {
     /// behind its back. Nothing happens, including no persisted change.
     func testRequestIsIgnoredInAutoModeWhateverElseIsTrue() {
         for minutes in [0, 15, 240] {
-            for enabled in [true, false] {
-                XCTAssertEqual(AutoOff.request(minutes: minutes, isEnabled: enabled, autoModeOn: true),
+            for active in [true, false] {
+                XCTAssertEqual(AutoOff.request(minutes: minutes, anyTierActive: active, autoModeOn: true),
                                .ignoredInAutoMode,
-                               "minutes=\(minutes) enabled=\(enabled)")
+                               "minutes=\(minutes) active=\(active)")
             }
         }
     }
 
     func testRequestCoversEveryPreset() {
         for minutes in AutoOff.presetMinutes {
-            XCTAssertEqual(AutoOff.request(minutes: minutes, isEnabled: false, autoModeOn: false),
+            XCTAssertEqual(AutoOff.request(minutes: minutes, anyTierActive: false, autoModeOn: false),
                            .enableThenArmTimer(minutes: minutes))
+        }
+    }
+
+    // MARK: AutoOff expiry — every tier releases at once (SPEC §7)
+
+    /// The countdown lands on `off` from wherever it was running — never
+    /// stepping down through lower tiers. Pins the behaviour the spec calls
+    /// "predictable": no intermediate state between the running tier and off.
+    func testExpiryReleasesEveryTierAtOnce() {
+        for mode in KeepAwakeMode.allCases {
+            XCTAssertEqual(AutoOff.modeOnExpiry(from: mode), .off,
+                           "expiry must go straight to off from \(mode)")
         }
     }
 
@@ -217,5 +231,30 @@ final class SharedLogicTests: XCTestCase {
         let store = SettingsStore(defaults: defaults)
         store.saveOnboardingComplete(true)
         XCTAssertTrue(SettingsStore(defaults: defaults).loadOnboardingComplete())
+    }
+
+    // MARK: SettingsStore autoLockOnTimerStart
+
+    /// An install from before the setting existed has `settingsSeeded` set but
+    /// no `autoLockOnTimerStart` key; loading must fall back to off (the lock
+    /// is opt-in), never to a zero-initialised `true`-adjacent default.
+    func testAutoLockSettingFallsBackToFalseForOldInstalls() {
+        let suite = "lidless.test.autolck.old"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defaults.set(true, forKey: "settingsSeeded")   // seeded before the key existed
+        let store = SettingsStore(defaults: defaults)
+        XCTAssertFalse(store.load().autoLockOnTimerStart)
+    }
+
+    func testAutoLockSettingRoundTrips() {
+        let suite = "lidless.test.autolck.roundtrip"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        var settings = SafetySettings.default
+        settings.autoLockOnTimerStart = true
+        SettingsStore(defaults: defaults).save(settings)
+        XCTAssertTrue(SettingsStore(defaults: defaults).load().autoLockOnTimerStart)
+        XCTAssertEqual(SettingsStore(defaults: defaults).load(), settings)
     }
 }
