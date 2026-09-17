@@ -1,0 +1,19 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+  <channel>
+    <title>NightCat</title>
+    <link>https://eliolewis77.github.io/NightCat/appcast.xml</link>
+    <description>Most recent changes with links to updates.</description>
+    <language>en</language>
+    <item>
+      <title>Version 1.0.0</title>
+      <pubDate>Thu, 17 Sep 2026 11:50:30 +0000</pubDate>
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+      <sparkle:version>1</sparkle:version>
+      <enclosure url="https://eliolewis77.github.io/NightCat/NightCat-1.0.0.dmg"
+                 sparkle:edSignature="6XS9B0Lrz2FuTT2mOT9n9YM97reYfqwUKx6jM4mrN9+fxfalplgItChTignasFn2Z3ytbb4Fjtu/9Cj/T/8PDw=="
+                 length="2240428"
+                 type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>

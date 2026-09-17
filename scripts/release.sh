@@ -49,8 +49,12 @@ SIGN_TOOL="$(ls build/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin/s
 [ -n "$SIGN_TOOL" ] || { echo "error: sign_update not found — run: xcodebuild -resolvePackageDependencies -scheme NightCat -derivedPath build/DerivedData"; exit 1; }
 
 # Version from project.yml (single source of truth)
-VERSION=$(grep -E 'MARKETING_VERSION' project.yml | head -1 | sed -E 's/.*"([0-9.]+)".*/\1/')
-BUILD_NUM=$(grep -E 'CURRENT_PROJECT_VERSION' project.yml | head -1 | sed -E 's/.*"([0-9]+)".*/\1/')
+# Anchor on the settings key itself — CFBundleShortVersionString in the
+# Info.plist block also contains the string "MARKETING_VERSION" and would
+# match a bare grep.
+VERSION=$(grep -E '^[[:space:]]*MARKETING_VERSION:' project.yml | head -1 | sed -E 's/.*"([0-9.]+)".*/\1/')
+BUILD_NUM=$(grep -E '^[[:space:]]*CURRENT_PROJECT_VERSION:' project.yml | head -1 | sed -E 's/.*"([0-9]+)".*/\1/')
+[ "$VERSION" != "" ] && [ "$BUILD_NUM" != "" ] || { echo "error: could not read version from project.yml"; exit 1; }
 DMG="$BUILD/$APP_NAME-$VERSION.dmg"
 
 echo "==> Release $APP_NAME $VERSION (build $BUILD_NUM)"
