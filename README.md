@@ -9,25 +9,30 @@ macOS 菜单栏小工具：控制这台 Mac 什么时候可以睡、什么时候
 - **防空闲**：`caffeinate -i -m -s`，系统不因空闲睡眠，屏幕可以灭（跑批、下载、长任务）
 - **合盖不睡**：特权 Helper 置 `SleepDisabled`，合上盖子继续跑（无人值守、塞在包里跑完）
 
-安全网：定时关闭（不限时 / 预设 / 自定义 1–240 分钟）、档位锁定 + 二次确认、仅插电保持、过热暂停、低电量阈值、合盖档电池警示、外部接管（Amphetamine 等）识别、退出恢复接手前状态、Helper 看门狗防卡死。
+安全网：定时关闭（不限时 / 预设 / 自定义 1–240 分钟）、档位锁定 + 二次确认、仅插电保持、低电量阈值、合盖档电池警示、外部接管（Amphetamine 等）识别、退出恢复接手前状态、Helper 看门狗防卡死。
 
-界面为中文；菜单栏图标按档位变色（灰 / 蓝 / 青 / 橙），定时时显示倒计时，锁定时右下角带锁标。
+- **过热策略三选一**：自动暂停 / 仅通知不断档 / 忽略
+- **启动时自动恢复合盖档**（可选）：远程重启后合盖状态依旧可达
+- **中英双语**：跟随系统语言，设置内可切换
+- **系统通知**：安全暂停、定时到点、外部程序抢占并自动恢复时主动告知
+- **Sparkle 自动更新**：EdDSA 签名 + 公证（feed 托管于 GitHub Pages）
+
+菜单栏图标为猫头剪影，按档位变色（灰 / 蓝 / 青 / 橙），锁定时额头带白色小锁。
 
 ## 当前状态
 
 | 项 | 状态 |
 |---|---|
-| 功能规格 | ✅ 已定稿，见 `docs/SPEC.md` |
-| 代码基线 | ✅ 已 fork 上游 `nghialuong/NightCat` v0.1.3（含完整 git 历史） |
-| 改造 | ✅ M1–M5 完成（身份 / 三档核心 / 定时锁定 / 电池与外部接管 / 中文与图标） |
+| 功能 | ✅ M1–M6 全部完成：四档核心、定时锁定、安全网、双语、通知、自动更新 |
+| 代码基线 | ✅ fork 自上游 `nghialuong/Lidless` v0.1.3（含完整 git 历史） |
 | UI 设计稿 | ✅ 已确认，见 `docs/design/panel-mockup.html` |
-| 版本 | 1.0.0（未发布，本地构建自用） |
+| 版本 | 1.0.0（首次发布待跑通 `scripts/release.sh` 一次性配置） |
 
 **接手开发请先读 [`AGENTS.md`](AGENTS.md)。**
 
 ## 来源与许可
 
-本项目是 [`nghialuong/NightCat`](https://github.com/nghialuong/NightCat) 的 fork，基线为 tag `v0.1.3`（commit `1c432ed`）。
+本项目是 [`nghialuong/Lidless`](https://github.com/nghialuong/Lidless) 的 fork，基线为 tag `v0.1.3`（commit `1c432ed`）。
 
 上游以 MIT 许可发布，版权归原作者 **Nghia Luong** 所有。本 fork 保留 `LICENSE` 中的原始版权声明，改造部分版权归本仓库所有者。上游 README 存档在 `docs/upstream-README.md`。
 
@@ -54,10 +59,9 @@ git fetch upstream && git log --oneline HEAD..upstream/main
 | 项 | 版本 / 位置 |
 |---|---|
 | macOS | 13.0+（由 `project.yml` 的 `deploymentTarget` 决定） |
-| Xcode | 26.6（本机已装） |
-| Swift | 6.3.3（工程 `SWIFT_VERSION` 仍为 5.0） |
-| XcodeGen | 已安装（`/opt/homebrew/bin/brew` 装 brew 版） |
-| 签名 | 本机已有 `Apple Development: xiaohees@foxmail.com (5V2J4DPU4L)` 与 `Developer ID Application: TAO LIU (UAT3Y8UXCQ)` |
+| Xcode | 15+（String Catalog 需要） |
+| XcodeGen | `brew install xcodegen` |
+| 签名 | 运行需要开发者证书；特权 Helper 会校验 App 签名（见下） |
 
 ## 快速开始
 
