@@ -43,11 +43,11 @@ struct PowerManager {
         if proc.terminationStatus != 0 {
             let data = errPipe.fileHandleForReading.readDataToEndOfFile()
             let msg = String(data: data, encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? "未知错误"
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? NSLocalizedString("未知错误", comment: "pmset error")
             throw NSError(
-                domain: "Lidless.PowerManager",
+                domain: "NightCat.PowerManager",
                 code: Int(proc.terminationStatus),
-                userInfo: [NSLocalizedDescriptionKey: msg.isEmpty ? "已取消管理员授权。" : msg]
+                userInfo: [NSLocalizedDescriptionKey: msg.isEmpty ? NSLocalizedString("已取消管理员授权。", comment: "pmset error") : msg]
             )
         }
     }

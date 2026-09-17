@@ -6,9 +6,9 @@ final class HelperListenerDelegate: NSObject, NSXPCListenerDelegate {
     /// The app this helper belongs to, recovered from the label launchd started
     /// us with. The Debug and Release builds run separate daemons under separate
     /// labels, so each ends up demanding its own app and not the other's.
-    private let appBundleID = LidlessHelper.appBundleID(
-        fromLabel: ProcessInfo.processInfo.environment[LidlessHelper.machLabelEnvKey]
-            ?? LidlessHelper.fallbackLabel
+    private let appBundleID = NightCatHelper.appBundleID(
+        fromLabel: ProcessInfo.processInfo.environment[NightCatHelper.machLabelEnvKey]
+            ?? NightCatHelper.fallbackLabel
     )
 
     func listener(_ listener: NSXPCListener,
@@ -22,9 +22,9 @@ final class HelperListenerDelegate: NSObject, NSXPCListenerDelegate {
         // `processIdentifier` would. It must be set before `resume()`, and it is
         // an XPC error to set it twice — hence here, once, on a fresh connection.
         newConnection.setCodeSigningRequirement(
-            LidlessHelper.codeSigningRequirement(appBundleID: appBundleID)
+            NightCatHelper.codeSigningRequirement(appBundleID: appBundleID)
         )
-        newConnection.exportedInterface = NSXPCInterface(with: LidlessHelperProtocol.self)
+        newConnection.exportedInterface = NSXPCInterface(with: NightCatHelperProtocol.self)
         newConnection.exportedObject = service
         newConnection.resume()
         return true
@@ -33,8 +33,8 @@ final class HelperListenerDelegate: NSObject, NSXPCListenerDelegate {
 
 /// The actual privileged work. Runs as root, so it can call `pmset` directly
 /// with no admin prompt. Guards against a stuck-awake state with a watchdog.
-final class HelperService: NSObject, LidlessHelperProtocol {
-    private let queue = DispatchQueue(label: "com.nghialuong.lidless.helper.state")
+final class HelperService: NSObject, NightCatHelperProtocol {
+    private let queue = DispatchQueue(label: "com.eliokit.nightcat.helper.state")
     private var lastHeartbeat = Date()
     private var keepAwake = false
     private let watchdogTimeout: TimeInterval = 90
@@ -45,7 +45,7 @@ final class HelperService: NSObject, LidlessHelperProtocol {
         startWatchdog()
     }
 
-    // MARK: LidlessHelperProtocol
+    // MARK: NightCatHelperProtocol
 
     func setKeepAwake(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void) {
         queue.async {

@@ -1,12 +1,12 @@
 # 上游代码侦察笔记
 
-对基线 `nghialuong/Lidless` @ `v0.1.3`（commit `1c432ed`）的代码勘察结果。写这份的目的是让接手者不用再从头读一遍。
+对基线 `nghialuong/NightCat` @ `v0.1.3`（commit `1c432ed`）的代码勘察结果。写这份的目的是让接手者不用再从头读一遍。
 
 ## 上游概况
 
 | 项 | 情况 |
 |---|---|
-| 仓库 | https://github.com/nghialuong/Lidless |
+| 仓库 | https://github.com/nghialuong/NightCat |
 | 许可 | MIT，Copyright © 2026 Nghia Luong |
 | 基线 | tag `v0.1.3`，commit `1c432ed`（appcast: 0.1.3 build 76） |
 | 最后一次提交 | 2026-08-06 |
@@ -37,7 +37,7 @@
 | `HelperService.swift` | 134 | **薄** helper：翻 `disablesleep` flag + 90 秒心跳看门狗 |
 | `main.swift` | 12 | 入口 |
 
-### `Sources/Lidless/` — App
+### `Sources/NightCat/` — App
 
 | 文件 | 行数 | 职责 |
 |---|---|---|
@@ -55,7 +55,7 @@
 | `LoginItemManager.swift` | 25 | 登录项 |
 | `BatteryMonitor.swift` | 10 | — |
 
-### `Tests/LidlessTests/` — 8 个测试文件，约 1300 行
+### `Tests/NightCatTests/` — 8 个测试文件，约 1300 行
 
 覆盖 `AutoOff`、`AutoWriteCoordinator`、`HelperIdentity`、`MenuBarExtraPanel`、`SafetyEvaluator`、`SettingsWindowController`、`SharedLogic`、`StateReconciler`。
 
@@ -106,13 +106,13 @@ func version(withReply: ...)                         // 版本自检
 | # | 文件 | 具体位置 | 现值 | 说明 |
 |---|---|---|---|---|
 | 1 | `project.yml` | `options.bundleIdPrefix` | `com.nghialuong` | 改前缀 |
-| 2 | `project.yml` | `Lidless` target 的 `Debug` / `Release` `PRODUCT_BUNDLE_IDENTIFIER` | `com.nghialuong.lidless.dev` / `com.nghialuong.lidless` | — |
-| 3 | `project.yml` | `LidlessHelper` target 的 `Debug` / `Release` `PRODUCT_BUNDLE_IDENTIFIER` | `...lidless.dev.helper` / `...lidless.helper` | 必须与 App 同一前缀 |
+| 2 | `project.yml` | `NightCat` target 的 `Debug` / `Release` `PRODUCT_BUNDLE_IDENTIFIER` | `com.nghialuong.lidless.dev` / `com.nghialuong.lidless` | — |
+| 3 | `project.yml` | `NightCatHelper` target 的 `Debug` / `Release` `PRODUCT_BUNDLE_IDENTIFIER` | `...lidless.dev.helper` / `...lidless.helper` | 必须与 App 同一前缀 |
 | 4 | `project.yml` | `settings.base.DEVELOPMENT_TEAM` | `TAFDRXJZSR` | 见下条，两处必须一致 |
-| 5 | `Sources/Shared/HelperProtocol.swift` | `LidlessHelper.teamID` | `TAFDRXJZSR` | **helper 的 `setCodeSigningRequirement` 用它** |
+| 5 | `Sources/Shared/HelperProtocol.swift` | `NightCatHelper.teamID` | `TAFDRXJZSR` | **helper 的 `setCodeSigningRequirement` 用它** |
 | 6 | `Sources/Shared/HelperProtocol.swift` | `fallbackLabel` | `com.nghialuong.lidless.helper` | 兜底值，一并改 |
-| 7 | `Sources/Lidless/Info.plist` | `CFBundleName` / `CFBundleDisplayName` / `NSHumanReadableCopyright` | Lidless / © 2026 Nghia Luong | 改显示名，版权**追加**不删除 |
-| 8 | `Sources/Lidless/Info.plist` + `project.yml` | `SUFeedURL` / `SUPublicEDKey` | 指向上游 | **拆 Sparkle 时一起清掉** |
+| 7 | `Sources/NightCat/Info.plist` | `CFBundleName` / `CFBundleDisplayName` / `NSHumanReadableCopyright` | NightCat / © 2026 Nghia Luong | 改显示名，版权**追加**不删除 |
+| 8 | `Sources/NightCat/Info.plist` + `project.yml` | `SUFeedURL` / `SUPublicEDKey` | 指向上游 | **拆 Sparkle 时一起清掉** |
 | 9 | `Resources/Assets.xcassets/` | `AppIcon.appiconset`、`MenubarLaptop*` | 上游图标 | 换图 |
 
 **第 4 与第 5 条不一致的后果**：App 永远连不上 helper，界面无报错。这是这套架构最容易踩的坑。
@@ -137,8 +137,8 @@ func version(withReply: ...)                         // 版本自检
 
 ```bash
 xcodegen generate
-xcodebuild test -scheme Lidless-CI -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
-xcodebuild build -scheme Lidless -destination 'generic/platform=macOS' -configuration Debug CODE_SIGNING_ALLOWED=NO
+xcodebuild test -scheme NightCat-CI -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
+xcodebuild build -scheme NightCat -destination 'generic/platform=macOS' -configuration Debug CODE_SIGNING_ALLOWED=NO
 ```
 
 发布（本项目不做）：上游的 `scripts/release.sh`、`ExportOptions.plist`、`scripts/sparkle/` 已在 M6 清理删除（Sparkle 在 M1 已拆，这条链路整体作废）。真要分发时从 Developer ID archive 手动导出。

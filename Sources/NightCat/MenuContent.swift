@@ -20,7 +20,7 @@ struct MenuContent: View {
             // ordinary error or safety note), strongest slot above the picker
             // so they're read before any decision (mockup §3 variant 2).
             if !state.autoWarningReasons.isEmpty {
-                NoticeBanner(text: "自动模式已开启，但当前条件不满足：\(state.autoWarningReasons.map { $0.checkLabel }.joined(separator: "、"))。",
+                NoticeBanner(text: String(format: NSLocalizedString("自动模式已开启，但当前条件不满足：%@", comment: "auto-mode warning"), state.autoWarningReasons.map { $0.localizedCheckLabel() }.joined(separator: NSLocalizedString("、", comment: "list separator"))),
                              systemImage: "exclamationmark.circle.fill",
                              tint: Color(nsColor: .systemYellow))
             }
@@ -48,7 +48,7 @@ struct MenuContent: View {
 
             Divider()
                 .padding(.horizontal, hInset)
-                .padding(.top, 13)
+                .padding(.top, 16)
 
             BatteryRow()
             HelperRow()
@@ -59,15 +59,15 @@ struct MenuContent: View {
                 Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
-                    Label("退出 NightCat", systemImage: "power")
-                        .foregroundStyle(.secondary)
+                    Label("退出", systemImage: "power")
+                        .foregroundStyle(.primary.opacity(0.85))
                 }
                 .keyboardShortcut("q")
             }
             .buttonStyle(.plain)
-            .font(.callout)
+            .font(.system(size: 12.5))
             .padding(.horizontal, hInset)
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
         }
         .frame(width: 324)
         // The popover is the moment the user actually looks at the toggle, so
@@ -92,7 +92,7 @@ struct MenuContent: View {
     /// SPEC §6's wording, with the target tier's full name in place.
     private var lockedSwitchMessage: String {
         let name = state.pendingLockedSwitch?.displayName ?? ""
-        return "档位已锁定。切换到「\(name)」可能中断正在运行的任务。"
+        return String(format: NSLocalizedString("档位已锁定。切换到「%@」可能中断正在运行的任务。", comment: "locked switch confirm; tier name"), name)
     }
 }
 
@@ -105,7 +105,11 @@ private struct StatusRow: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private var tierColor: Color {
-        MenubarStyle.tierColor(state.controlMode, colorScheme: colorScheme)
+        // The lid tier's orange reads as the panel's warning amber — same hue
+        // family, so the status row, the battery banner, and the thermal label
+        // all share one color. Light mode gets the deep variant.
+        if state.controlMode == .lidClosed { return warmAmber(colorScheme) }
+        return MenubarStyle.tierColor(state.controlMode, colorScheme: colorScheme)
     }
 
     private var countdown: String? {
@@ -115,25 +119,25 @@ private struct StatusRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(state.controlMode.displayName)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(tierColor)
                 Text(state.controlMode.explanation)
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.primary.opacity(0.75))
             }
             Spacer(minLength: 8)
             if let countdown {
                 Text(countdown)
                     .font(.system(size: 13).monospacedDigit())
-                    .foregroundStyle(.primary.opacity(0.85))
+                    .foregroundStyle(.primary.opacity(0.88))
             }
             ModeLockButton()
         }
         .padding(.horizontal, hInset)
-        .padding(.top, 14)
-        .padding(.bottom, 12)
+        .padding(.top, 16)
+        .padding(.bottom, 14)
     }
 }
 
@@ -160,8 +164,8 @@ private struct ModeLockButton: View {
                 .foregroundColor(state.isModeLocked ? .white : Color(white: 0.55))
         }
         .buttonStyle(.plain)
-        .help(state.isModeLocked ? "已锁定，点击解锁" : "锁定当前档位")
-        .accessibilityLabel(state.isModeLocked ? "档位已锁定" : "档位未锁定")
+        .help(state.isModeLocked ? NSLocalizedString("已锁定，点击解锁", comment: "lock help") : NSLocalizedString("锁定当前档位", comment: "lock help"))
+        .accessibilityLabel(state.isModeLocked ? NSLocalizedString("档位已锁定", comment: "a11y") : NSLocalizedString("档位未锁定", comment: "a11y"))
     }
 }
 
@@ -191,20 +195,15 @@ private struct TierSegmentRow: View {
             // while locked can only arrive before the disabled view lands.
             .disabled(state.isModeLocked)
 
-            if state.isModeLocked {
-                Label("档位已锁定，点击其他档需二次确认 · 重启后自动解锁", systemImage: "lock")
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.tertiary)
-                    .labelStyle(.titleAndIcon)
-            } else if autoMode {
+            if !autoMode {
                 Text("自动模式开启时不使用常亮与防空闲档——它只驱动合盖档。")
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.tertiary)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.horizontal, hInset)
-        .padding(.bottom, 2)
+        .padding(.bottom, 4)
     }
 }
 
@@ -220,15 +219,15 @@ private struct NoticeBanner: View {
     var body: some View {
         Label {
             Text(text)
-                .font(.system(size: 12))
+                .font(.system(size: 12.5))
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
             Image(systemName: systemImage)
                 .foregroundStyle(tint)
         }
-        .foregroundStyle(.secondary)
+        .foregroundStyle(.primary.opacity(0.85))
         .padding(.horizontal, hInset)
-        .padding(.top, 6)
+        .padding(.top, 8)
     }
 }
 
@@ -239,23 +238,26 @@ private struct NoticeBanner: View {
 /// for hard refusals (low battery, thermal): those never produce a banner.
 private struct BatteryWarningBanner: View {
     @EnvironmentObject var state: AppState
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var amber: Color { warmAmber(colorScheme) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label {
                 Text("当前使用电池。合盖不睡约每小时耗电 8–12%，且合盖散热受限。")
-                    .font(.system(size: 12))
+                    .font(.system(size: 12.5))
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
+                    .foregroundStyle(amber)
             }
-            .foregroundStyle(.primary.opacity(0.85))
+            .foregroundStyle(.primary)
 
             HStack(spacing: 7) {
                 Button("继续") { state.resolveBatteryWarning(.keepLid) }
                     .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 0.937, green: 0.624, blue: 0.153))
+                    .tint(amber)
                 Button("改用防空闲") { state.resolveBatteryWarning(.useIdle) }
                 Button("取消") { state.resolveBatteryWarning(.cancel) }
                 Spacer(minLength: 0)
@@ -266,15 +268,15 @@ private struct BatteryWarningBanner: View {
                    isOn: $state.suppressBatteryWarningThisSession)
                 .font(.system(size: 11.5))
                 .controlSize(.small)
-                .tint(Color(red: 0.937, green: 0.624, blue: 0.153))
+                .tint(amber)
         }
         .padding(11)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color(red: 0.937, green: 0.624, blue: 0.153).opacity(0.13))
+                .fill(amber.opacity(colorScheme == .dark ? 0.16 : 0.12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(Color(red: 0.937, green: 0.624, blue: 0.153).opacity(0.38))
+                        .strokeBorder(amber.opacity(colorScheme == .dark ? 0.55 : 0.45))
                 )
         )
         .padding(.horizontal, hInset)
@@ -284,7 +286,7 @@ private struct BatteryWarningBanner: View {
 
 // MARK: - Timer (SPEC §7)
 
-/// Timer chips (mockup §2A): 不限时 / presets / 自定义…. Selecting a duration
+/// Timer chips (mockup §2A): 不限时 / presets / 自定义. Selecting a duration
 /// both sets it and (via `keepAwakeFor`) turns keep-awake on when off — one
 /// gesture. D8's note under the chips: expiry closes every tier at once.
 private struct TimerSection: View {
@@ -301,8 +303,8 @@ private struct TimerSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label("定时关闭", systemImage: "timer")
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12.5, weight: .medium))
+                .foregroundStyle(.primary.opacity(0.7))
 
             if isEditingCustom {
                 HStack(spacing: 8) {
@@ -326,22 +328,22 @@ private struct TimerSection: View {
 
                 if autoMode {
                     Text("自动模式开启时不使用定时——由充电状态自动控制。")
-                        .font(.system(size: 10.5))
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text("到点将直接关闭全部档位，不逐级回落")
-                        .font(.system(size: 10.5))
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
                 }
             }
         }
         .padding(.horizontal, hInset)
-        .padding(.top, 11)
-        .padding(.bottom, 2)
+        .padding(.top, 14)
+        .padding(.bottom, 4)
     }
 
-    /// `nil` selects nothing (a custom value keeps 自定义… lit via the flag).
+    /// `nil` selects nothing (a custom value keeps 自定义 lit via the flag).
     private var chipSelection: Int? {
         isPreset ? state.autoOffMinutes : nil
     }
@@ -354,8 +356,9 @@ private struct TimerSection: View {
     }
 }
 
-/// Chip row: leading 不限时 chip, preset chips, trailing 自定义…. The custom
-/// chip lights whenever the current value is neither 0 nor a preset.
+/// Chip flow: leading 不限时 chip, preset chips, trailing 自定义, wrapping to
+/// as many rows as the panel width needs. The custom chip lights whenever the
+/// current value is neither 0 nor a preset.
 private struct FlowChips: View {
     let selected: Int?
     let choose: (Int, String) -> Void
@@ -367,13 +370,12 @@ private struct FlowChips: View {
     }
 
     var body: some View {
-        HStack(spacing: 6) {
-            chip(0, "不限时")
+        FlowLayout(spacing: 6) {
+            chip(0, NSLocalizedString("不限时", comment: "duration: no limit"))
             ForEach(AutoOff.presetMinutes, id: \.self) { minutes in
                 chip(minutes, AutoOff.optionLabel(minutes: minutes))
             }
             customChip()
-            Spacer(minLength: 0)
         }
     }
 
@@ -393,14 +395,16 @@ private struct FlowChips: View {
                 .overlay(
                     Capsule().strokeBorder(Color.primary.opacity(0.14))
                 )
-                .foregroundStyle(selected == minutes ? .primary : .secondary)
+                .foregroundStyle(selected == minutes
+                    ? AnyShapeStyle(Color.primary)
+                    : AnyShapeStyle(Color.primary.opacity(0.72)))
         }
         .buttonStyle(.plain)
     }
 
     private func customChip() -> some View {
         Button(action: custom) {
-            Text("自定义…")
+            Text("自定义")
                 .font(.system(size: 11.5))
                 .padding(.horizontal, 9)
                 .padding(.vertical, 3.5)
@@ -412,29 +416,86 @@ private struct FlowChips: View {
                 .overlay(
                     Capsule().strokeBorder(Color.primary.opacity(0.14))
                 )
-                .foregroundStyle(isCustomActive ? .primary : .secondary)
+                .foregroundStyle(isCustomActive
+                    ? AnyShapeStyle(Color.primary)
+                    : AnyShapeStyle(Color.primary.opacity(0.72)))
         }
         .buttonStyle(.plain)
     }
 }
 
+/// Left-aligned flow layout (macOS 13 `Layout` protocol): fills a row, then
+/// wraps to the next. Each child keeps its ideal size — chips never stretch
+/// or truncate their own label.
+private struct FlowLayout: Layout {
+    var spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        arrange(maxWidth: proposal.width ?? .infinity, subviews: subviews).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let arrangement = arrange(maxWidth: bounds.width, subviews: subviews)
+        for (subview, frame) in zip(subviews, arrangement.frames) {
+            subview.place(at: CGPoint(x: bounds.minX + frame.minX,
+                                      y: bounds.minY + frame.minY),
+                          anchor: .topLeading, proposal: .unspecified)
+        }
+    }
+
+    /// Shared greedy wrap: walk the children, break to a new row whenever the
+    /// next chip would cross the available width.
+    private func arrange(maxWidth: CGFloat, subviews: Subviews)
+        -> (frames: [CGRect], size: CGSize) {
+        var frames: [CGRect] = []
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+        var width: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > maxWidth {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            frames.append(CGRect(x: x, y: y, width: size.width, height: size.height))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+            width = max(width, x - spacing)
+        }
+        return (frames, CGSize(width: width, height: y + rowHeight))
+    }
+}
+
 // MARK: - Battery + helper rows
 
-/// Power row (mockup §2): source icon + label, thin charge bar, percentage.
+/// Amber that stays readable in both appearances: bright on the dark panel,
+/// deep on the light one — plain yellow on a light popover is unreadable.
+private func warmAmber(_ colorScheme: ColorScheme) -> Color {
+    colorScheme == .dark
+        ? Color(red: 0.988, green: 0.835, blue: 0.098)
+        : Color(red: 0.702, green: 0.494, blue: 0.016)
+}
+
+/// Power row: source icon + label, thin charge bar, percentage, and the
+/// thermal level at the trailing edge (thermal-row-mockup §2 option 1).
 /// The bar stays neutral — color is the tier channel, not a battery channel.
+/// Temperature color, in contrast, *is* a warning channel: gray while
+/// nominal, then the battery amber, the tier orange at the overheat-pause
+/// trigger, and alarm red at critical.
 private struct BatteryRow: View {
     @EnvironmentObject var state: AppState
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 9) {
             Image(systemName: state.batteryOnAC ? "bolt.fill" : "battery.75")
                 .font(.system(size: 11))
                 .foregroundStyle(state.batteryOnAC
-                    ? Color(red: 0.941, green: 0.780, blue: 0.369)   // #F0C75E
+                    ? warmAmber(colorScheme)
                     : Color.secondary)
             Text(state.batteryOnAC ? "电源适配器" : "电池")
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12.5))
+                .foregroundStyle(.primary.opacity(0.85))
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.primary.opacity(0.12))
@@ -446,10 +507,26 @@ private struct BatteryRow: View {
             .frame(height: 4)
             Text("\(state.batteryPercent)%")
                 .font(.system(size: 11.5).monospacedDigit())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary.opacity(0.75))
+            thermalLabel
         }
         .padding(.horizontal, hInset)
         .padding(.top, 10)
+    }
+
+    private var thermalLabel: some View {
+        let color: Color
+        let text: String
+        switch state.thermalState {
+        case .nominal:   color = Color.primary.opacity(0.65); text = NSLocalizedString("正常", comment: "thermal: nominal")
+        case .fair:      color = warmAmber(colorScheme); text = NSLocalizedString("偏热", comment: "thermal: fair")
+        case .serious:   color = warmAmber(colorScheme); text = NSLocalizedString("过热", comment: "thermal: serious")
+        case .critical:  color = Color(red: 0.898, green: 0.322, blue: 0.290); text = NSLocalizedString("严重过热", comment: "thermal: critical")
+        @unknown default: color = Color.primary.opacity(0.65); text = NSLocalizedString("正常", comment: "thermal: nominal")
+        }
+        return Label(text, systemImage: "thermometer.medium")
+            .font(.system(size: 11.5, weight: state.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue ? .semibold : .regular))
+            .foregroundStyle(color)
     }
 }
 
@@ -466,24 +543,24 @@ private struct HelperRow: View {
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Color(red: 0.365, green: 0.796, blue: 0.647))
                 Text("特权 Helper 已安装 · 合盖档可用")
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.primary.opacity(0.85))
             } else {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
                 Text("未安装特权 Helper · 合盖档不可用")
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.primary.opacity(0.85))
                 Spacer(minLength: 8)
-                Button("安装…") { state.installHelper() }
+                Button("安装") { state.installHelper() }
                     .controlSize(.small)
                     .buttonStyle(.link)
             }
         }
         .padding(.horizontal, hInset)
-        .padding(.top, 6)
-        .padding(.bottom, 4)
+        .padding(.top, 9)
+        .padding(.bottom, 6)
     }
 }
 
@@ -502,8 +579,8 @@ private struct SettingsButton: View {
             MenuBarExtraPanel.dismiss()
             state.showSettings()
         } label: {
-            Label("设置…", systemImage: "gearshape")
-                .foregroundStyle(.secondary)
+            Label("设置", systemImage: "gearshape")
+                .foregroundStyle(.primary.opacity(0.85))
         }
         .keyboardShortcut(",", modifiers: .command)
         .buttonStyle(.plain)

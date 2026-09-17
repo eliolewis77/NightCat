@@ -11,7 +11,8 @@ struct SettingsView: View {
 
     @EnvironmentObject var state: AppState
 
-    private let repoURL = URL(string: "https://github.com/nghialuong/Lidless")!
+    /// Set once the user picks a language, until relaunch applies it.
+    @State private var languageChanged = false
 
     var body: some View {
         Form {
@@ -24,7 +25,34 @@ struct SettingsView: View {
                     get: { state.settings.autoLockOnTimerStart },
                     set: { v in var s = state.settings; s.autoLockOnTimerStart = v; state.updateSettings(s) }
                 ))
-                Button("查看设置指南…") { state.showOnboarding() }
+                Picker("语言", selection: Binding(
+                    get: { state.appLanguage },
+                    set: { code in
+                        if code != state.appLanguage {
+                            state.setAppLanguage(code)
+                            languageChanged = true
+                        }
+                    }
+                )) {
+                    Text("跟随系统").tag("auto")
+                    Text("简体中文").tag("zh-Hans")
+                    Text("English").tag("en")
+                }
+                Toggle("启动时自动恢复合盖档", isOn: Binding(
+                    get: { state.settings.restoreLidTierOnLaunch },
+                    set: { v in var s = state.settings; s.restoreLidTierOnLaunch = v; state.updateSettings(s) }
+                ))
+                Button("查看设置指南") { state.showOnboarding() }
+                if languageChanged {
+                    HStack {
+                        Text("重启 NightCat 以应用语言更改。")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("立即重启") { state.relaunch() }
+                            .controlSize(.small)
+                    }
+                }
             }
 
             Section("安全") {
@@ -32,10 +60,15 @@ struct SettingsView: View {
                     get: { state.settings.onlyWhileCharging },
                     set: { v in var s = state.settings; s.onlyWhileCharging = v; state.updateSettings(s) }
                 ))
-                Toggle("过热时自动暂停", isOn: Binding(
-                    get: { state.settings.pauseOnHighThermal },
-                    set: { v in var s = state.settings; s.pauseOnHighThermal = v; state.updateSettings(s) }
-                ))
+                Picker("过热时", selection: Binding(
+                    get: { state.settings.thermalPolicy },
+                    set: { v in var s = state.settings; s.thermalPolicy = v; state.updateSettings(s) }
+                )) {
+                    Text("自动暂停").tag(ThermalPolicy.pause)
+                    Text("仅通知").tag(ThermalPolicy.notify)
+                    Text("忽略").tag(ThermalPolicy.ignore)
+                }
+                .pickerStyle(.segmented)
                 LowBatteryCutoffRow()
             }
 
@@ -51,7 +84,7 @@ struct SettingsView: View {
                     HStack(spacing: 6) {
                         Image(systemName: state.usingHelper ? "checkmark.shield.fill" : "exclamationmark.shield")
                             .foregroundStyle(state.usingHelper ? .green : .orange)
-                        Text(state.usingHelper ? "已启用" : "未安装")
+                        Text(state.usingHelper ? NSLocalizedString("已启用", comment: "helper status") : NSLocalizedString("未安装", comment: "helper status"))
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -59,7 +92,7 @@ struct SettingsView: View {
                     Text("安装一次后台 Helper，切换档位时便不再询问管理员密码，看门狗也能防止 Mac 卡在保持唤醒状态。")
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                    Button(state.helperNeedsApproval ? "前往登录项批准…" : "安装后台 Helper…") {
+                    Button(state.helperNeedsApproval ? NSLocalizedString("前往登录项批准", comment: "button") : NSLocalizedString("安装后台 Helper", comment: "button")) {
                         state.installHelper()
                     }
                 }
@@ -77,12 +110,8 @@ struct SettingsView: View {
                         Text("版本 \(state.appVersion)")
                             .font(.callout)
                             .foregroundStyle(.secondary)
-                        Text("TAO LIU · 基于 Nghia Luong 的开源项目 Lidless")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
                     }
                 }
-                Link("在 GitHub 上查看上游 Lidless", destination: repoURL)
             }
         }
         .formStyle(.grouped)
@@ -126,7 +155,7 @@ private struct LowBatteryCutoffRow: View {
             HStack(spacing: 12) {
                 Text("低电量阈值")
                 Spacer(minLength: 16)
-                Text(shown == 0 ? "不限" : "\(shown)%")
+                Text(shown == 0 ? NSLocalizedString("不限", comment: "threshold: never") : String(format: NSLocalizedString("%lld%%", comment: "percent"), shown))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
             }

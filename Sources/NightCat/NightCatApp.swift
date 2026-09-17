@@ -9,7 +9,7 @@ enum ExitRestoreBridge {
 }
 
 @main
-struct LidlessApp: App {
+struct NightCatApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var state = AppState()
 

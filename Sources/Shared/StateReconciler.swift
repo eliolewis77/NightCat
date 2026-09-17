@@ -1,7 +1,7 @@
 import Foundation
 
 /// A change to the system `SleepDisabled` flag made outside this app — `pmset`
-/// in Terminal, the helper's watchdog, or another build of Lidless.
+/// in Terminal, the helper's watchdog, or another build of NightCat.
 public enum ExternalChange: Equatable {
     case enabledOutside
     case disabledOutside
@@ -12,8 +12,8 @@ public enum ExternalChange: Equatable {
     /// flip the state back while this notice is still on screen.
     public var message: String {
         switch self {
-        case .enabledOutside:  return "保持唤醒已在 NightCat 之外被开启。"
-        case .disabledOutside: return "保持唤醒已在 NightCat 之外被关闭。"
+        case .enabledOutside:  return NSLocalizedString("保持唤醒已在 NightCat 之外被开启。", comment: "external change")
+        case .disabledOutside: return NSLocalizedString("保持唤醒已在 NightCat 之外被关闭。", comment: "external change")
         }
     }
 }
@@ -83,7 +83,7 @@ public enum StateReconciler {
 
     // MARK: Notice lifecycle
 
-    /// The "changed outside Lidless" notice is the user's only explanation for a
+    /// The "changed outside NightCat" notice is the user's only explanation for a
     /// toggle that moved by itself, so only the user acting on it clears it.
     ///
     /// This matters most in one specific case: adopting an externally-enabled
@@ -133,23 +133,23 @@ public enum StateReconciler {
     /// is restored sends a running Mac into a bag.
     public static func unverifiedMessage(target: Bool) -> String {
         target
-            ? "无法向系统确认保持唤醒已生效——合盖后可能不会保持唤醒。"
-            : "无法确认睡眠已恢复——Mac 可能仍处于保持唤醒。"
+            ? NSLocalizedString("无法向系统确认保持唤醒已生效——合盖后可能不会保持唤醒。", comment: "unverified write")
+            : NSLocalizedString("无法确认睡眠已恢复——Mac 可能仍处于保持唤醒。", comment: "unverified write")
     }
 
     /// Wording for a write that demonstrably didn't hold. Kept distinct from
     /// `ExternalChange.message`, which attributes the change to someone else.
     public static func writeMismatchMessage(actual: Bool) -> String {
         actual
-            ? "更改未生效——系统显示保持唤醒仍处于开启。"
-            : "更改未生效——系统显示保持唤醒已关闭。"
+            ? NSLocalizedString("更改未生效——系统显示保持唤醒仍处于开启。", comment: "write mismatch")
+            : NSLocalizedString("更改未生效——系统显示保持唤醒已关闭。", comment: "write mismatch")
     }
 
     // MARK: External takeover attribution (SPEC §9)
 
-    /// Worded notice for keep-awake that was turned on outside Lidless *and*
+    /// Worded notice for keep-awake that was turned on outside NightCat *and*
     /// can be attributed: "Currently held by Amphetamine." — another tool's
-    /// session must never be presented as Lidless's own doing.
+    /// session must never be presented as NightCat's own doing.
     ///
     /// `holders` are process names from
     /// `PowerParsers.sleepAssertionHolders(pmsetAssertions:)` after the app
@@ -164,7 +164,7 @@ public enum StateReconciler {
         var seen = Set<String>()
         let named = holders.filter { seen.insert($0).inserted }
         guard !named.isEmpty else { return ExternalChange.enabledOutside.message }
-        return "当前由 \(named.joined(separator: " 和 "))控制。"
+        return String(format: NSLocalizedString("当前由 %@控制。", comment: "external takeover; holder names"), named.joined(separator: NSLocalizedString(" 和 ", comment: "list separator")))
     }
 }
 

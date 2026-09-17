@@ -9,6 +9,8 @@ public struct SettingsStore {
         static let lowBattery   = "lowBatteryThreshold"
         static let onlyCharging = "onlyWhileCharging"
         static let pauseThermal = "pauseOnHighThermal"
+        static let thermalPolicy = "thermalPolicy"
+        static let restoreLid  = "restoreLidTierOnLaunch"
         static let autoEnable   = "autoEnableWhenCharging"
         static let autoLock     = "autoLockOnTimerStart"
         static let armed        = "keepAwakeArmed"
@@ -27,19 +29,33 @@ public struct SettingsStore {
         guard defaults.bool(forKey: Key.seeded) else { return .default }
         // `bool(forKey:)` is false when the key is absent, so an install from
         // before `autoLockOnTimerStart` existed falls back to off on its own.
+        // Thermal policy: read the new enum key; fall back to a one-shot
+        // migration from the old boolean (absent → default). The old key is
+        // left in place and simply stops being consulted once the new one
+        // is written by the next save.
+        let thermal: ThermalPolicy
+        if let raw = defaults.string(forKey: Key.thermalPolicy), let p = ThermalPolicy(rawValue: raw) {
+            thermal = p
+        } else if defaults.object(forKey: Key.pauseThermal) != nil {
+            thermal = defaults.bool(forKey: Key.pauseThermal) ? .pause : .ignore
+        } else {
+            thermal = .pause
+        }
         return SafetySettings(
             lowBatteryThreshold: defaults.integer(forKey: Key.lowBattery),
             onlyWhileCharging: defaults.bool(forKey: Key.onlyCharging),
-            pauseOnHighThermal: defaults.bool(forKey: Key.pauseThermal),
+            thermalPolicy: thermal,
             autoEnableWhenCharging: defaults.bool(forKey: Key.autoEnable),
-            autoLockOnTimerStart: defaults.bool(forKey: Key.autoLock)
+            autoLockOnTimerStart: defaults.bool(forKey: Key.autoLock),
+            restoreLidTierOnLaunch: defaults.bool(forKey: Key.restoreLid)
         )
     }
 
     public func save(_ settings: SafetySettings) {
         defaults.set(settings.lowBatteryThreshold, forKey: Key.lowBattery)
         defaults.set(settings.onlyWhileCharging, forKey: Key.onlyCharging)
-        defaults.set(settings.pauseOnHighThermal, forKey: Key.pauseThermal)
+        defaults.set(settings.thermalPolicy.rawValue, forKey: Key.thermalPolicy)
+        defaults.set(settings.restoreLidTierOnLaunch, forKey: Key.restoreLid)
         defaults.set(settings.autoEnableWhenCharging, forKey: Key.autoEnable)
         defaults.set(settings.autoLockOnTimerStart, forKey: Key.autoLock)
         defaults.set(true, forKey: Key.seeded)

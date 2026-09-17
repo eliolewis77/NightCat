@@ -18,7 +18,7 @@ macOS 菜单栏小工具：控制这台 Mac 什么时候可以睡、什么时候
 | 项 | 状态 |
 |---|---|
 | 功能规格 | ✅ 已定稿，见 `docs/SPEC.md` |
-| 代码基线 | ✅ 已 fork 上游 `nghialuong/Lidless` v0.1.3（含完整 git 历史） |
+| 代码基线 | ✅ 已 fork 上游 `nghialuong/NightCat` v0.1.3（含完整 git 历史） |
 | 改造 | ✅ M1–M5 完成（身份 / 三档核心 / 定时锁定 / 电池与外部接管 / 中文与图标） |
 | UI 设计稿 | ✅ 已确认，见 `docs/design/panel-mockup.html` |
 | 版本 | 1.0.0（未发布，本地构建自用） |
@@ -27,7 +27,7 @@ macOS 菜单栏小工具：控制这台 Mac 什么时候可以睡、什么时候
 
 ## 来源与许可
 
-本项目是 [`nghialuong/Lidless`](https://github.com/nghialuong/Lidless) 的 fork，基线为 tag `v0.1.3`（commit `1c432ed`）。
+本项目是 [`nghialuong/NightCat`](https://github.com/nghialuong/NightCat) 的 fork，基线为 tag `v0.1.3`（commit `1c432ed`）。
 
 上游以 MIT 许可发布，版权归原作者 **Nghia Luong** 所有。本 fork 保留 `LICENSE` 中的原始版权声明，改造部分版权归本仓库所有者。上游 README 存档在 `docs/upstream-README.md`。
 
@@ -66,10 +66,10 @@ git fetch upstream && git log --oneline HEAD..upstream/main
 xcodegen generate
 
 # 跑单元测试
-xcodebuild test -scheme Lidless-CI -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
+xcodebuild test -scheme NightCat-CI -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
 
 # 构建 App
-xcodebuild build -scheme Lidless -destination 'generic/platform=macOS' \
+xcodebuild build -scheme NightCat -destination 'generic/platform=macOS' \
   -configuration Debug CODE_SIGNING_ALLOWED=NO
 ```
 

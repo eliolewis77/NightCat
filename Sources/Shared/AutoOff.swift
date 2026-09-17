@@ -6,7 +6,7 @@ import Foundation
 /// in the app — if the app dies the helper watchdog restores sleep anyway.
 public enum AutoOff {
     /// Selectable durations (minutes). `0` means "no auto-off" (stay on until off).
-    public static let presetMinutes = [15, 30, 60, 120, 240]
+    public static let presetMinutes = [30, 60, 120]
 
     /// What picking a duration should do.
     ///
@@ -52,7 +52,7 @@ public enum AutoOff {
 
     /// Label for the duration control, e.g. `No limit`, `15 min`, `1 hour`.
     public static func durationLabel(minutes: Int) -> String {
-        minutes > 0 ? optionLabel(minutes: minutes) : "不限时"
+        minutes > 0 ? optionLabel(minutes: minutes) : NSLocalizedString("不限时", comment: "duration: no limit")
     }
 
     /// When a timer started `minutes` ago from `start` should fire.
@@ -83,8 +83,12 @@ public enum AutoOff {
 
     /// Menu label for a duration, e.g. `15 min`, `1 hour`, `2 hours`.
     public static func optionLabel(minutes: Int) -> String {
-        guard minutes % 60 == 0 else { return "\(minutes) 分钟" }
+        guard minutes % 60 == 0 else {
+            return String(format: NSLocalizedString("%lld 分钟", comment: "duration; minutes"), minutes)
+        }
         let h = minutes / 60
-        return h == 1 ? "1 小时" : "\(h) 小时"
+        return h == 1
+            ? NSLocalizedString("1 小时", comment: "duration; 1 hour")
+            : String(format: NSLocalizedString("%lld 小时", comment: "duration; hours"), h)
     }
 }

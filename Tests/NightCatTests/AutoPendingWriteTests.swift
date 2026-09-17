@@ -91,7 +91,7 @@ final class AutoPendingWriteTests: XCTestCase {
     /// there must be no second write.
     func testASettingsChangeThatStillWantsOnIssuesNoDuplicateWrite() {
         var s = auto
-        s.pauseOnHighThermal = false            // irrelevant while cool and on power
+        s.thermalPolicy = .ignore               // irrelevant while cool and on power
 
         XCTAssertNil(AutoEnablePolicy.target(
             armed: true,

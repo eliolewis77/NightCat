@@ -2,7 +2,7 @@ import XCTest
 
 /// Attribution for external takeovers (SPEC §9): parse `pmset -g assertions`
 /// so a keep-awake held by Amphetamine (or anything else) can be named instead
-/// of being presented as Lidless's own doing.
+/// of being presented as NightCat's own doing.
 final class AssertionsParsingTests: XCTestCase {
 
     // MARK: Flat format — current macOS, fixture cut from live `pmset` output

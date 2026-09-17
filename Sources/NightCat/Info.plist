@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>zh-Hans</string>
 	<key>CFBundleDisplayName</key>
 	<string>NightCat</string>
 	<key>CFBundleExecutable</key>
@@ -25,6 +25,8 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>
+	<true/>
+	<key>NSAppSleepDisabled</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Nghia Luong. © 2026 TAO LIU</string>

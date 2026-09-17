@@ -4,7 +4,7 @@
 
 ## 你的任务
 
-把 fork 过来的 Lidless 改造成 **NightCat**：把单一「合盖不睡」开关扩展为**三档递进**的保持唤醒工具，中文界面，加上档位锁定与防忘关的安全网。功能规格以 `docs/SPEC.md` 为准，任务顺序见 `docs/PLAN.md`。
+把 fork 过来的 NightCat 改造成 **NightCat**：把单一「合盖不睡」开关扩展为**三档递进**的保持唤醒工具，中文界面，加上档位锁定与防忘关的安全网。功能规格以 `docs/SPEC.md` 为准，任务顺序见 `docs/PLAN.md`。
 
 上游代码是**可用的基线**，不是要重写的东西。提权 helper、XPC、看门狗、签名、发布脚本都是现成且经过验证的，沿用即可。
 
@@ -33,14 +33,14 @@
 
 ```bash
 xcodegen generate
-xcodebuild test -scheme Lidless-CI -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
-xcodebuild build -scheme Lidless -destination 'generic/platform=macOS' \
+xcodebuild test -scheme NightCat-CI -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
+xcodebuild build -scheme NightCat -destination 'generic/platform=macOS' \
   -configuration Debug CODE_SIGNING_ALLOWED=NO
 ```
 
 **硬性约束：**
 
-- `NightCat.xcodeproj` / `Lidless.xcodeproj` 是 `xcodegen generate` 的产物，被 gitignore。**永远不要手改 `.xcodeproj`**，改 `project.yml` 后重新生成。
+- `NightCat.xcodeproj` / `NightCat.xcodeproj` 是 `xcodegen generate` 的产物，被 gitignore。**永远不要手改 `.xcodeproj`**，改 `project.yml` 后重新生成。
 - `Sources/Shared/` 有约 1300 行单元测试覆盖，改这里的逻辑要同步维护测试（是否自行跑测试见文末「交付与验证习惯」）。
 
 ## 签名（最容易卡住的地方，务必先读）
@@ -63,7 +63,7 @@ public static func codeSigningRequirement(appBundleID: String) -> String {
 | 位置 | 键 |
 |---|---|
 | `project.yml` | `settings.base.DEVELOPMENT_TEAM` |
-| `Sources/Shared/HelperProtocol.swift` | `LidlessHelper.teamID` |
+| `Sources/Shared/HelperProtocol.swift` | `NightCatHelper.teamID` |
 
 不一致的后果是 App 永远连不上 helper，表现为开关点了没反应，且**不会有明显的报错提示**。
 
@@ -80,14 +80,14 @@ public static func codeSigningRequirement(appBundleID: String) -> String {
 
 1. `project.yml`：`bundleIdPrefix` 与两处 `PRODUCT_BUNDLE_IDENTIFIER`
 2. `project.yml` + `HelperProtocol.swift`：Team ID 两处
-3. **拆除 Sparkle**：`project.yml` 的 package 依赖、`Sources/Lidless/Info.plist` 的 `SUFeedURL`/`SUPublicEDKey`、`UpdaterController.swift`、`AppState.swift` 里对 updater 的持有。
+3. **拆除 Sparkle**：`project.yml` 的 package 依赖、`Sources/NightCat/Info.plist` 的 `SUFeedURL`/`SUPublicEDKey`、`UpdaterController.swift`、`AppState.swift` 里对 updater 的持有。
    不拆的后果：你的 fork 会自动去**上游服务器**拉更新包。详见 `docs/FORK-NOTES.md`。
 4. `Info.plist`：`CFBundleName` / `CFBundleDisplayName` / `NSHumanReadableCopyright`
 5. 图标资源
 
 ### 重命名的两种做法
 
-上游的工程名、target 名、目录名都叫 Lidless，彻底重命名要动 `project.yml` 的 `name`/`targets`/`schemes`、`Sources/Lidless` 目录、`LidlessHelper` target、以及从 bundle id 派生的 label。
+上游的工程名、target 名、目录名都叫 NightCat，彻底重命名要动 `project.yml` 的 `name`/`targets`/`schemes`、`Sources/NightCat` 目录、`NightCatHelper` target、以及从 bundle id 派生的 label。
 
 - **推荐**：先只改**身份**（bundle id、Team ID、显示名、图标），target 名和文件名暂时不动，先把 App 跑起来。工程内部名不影响用户看到的东西。
 - 彻底重命名放到功能做完之后的独立提交里，避免和功能改动混在一起、把 diff 搅浑。

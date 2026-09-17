@@ -100,9 +100,9 @@ struct OnboardingView: View {
                 Label("请在 系统设置 ▸ 登录项 中批准 NightCat，然后回到这里。", systemImage: "exclamationmark.circle.fill")
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
-                Button("前往登录项批准…") { state.installHelper() }
+                Button("前往登录项批准") { state.installHelper() }
             } else {
-                Button("安装后台 Helper…") { state.installHelper() }
+                Button("安装后台 Helper") { state.installHelper() }
                     .buttonStyle(.borderedProminent)
             }
 
@@ -121,7 +121,7 @@ struct OnboardingView: View {
     private var doneStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             header(symbol: "checkmark.circle.fill", title: "一切就绪")
-            Text("点击菜单栏的 NightCat 图标，按需在「关闭 / 常亮 / 防空闲 / 合盖」四个档位间切换。安全选项在「设置…」里。")
+            Text("点击菜单栏的 NightCat 图标，按需在「关闭 / 常亮 / 防空闲 / 合盖」四个档位间切换。安全选项在「设置」里。")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -157,7 +157,7 @@ struct OnboardingView: View {
 
             Spacer()
 
-            Button(step == lastStep ? "完成" : "继续") {
+            Button(step == lastStep ? NSLocalizedString("完成", comment: "button") : NSLocalizedString("继续", comment: "button")) {
                 if step == lastStep {
                     state.completeOnboarding()
                 } else {
@@ -175,7 +175,7 @@ struct OnboardingView: View {
             Image(systemName: symbol)
                 .font(.system(size: 36))
                 .foregroundStyle(.tint)
-            Text(title)
+            Text(NSLocalizedString(title, comment: "onboarding step title"))
                 .font(.title.weight(.semibold))
         }
     }
@@ -186,7 +186,7 @@ struct OnboardingView: View {
                 .font(.title3)
                 .foregroundStyle(.tint)
                 .frame(width: 26)
-            Text(text)
+            Text(NSLocalizedString(text, comment: "onboarding bullet"))
                 .font(.callout)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)

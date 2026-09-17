@@ -102,8 +102,31 @@ final class AppState: ObservableObject {
     /// Human countdown (e.g. `1:05:09`) shown while a timer is active.
     @Published var autoOffRemaining = ""
 
+    /// System thermal pressure, refreshed with the battery sample. Shown in
+    /// the panel's battery row so the overheat-pause has a visible cause.
+    @Published var thermalState: ProcessInfo.ThermalState = .nominal
+
     /// Whether the user has finished first-run onboarding (persisted).
     @Published var onboardingComplete = false
+
+    /// In-app language override ("auto" | "zh-Hans" | "en"). Persisted via the
+    /// app's `AppleLanguages` default, so it takes effect on next launch —
+    /// bundle lookup tables load once at startup. The *selection* itself lives
+    /// in a separate `AppLanguageOverride` key: reading `AppleLanguages` back
+    /// would hit the system's global domain (always present) and masquerade as
+    /// a user choice.
+    @Published var appLanguage: String
+
+    func setAppLanguage(_ code: String) {
+        appLanguage = code
+        let defaults = UserDefaults.standard
+        defaults.set(code, forKey: "AppLanguageOverride")
+        if code == "auto" {
+            defaults.removeObject(forKey: "AppleLanguages")
+        } else {
+            defaults.set([code], forKey: "AppleLanguages")
+        }
+    }
 
     private let helper = HelperManager()
     /// App-layer assertions for the screen / prevent-idle tiers.
@@ -164,9 +187,11 @@ final class AppState: ObservableObject {
         armed = store.loadArmed()
         autoOffMinutes = store.loadAutoOffMinutes()
         onboardingComplete = store.loadOnboardingComplete()
+        appLanguage = UserDefaults.standard.string(forKey: "AppLanguageOverride") ?? "auto"
         launchAtLogin = loginItem.isEnabled
         ExitRestoreBridge.appState = self
         caffeinate.onError = { [weak self] message in self?.lastError = message }
+        AppNotifier.requestAuthorizationIfNeeded()
         refreshHelperStatus()
         refreshHelperRegistrationIfUpdated()
         helperWasUsable = usingHelper
@@ -208,6 +233,17 @@ final class AppState: ObservableObject {
             onboardingComplete = true
             store.saveOnboardingComplete(true)
             DispatchQueue.main.async { [weak self] in self?.showOnboarding() }
+        }
+        // Opt-in launch restore: a restarted Mac with the lid closed would
+        // otherwise sit unreachable on the Off tier (disablesleep is cleared by
+        // the reboot itself) until someone physically opens the lid. Deferred
+        // to the next runloop tick so the UI (and any pending onboarding work)
+        // settles before the helper round trip starts.
+        if settings.restoreLidTierOnLaunch, mode == .off {
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.mode == .off else { return }
+                self.setMode(.lidClosed, origin: .user)
+            }
         }
     }
 
@@ -316,7 +352,7 @@ final class AppState: ObservableObject {
         case .lidClosed: setArmed(true)
         case .off:       setArmed(false)
         case .screen, .preventIdle:
-            lastError = "自动模式开启时不使用常亮与防空闲档——它只驱动合盖档。"
+            lastError = NSLocalizedString("自动模式开启时不使用常亮与防空闲档——它只驱动合盖档。", comment: "auto mode notice")
         }
     }
 
@@ -477,7 +513,8 @@ final class AppState: ObservableObject {
                                                         settings: settings) {
             // Pass the message through so it survives the async helper callback
             // (which would otherwise clear lastError on success).
-            setMode(.off, note: reason.message, origin: .safety)
+            setMode(.off, note: reason.localizedMessage(), origin: .safety)
+            AppNotifier.post(reason.localizedMessage())
         }
     }
 
@@ -515,7 +552,7 @@ final class AppState: ObservableObject {
             // lost: "cancel" is the user declining the battery run, so the
             // tier comes off rather than sitting on until the cutoff.
             if context == .powerLost {
-                setMode(.off, note: "已关闭——正在使用电池。", origin: .safety)
+                setMode(.off, note: NSLocalizedString("已关闭——正在使用电池。", comment: "battery cancel"), origin: .safety)
             }
         }
     }
@@ -587,17 +624,17 @@ final class AppState: ObservableObject {
 
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
-        alert.messageText = "后台 Helper 已启用"
-        alert.informativeText = "重启 NightCat 以完成与后台 Helper 的连接。"
-        alert.addButton(withTitle: "立即重启")
-        alert.addButton(withTitle: "稍后")
+        alert.messageText = NSLocalizedString("后台 Helper 已启用", comment: "alert title")
+        alert.informativeText = NSLocalizedString("重启 NightCat 以完成与后台 Helper 的连接。", comment: "alert body")
+        alert.addButton(withTitle: NSLocalizedString("立即重启", comment: "button"))
+        alert.addButton(withTitle: NSLocalizedString("稍后", comment: "button"))
         if alert.runModal() == .alertFirstButtonReturn {
             relaunch()
         }
     }
 
     /// Spawn a fresh instance of the app, then terminate this one.
-    private func relaunch() {
+    func relaunch() {
         let config = NSWorkspace.OpenConfiguration()
         config.createsNewApplicationInstance = true
         NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: config) { _, _ in }
@@ -620,7 +657,7 @@ final class AppState: ObservableObject {
             refreshHelperStatus()
             helperWasUsable = usingHelper
             if helper.requiresApproval {
-                lastError = "请在 系统设置 ▸ 登录项 中批准 NightCat。"
+                lastError = NSLocalizedString("请在 系统设置 ▸ 登录项 中批准 NightCat。", comment: "helper approval")
                 helper.openLoginItemsSettings()
             } else {
                 lastError = nil
@@ -640,7 +677,7 @@ final class AppState: ObservableObject {
     /// Kept separate from `installHelper()` so re-registration can never swallow
     /// the open.
     func openLoginItems() {
-        lastError = "请在 系统设置 ▸ 登录项 中批准 NightCat。"
+        lastError = NSLocalizedString("请在 系统设置 ▸ 登录项 中批准 NightCat。", comment: "helper approval")
         helper.openLoginItemsSettings()
         refreshHelperStatus()
     }
@@ -698,14 +735,61 @@ final class AppState: ObservableObject {
             adoptSystemState(enabled)
         case .drift(let change):
             hasConfirmedState = true
-            // Set before adopting: adopting `true` can synchronously trip a safety
-            // pause, and the notice should already be in place when it does.
-            // An enable we can't attribute gets the generic wording — claiming
-            // a holder we couldn't parse would be worse than naming none.
-            externalNotice = change.nowEnabled
-                ? StateReconciler.externalTakeoverMessage(holders: externalSleepAssertionHolders())
-                : change.message
-            adoptSystemState(change.nowEnabled)
+            // The lid tier owns the flag, so a clear underneath an active lid
+            // tier is a stolen choice, not a takeover to adopt: session
+            // teardown in some remote-desktop tools (UU远程) resets
+            // `disablesleep` when the viewer disconnects. Write it back —
+            // rate-limited, so a determined writer surfaces as a visible
+            // conflict instead of an endless 30-second rewrite loop. A user
+            // who wants the tier off clicks the panel (origin .user), which
+            // never reaches this path.
+            if !change.nowEnabled, mode == .lidClosed {
+                restoreClearedFlag()
+            } else {
+                externalNotice = change.nowEnabled
+                    ? StateReconciler.externalTakeoverMessage(holders: externalSleepAssertionHolders())
+                    : change.message
+                adoptSystemState(change.nowEnabled)
+            }
+        }
+    }
+
+    /// Rate limiting for `restoreClearedFlag`: more than 3 clears inside
+    /// 10 minutes means something is actively fighting us, and hammering the
+    /// helper every poll would just churn XPC and pmset. Past the threshold the
+    /// tier folds to off with an explicit notice — the user must resolve the
+    /// conflict (or re-pick the tier) themselves.
+    private var externalClearTimes: [Date] = []
+
+    private func restoreClearedFlag() {
+        let now = Date()
+        externalClearTimes = externalClearTimes.filter { now.timeIntervalSince($0) < 600 }
+        externalClearTimes.append(now)
+        guard externalClearTimes.count <= 3, helperInstalled else {
+            externalNotice = NSLocalizedString("保持唤醒被其他程序反复关闭，已停止自动恢复。请检查远程软件等工具的电源设置。", comment: "restore gave up")
+            mode = .off
+            caffeinate.apply(mode)
+            manageHeartbeat()
+            updateAutoOff(for: false)
+            AppNotifier.post(NSLocalizedString("保持唤醒被其他程序反复关闭，已停止自动恢复。", comment: "restore gave up"))
+            return
+        }
+        let token = sync.beginMutation()
+        helper.setKeepAwake(true) { [weak self] ok, err in
+            guard let self, self.sync.shouldApply(token) else { return }
+            if ok {
+                self.externalNotice = NSLocalizedString("检测到保持唤醒被其他程序关闭，已自动恢复。", comment: "restored")
+                self.pendingVerification = PendingVerification(target: true)
+                self.verifySetApplied(target: true)
+                AppNotifier.post(NSLocalizedString("检测到保持唤醒被其他程序关闭，已自动恢复。", comment: "restored"))
+            } else {
+                self.externalNotice = String(format: NSLocalizedString("保持唤醒被其他程序关闭，自动恢复失败：%@", comment: "restore failed"), err ?? NSLocalizedString("未知错误", comment: "unknown error"))
+                self.mode = .off
+                self.caffeinate.apply(self.mode)
+                self.manageHeartbeat()
+                self.updateAutoOff(for: false)
+                AppNotifier.post(NSLocalizedString("保持唤醒被其他程序关闭，自动恢复失败。", comment: "restore failed"))
+            }
         }
     }
 
@@ -833,9 +917,9 @@ final class AppState: ObservableObject {
             if let blocker = SafetyEvaluator.reasonToDisable(battery: checked.battery,
                                                              thermalSerious: checked.thermalSerious,
                                                              settings: settings) {
-                lastError = blocker.message
+                lastError = blocker.localizedMessage()
                 if origin == .user {
-                    presentFailureAlert(target: target, message: blocker.blockedMessage)
+                    presentFailureAlert(target: target, message: blocker.localizedBlockedMessage())
                 }
                 // Nothing was dispatched, so release the claim rather than holding
                 // it for a write that never happened.
@@ -874,7 +958,7 @@ final class AppState: ObservableObject {
                     // The helper can fail without a message (e.g. a dropped XPC
                     // reply, or the daemon failing to launch after an update);
                     // surface it instead of letting the toggle silently no-op.
-                    let message = err ?? "后台 Helper 未响应。"
+                    let message = err ?? NSLocalizedString("后台 Helper 未响应。", comment: "helper timeout")
                     self.lastError = message
                     if origin == .user { self.presentHelperFailureAlert(message: message) }
                     self.recoverStateAfterFailedWrite()
@@ -955,9 +1039,9 @@ final class AppState: ObservableObject {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = target ? "无法保持 Mac 唤醒" : "无法关闭保持唤醒"
+        alert.messageText = target ? NSLocalizedString("无法保持 Mac 唤醒", comment: "alert title") : NSLocalizedString("无法关闭保持唤醒", comment: "alert title")
         alert.informativeText = message
-        alert.addButton(withTitle: "好")
+        alert.addButton(withTitle: NSLocalizedString("好", comment: "button"))
         alert.runModal()
     }
 
@@ -969,10 +1053,10 @@ final class AppState: ObservableObject {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = "无法连接后台 Helper"
-        alert.informativeText = "\(message)\n\n这通常发生在更新之后，重新安装后台 Helper 即可修复。"
-        alert.addButton(withTitle: "重新安装 Helper…")
-        alert.addButton(withTitle: "取消")
+        alert.messageText = NSLocalizedString("无法连接后台 Helper", comment: "alert title")
+        alert.informativeText = String(format: NSLocalizedString("%@\n\n这通常发生在更新之后，重新安装后台 Helper 即可修复。", comment: "alert body; error detail"), message)
+        alert.addButton(withTitle: NSLocalizedString("重新安装 Helper", comment: "button"))
+        alert.addButton(withTitle: NSLocalizedString("取消", comment: "button"))
         if alert.runModal() == .alertFirstButtonReturn {
             repairHelper()
         }
@@ -989,10 +1073,10 @@ final class AppState: ObservableObject {
             if let error {
                 self.lastError = error.localizedDescription
             } else if self.helper.requiresApproval {
-                self.lastError = "请在 系统设置 ▸ 登录项 中批准 NightCat，然后重试切换。"
+                self.lastError = NSLocalizedString("请在 系统设置 ▸ 登录项 中批准 NightCat，然后重试切换。", comment: "helper approval")
                 self.helper.openLoginItemsSettings()
             } else {
-                self.lastError = "后台 Helper 已重新安装——请重试切换。"
+                self.lastError = NSLocalizedString("后台 Helper 已重新安装——请重试切换。", comment: "helper reinstalled")
             }
         }
     }
@@ -1061,8 +1145,9 @@ final class AppState: ObservableObject {
             // "may interrupt running tasks" caveat is no longer true.
             setModeLocked(false)
             setMode(landed,
-                    note: "定时已到：已按 \(AutoOff.optionLabel(minutes: minutes)) 自动关闭。",
+                    note: String(format: NSLocalizedString("定时已到：已按 %@ 自动关闭。", comment: "timer expiry; duration"), AutoOff.optionLabel(minutes: minutes)),
                     origin: .autoOff)
+            AppNotifier.post(NSLocalizedString("定时已到，保持唤醒已关闭。", comment: "timer expiry"))
         } else {
             refreshAutoOffRemaining()
         }
@@ -1095,6 +1180,23 @@ final class AppState: ObservableObject {
             refreshBattery()
             evaluateSafety()
         }
+        updateThermalNotification()
+    }
+
+    /// One-shot hot Mac notification under the notify-only policy: fires on the
+    /// transition into serious and re-arms once the Mac cools down, so a
+    /// sustained hot spell produces exactly one banner, not one every 30s.
+    private var thermalNotifyShown = false
+    private func updateThermalNotification() {
+        let hot = thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue
+        if hot {
+            if settings.thermalPolicy == .notify, !thermalNotifyShown {
+                thermalNotifyShown = true
+                AppNotifier.post(NSLocalizedString("Mac 正在过热，请留意散热。", comment: "notify-only thermal"))
+            }
+        } else {
+            thermalNotifyShown = false
+        }
     }
 
     func refreshBattery() {
@@ -1104,6 +1206,7 @@ final class AppState: ObservableObject {
         batteryOnAC = info.onAC
         batteryDescription = "\(info.source) · \(info.percent)%"
         lastBatteryOnAC = info.onAC
+        thermalState = ProcessInfo.processInfo.thermalState
         if let wasOnAC, wasOnAC, !info.onAC {
             handlePowerDisconnected()
         }

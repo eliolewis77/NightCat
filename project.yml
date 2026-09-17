@@ -1,4 +1,4 @@
-name: Lidless
+name: NightCat
 options:
   bundleIdPrefix: com.eliokit
   deploymentTarget:
@@ -12,17 +12,25 @@ settings:
     CODE_SIGN_STYLE: Automatic
 
 targets:
-  Lidless:
+  NightCat:
     type: application
     platform: macOS
     sources:
-      - Sources/Lidless
+      - Sources/NightCat
       - Sources/Shared
       - Resources/Assets.xcassets
+      - Resources/Localizable.xcstrings
     info:
-      path: Sources/Lidless/Info.plist
+      path: Sources/NightCat/Info.plist
       properties:
         LSUIElement: true
+        # Chinese is the source language: all literals in code are zh-Hans,
+        # and Localizable.xcstrings carries the English translations.
+        CFBundleDevelopmentRegion: zh-Hans
+        # A menu-bar agent with no windows is a prime AppNap target: suspended,
+        # its 30s heartbeat timer stops, and the helper's watchdog reads the
+        # silence as a dead app and restores sleep underneath a live tier.
+        NSAppSleepDisabled: true
         CFBundleName: NightCat
         CFBundleDisplayName: NightCat
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
@@ -44,7 +52,7 @@ targets:
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.eliokit.nightcat
     dependencies:
-      - target: LidlessHelper
+      - target: NightCatHelper
         copy:
           destination: executables
     postBuildScripts:
@@ -65,15 +73,15 @@ targets:
           <plist version="1.0">
           <dict>
               <key>Label</key><string>'"${HELPER_ID}"'</string>
-              <key>BundleProgram</key><string>Contents/MacOS/LidlessHelper</string>
+              <key>BundleProgram</key><string>Contents/MacOS/NightCatHelper</string>
               <key>MachServices</key><dict><key>'"${HELPER_ID}"'</key><true/></dict>
               <key>AssociatedBundleIdentifiers</key><array><string>'"${APP_ID}"'</string></array>
-              <key>EnvironmentVariables</key><dict><key>LIDLESS_MACH_LABEL</key><string>'"${HELPER_ID}"'</string></dict>
+              <key>EnvironmentVariables</key><dict><key>NIGHTCAT_MACH_LABEL</key><string>'"${HELPER_ID}"'</string></dict>
           </dict>
           </plist>' > "$PLIST"
           plutil -lint "$PLIST"
 
-  LidlessHelper:
+  NightCatHelper:
     type: tool
     platform: macOS
     sources:
@@ -81,9 +89,9 @@ targets:
       - Sources/Shared
     settings:
       base:
-        PRODUCT_NAME: LidlessHelper
+        PRODUCT_NAME: NightCatHelper
         ENABLE_HARDENED_RUNTIME: YES
-        # The helper is embedded into the app bundle via the Lidless target's
+        # The helper is embedded into the app bundle via the NightCat target's
         # `copy: executables` dependency. Without this, the tool target is also
         # installed to Products/usr/local/bin in the archive, leaving two install
         # products so Xcode writes no ApplicationProperties — which makes
@@ -103,36 +111,36 @@ targets:
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.eliokit.nightcat.helper
 
-  LidlessTests:
+  NightCatTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - Tests/LidlessTests
+      - Tests/NightCatTests
       - Sources/Shared
       # Depend only on AppKit/SwiftUI, so they compile straight into the test
       # bundle — which doesn't link the app target.
-      - Sources/Lidless/SettingsWindowController.swift
-      - Sources/Lidless/MenuBarExtraPanel.swift
+      - Sources/NightCat/SettingsWindowController.swift
+      - Sources/NightCat/MenuBarExtraPanel.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.eliokit.nightcatTests
         GENERATE_INFOPLIST_FILE: YES
 
 schemes:
-  Lidless:
+  NightCat:
     build:
       targets:
-        Lidless: all
+        NightCat: all
     run:
       config: Debug
     archive:
       config: Release
-  Lidless-CI:
+  NightCat-CI:
     build:
       targets:
-        Lidless: all
-        LidlessHelper: all
-        LidlessTests: [test]
+        NightCat: all
+        NightCatHelper: all
+        NightCatTests: [test]
     test:
       targets:
-        - LidlessTests
+        - NightCatTests

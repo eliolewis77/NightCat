@@ -26,7 +26,7 @@ final class SafetyEvaluatorTests: XCTestCase {
 
     func testThermalIgnoredWhenSettingOff() {
         var s = defaults
-        s.pauseOnHighThermal = false
+        s.thermalPolicy = .ignore
         let info = BatteryInfo(percent: 100, onAC: true)
         XCTAssertNil(SafetyEvaluator.reasonToDisable(battery: info, thermalSerious: true, settings: s))
     }
@@ -236,7 +236,7 @@ final class SafetyEvaluatorTests: XCTestCase {
         let store = SettingsStore(defaults: d)
         var s = SafetySettings.default
         s.onlyWhileCharging = true
-        s.pauseOnHighThermal = false
+        s.thermalPolicy = .ignore
         s.lowBatteryThreshold = 35
         s.autoEnableWhenCharging = true
         store.save(s)

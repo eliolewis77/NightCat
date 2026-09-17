@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Hosts the first-run onboarding flow in a standalone window.
 ///
-/// Lidless is an `LSUIElement` menu-bar app with no Dock presence, so auto-
+/// NightCat is an `LSUIElement` menu-bar app with no Dock presence, so auto-
 /// presenting and focusing a window from a SwiftUI `Window` scene is unreliable.
 /// A plain AppKit `NSWindow` wrapping the SwiftUI `OnboardingView` gives precise
 /// control over showing, centering, focusing, and closing — and mirrors how the
@@ -26,7 +26,7 @@ final class OnboardingController {
             let root = OnboardingView().environmentObject(state)
             let hosting = NSHostingController(rootView: root)
             let win = NSWindow(contentViewController: hosting)
-            win.title = "欢迎使用 NightCat"
+            win.title = NSLocalizedString("欢迎使用 NightCat", comment: "onboarding window title")
             win.styleMask = [.titled, .closable, .fullSizeContentView]
             win.titlebarAppearsTransparent = true
             win.isMovableByWindowBackground = true

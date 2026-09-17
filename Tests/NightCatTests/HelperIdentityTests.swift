@@ -6,8 +6,8 @@ final class HelperIdentityTests: XCTestCase {
 
     func testAppBundleIDIsInverseOfLabel() {
         for bundleID in ["com.nghialuong.lidless", "com.nghialuong.lidless.dev"] {
-            let label = LidlessHelper.label(appBundleID: bundleID)
-            XCTAssertEqual(LidlessHelper.appBundleID(fromLabel: label), bundleID)
+            let label = NightCatHelper.label(appBundleID: bundleID)
+            XCTAssertEqual(NightCatHelper.appBundleID(fromLabel: label), bundleID)
         }
     }
 
@@ -16,32 +16,32 @@ final class HelperIdentityTests: XCTestCase {
     /// there would have the helper demand an app that doesn't exist, locking out
     /// the real one.
     func testAppBundleIDHandlesFallbackLabel() {
-        XCTAssertEqual(LidlessHelper.appBundleID(fromLabel: LidlessHelper.fallbackLabel),
+        XCTAssertEqual(NightCatHelper.appBundleID(fromLabel: NightCatHelper.fallbackLabel),
                        "com.nghialuong.lidless")
     }
 
     func testAppBundleIDLeavesUnexpectedLabelAlone() {
-        XCTAssertEqual(LidlessHelper.appBundleID(fromLabel: "com.example.thing"),
+        XCTAssertEqual(NightCatHelper.appBundleID(fromLabel: "com.example.thing"),
                        "com.example.thing")
-        XCTAssertEqual(LidlessHelper.appBundleID(fromLabel: ""), "")
+        XCTAssertEqual(NightCatHelper.appBundleID(fromLabel: ""), "")
     }
 
     /// Each clause closes a hole the other two leave open: identity alone admits
     /// an impostor using the name, the anchor alone admits every Apple-signed
     /// app, the team alone admits anything else we ship.
     func testRequirementPinsIdentityAnchorAndTeam() {
-        let requirement = LidlessHelper.codeSigningRequirement(appBundleID: "com.nghialuong.lidless")
+        let requirement = NightCatHelper.codeSigningRequirement(appBundleID: "com.nghialuong.lidless")
         XCTAssertTrue(requirement.contains("identifier \"com.nghialuong.lidless\""))
         XCTAssertTrue(requirement.contains("anchor apple generic"))
-        XCTAssertTrue(requirement.contains("certificate leaf[subject.OU] = \"\(LidlessHelper.teamID)\""))
+        XCTAssertTrue(requirement.contains("certificate leaf[subject.OU] = \"\(NightCatHelper.teamID)\""))
     }
 
     /// The `.dev` and release builds must not satisfy each other's requirement —
     /// keeping their daemons isolated is the whole point of the separate ids.
     func testRequirementDiffersBetweenDebugAndReleaseIdentifiers() {
         XCTAssertNotEqual(
-            LidlessHelper.codeSigningRequirement(appBundleID: "com.nghialuong.lidless"),
-            LidlessHelper.codeSigningRequirement(appBundleID: "com.nghialuong.lidless.dev")
+            NightCatHelper.codeSigningRequirement(appBundleID: "com.nghialuong.lidless"),
+            NightCatHelper.codeSigningRequirement(appBundleID: "com.nghialuong.lidless.dev")
         )
     }
 
@@ -49,7 +49,7 @@ final class HelperIdentityTests: XCTestCase {
     /// which in the helper means dying on every incoming connection. Keep it to
     /// one line with nothing stray in it.
     func testRequirementIsASingleNonEmptyLine() {
-        let requirement = LidlessHelper.codeSigningRequirement(appBundleID: "com.nghialuong.lidless")
+        let requirement = NightCatHelper.codeSigningRequirement(appBundleID: "com.nghialuong.lidless")
         XCTAssertFalse(requirement.contains("\n"))
         XCTAssertFalse(requirement.isEmpty)
     }
@@ -60,10 +60,10 @@ final class HelperIdentityTests: XCTestCase {
     /// so a drift between them locks the app out of its own helper.
     func testRequirementFromLabelMatchesRequirementFromBundleID() {
         for bundleID in ["com.nghialuong.lidless", "com.nghialuong.lidless.dev"] {
-            let label = LidlessHelper.label(appBundleID: bundleID)
+            let label = NightCatHelper.label(appBundleID: bundleID)
             XCTAssertEqual(
-                LidlessHelper.codeSigningRequirement(appBundleID: LidlessHelper.appBundleID(fromLabel: label)),
-                LidlessHelper.codeSigningRequirement(appBundleID: bundleID)
+                NightCatHelper.codeSigningRequirement(appBundleID: NightCatHelper.appBundleID(fromLabel: label)),
+                NightCatHelper.codeSigningRequirement(appBundleID: bundleID)
             )
         }
     }

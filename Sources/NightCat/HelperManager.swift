@@ -10,7 +10,7 @@ final class HelperManager {
     /// Helper label / Mach service name, derived from this app's bundle id so the
     /// `.dev` build talks to its own daemon and never the Release one.
     private var helperLabel: String {
-        LidlessHelper.label(appBundleID: Bundle.main.bundleIdentifier ?? "com.eliokit.nightcat")
+        NightCatHelper.label(appBundleID: Bundle.main.bundleIdentifier ?? "com.eliokit.nightcat")
     }
 
     /// The generated LaunchDaemon plist embedded at `Contents/Library/LaunchDaemons`.
@@ -71,7 +71,7 @@ final class HelperManager {
     private func connect() -> NSXPCConnection {
         if let existing = connection { return existing }
         let conn = NSXPCConnection(machServiceName: helperLabel, options: .privileged)
-        conn.remoteObjectInterface = NSXPCInterface(with: LidlessHelperProtocol.self)
+        conn.remoteObjectInterface = NSXPCInterface(with: NightCatHelperProtocol.self)
         conn.invalidationHandler = { [weak self] in self?.connection = nil }
         conn.interruptionHandler = { }
         conn.resume()
@@ -79,11 +79,11 @@ final class HelperManager {
         return conn
     }
 
-    private func remote(_ onError: @escaping (String) -> Void) -> LidlessHelperProtocol? {
+    private func remote(_ onError: @escaping (String) -> Void) -> NightCatHelperProtocol? {
         let proxy = connect().remoteObjectProxyWithErrorHandler { error in
             DispatchQueue.main.async { onError(error.localizedDescription) }
         }
-        return proxy as? LidlessHelperProtocol
+        return proxy as? NightCatHelperProtocol
     }
 
     func setKeepAwake(_ enabled: Bool, completion: @escaping (Bool, String?) -> Void) {
@@ -116,7 +116,7 @@ final class HelperManager {
     /// — a timeout reports failure instead of leaving the UI hung and silent.
     private func callWithTimeout(timeout: TimeInterval = 6,
                                  completion: @escaping (Bool, String?) -> Void,
-                                 _ body: (LidlessHelperProtocol, @escaping (Bool, String?) -> Void) -> Void) {
+                                 _ body: (NightCatHelperProtocol, @escaping (Bool, String?) -> Void) -> Void) {
         var finished = false
         let finish: (Bool, String?) -> Void = { ok, err in
             DispatchQueue.main.async {
@@ -126,11 +126,11 @@ final class HelperManager {
             }
         }
         guard let proxy = remote({ finish(false, $0) }) else {
-            finish(false, "无 Helper 连接")
+            finish(false, NSLocalizedString("无 Helper 连接", comment: "helper error"))
             return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
-            finish(false, "后台 Helper 未响应。")
+            finish(false, NSLocalizedString("后台 Helper 未响应。", comment: "helper error"))
         }
         body(proxy) { ok, err in finish(ok, err) }
     }

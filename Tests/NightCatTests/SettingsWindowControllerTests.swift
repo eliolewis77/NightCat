@@ -7,7 +7,7 @@ import XCTest
 @MainActor
 final class SettingsWindowControllerTests: XCTestCase {
 
-    private let autosaveName = "LidlessSettingsWindowTests"
+    private let autosaveName = "NightCatSettingsWindowTests"
     private let contentSize = CGSize(width: 420, height: 460)
 
     /// Counts how many times the content factory ran, so we can assert the
@@ -17,7 +17,7 @@ final class SettingsWindowControllerTests: XCTestCase {
     }
 
     private func makeController(counter: BuildCounter = BuildCounter()) -> SettingsWindowController {
-        SettingsWindowController(title: "Lidless Settings",
+        SettingsWindowController(title: "NightCat Settings",
                                  contentSize: contentSize,
                                  frameAutosaveName: autosaveName) {
             counter.count += 1
@@ -68,7 +68,7 @@ final class SettingsWindowControllerTests: XCTestCase {
         sut.show()
         let window = try XCTUnwrap(sut.window)
 
-        XCTAssertEqual(window.title, "Lidless Settings")
+        XCTAssertEqual(window.title, "NightCat Settings")
         XCTAssertTrue(window.styleMask.contains(.titled))
         XCTAssertTrue(window.styleMask.contains(.closable))
         // SettingsView pins its own 420x460 frame, so the window must not resize.

@@ -1,10 +1,22 @@
 import Foundation
 
+/// What happens when the Mac's thermal state reaches serious. Migrated from
+/// the former boolean: on → `.pause`, off → `.ignore`.
+public enum ThermalPolicy: String, Codable, CaseIterable {
+    /// Drop back to the Off tier (the historical behavior).
+    case pause
+    /// One system notification; the tier keeps running — for users who treat
+    /// keep-awake as their remote-reachability lifeline.
+    case notify
+    /// Nothing at all.
+    case ignore
+}
+
 /// User-tunable safety preferences for keep-awake.
 public struct SafetySettings: Equatable {
     public var lowBatteryThreshold: Int
     public var onlyWhileCharging: Bool
-    public var pauseOnHighThermal: Bool
+    public var thermalPolicy: ThermalPolicy
     /// When true, keep-awake automatically (re-)activates while the Mac is on
     /// external power and every enabled safety check passes. See `AutoEnablePolicy`.
     public var autoEnableWhenCharging: Bool
@@ -13,25 +25,34 @@ public struct SafetySettings: Equatable {
     /// mid-run, so pin the tier against stray clicks). The lock itself stays
     /// session-only — this only automates setting it.
     public var autoLockOnTimerStart: Bool
+    /// When true, the app turns the Lid tier on by itself at launch — so a Mac
+    /// that rebooted with the lid closed (auto-update, remote restart) is
+    /// reachable again instead of sitting on Off until someone opens the lid.
+    /// Opt-in: the default keeps the historical "no tier survives a relaunch"
+    /// guarantee. The helper watchdog still covers crashes.
+    public var restoreLidTierOnLaunch: Bool
 
     public static let `default` = SafetySettings(
         lowBatteryThreshold: 20,
         onlyWhileCharging: false,
-        pauseOnHighThermal: true,
+        thermalPolicy: .pause,
         autoEnableWhenCharging: false,
-        autoLockOnTimerStart: false
+        autoLockOnTimerStart: false,
+        restoreLidTierOnLaunch: false
     )
 
     public init(lowBatteryThreshold: Int,
                 onlyWhileCharging: Bool,
-                pauseOnHighThermal: Bool,
+                thermalPolicy: ThermalPolicy,
                 autoEnableWhenCharging: Bool = false,
-                autoLockOnTimerStart: Bool = false) {
+                autoLockOnTimerStart: Bool = false,
+                restoreLidTierOnLaunch: Bool = false) {
         self.lowBatteryThreshold = lowBatteryThreshold
         self.onlyWhileCharging = onlyWhileCharging
-        self.pauseOnHighThermal = pauseOnHighThermal
+        self.thermalPolicy = thermalPolicy
         self.autoEnableWhenCharging = autoEnableWhenCharging
         self.autoLockOnTimerStart = autoLockOnTimerStart
+        self.restoreLidTierOnLaunch = restoreLidTierOnLaunch
     }
 }
 
@@ -46,10 +67,14 @@ public enum SafetyReason: Equatable {
 
     public var message: String {
         switch self {
-        case .highThermal:        return "已自动暂停：Mac 正在过热。"
-        case .notCharging:        return "已自动暂停：未连接充电器。"
-        case .lowBattery(let p):  return "已自动暂停：使用电池，电量 \(p)%。"
-        case .notOnPower:         return "已自动暂停：未连接电源。"
+        case .highThermal:
+            return NSLocalizedString("已自动暂停：Mac 正在过热。", comment: "safety pause")
+        case .notCharging:
+            return NSLocalizedString("已自动暂停：未连接充电器。", comment: "safety pause")
+        case .lowBattery(let p):
+            return NSLocalizedString("已自动暂停：使用电池，电量 %lld%。", comment: "safety pause; percent")
+        case .notOnPower:
+            return NSLocalizedString("已自动暂停：未连接电源。", comment: "safety pause")
         }
     }
 
@@ -57,10 +82,14 @@ public enum SafetyReason: Equatable {
     /// won't allow it (vs. `message`, which describes a background auto-pause).
     public var blockedMessage: String {
         switch self {
-        case .highThermal:        return "Mac 正在过热，保持唤醒已暂停，待冷却后可继续使用。"
-        case .notCharging:        return "「仅插电时保持」已开启，请连接电源后再保持唤醒。"
-        case .lowBattery(let p):  return "当前电量 \(p)%，低于低电量阈值，请先充电。"
-        case .notOnPower:         return "请连接电源后再保持唤醒。"
+        case .highThermal:
+            return NSLocalizedString("Mac 正在过热，暂时无法保持唤醒，待冷却后再试。", comment: "blocked reason")
+        case .notCharging:
+            return NSLocalizedString("「仅插电时保持」已开启，请连接电源后再保持唤醒。", comment: "blocked reason")
+        case .lowBattery(let p):
+            return NSLocalizedString("当前电量 %lld%，低于低电量阈值，请先充电。", comment: "blocked reason; percent")
+        case .notOnPower:
+            return NSLocalizedString("请连接电源后再保持唤醒。", comment: "blocked reason")
         }
     }
 
@@ -68,10 +97,48 @@ public enum SafetyReason: Equatable {
     /// to power"). Reflects the *current* unmet condition, not an auto-pause event.
     public var checkLabel: String {
         switch self {
-        case .highThermal:        return "过热"
-        case .notCharging:        return "未连接充电器"
-        case .lowBattery(let p):  return "电量 \(p)% 已到低电量阈值"
-        case .notOnPower:         return "未连接电源"
+        case .highThermal:
+            return NSLocalizedString("过热", comment: "check label")
+        case .notCharging:
+            return NSLocalizedString("未连接充电器", comment: "check label")
+        case .lowBattery(let p):
+            return NSLocalizedString("电量 %lld% 已到低电量阈值", comment: "check label; percent")
+        case .notOnPower:
+            return NSLocalizedString("未连接电源", comment: "check label")
+        }
+    }
+}
+
+extension SafetyReason {
+    /// The formatted message with the percent argument filled in. Localization
+    /// keys carry `%lld` placeholders (Swift `Int` interpolation); this does
+    /// the substitution after the lookup.
+    public func localizedMessage() -> String {
+        switch self {
+        case .highThermal, .notCharging, .notOnPower:
+            return String(format: message)
+        case .lowBattery(let p):
+            return String(format: message, p)
+        }
+    }
+
+    /// Same for the blocked phrasing.
+    public func localizedBlockedMessage() -> String {
+        switch self {
+        case .highThermal, .notCharging, .notOnPower:
+            return String(format: blockedMessage)
+        case .lowBattery(let p):
+            return String(format: blockedMessage, p)
+        }
+    }
+
+    /// Same for the check label.
+    public func localizedCheckLabel() -> String {
+        switch self {
+        case .highThermal, .notCharging, .notOnPower:
+            return String(format: checkLabel)
+        case .lowBattery(let p):
+            return String(format: checkLabel, p)
         }
     }
 }
@@ -104,7 +171,26 @@ public enum SafetyEvaluator {
     public static func reasonToDisable(battery: BatteryInfo,
                                        thermalSerious: Bool,
                                        settings: SafetySettings) -> SafetyReason? {
-        if settings.pauseOnHighThermal && thermalSerious {
+        // Downgrading mid-run happens under `.pause` only: `.notify` keeps the
+        // tier alive (the hot state is surfaced by a one-shot notification in
+        // the app layer), and `.ignore` was the old `pauseOnHighThermal = false`.
+        if settings.thermalPolicy == .pause && thermalSerious {
+            return .highThermal
+        }
+        if settings.onlyWhileCharging && !battery.onAC {
+            return .notCharging
+        }
+        return lowBatteryReason(battery: battery, settings: settings)
+    }
+
+    /// The reason an *activation* attempt should be refused. Heat blocks
+    /// starting under `.pause` **and** `.notify` — notify keeps a running tier
+    /// alive but doesn't bless starting a new hold on a hot Mac. `.ignore`
+    /// disables the thermal gate entirely.
+    public static func reasonToBlockActivation(battery: BatteryInfo,
+                                               thermalSerious: Bool,
+                                               settings: SafetySettings) -> SafetyReason? {
+        if settings.thermalPolicy != .ignore && thermalSerious {
             return .highThermal
         }
         if settings.onlyWhileCharging && !battery.onAC {
@@ -134,7 +220,7 @@ public enum SafetyEvaluator {
                                        settings: SafetySettings,
                                        requirePower: Bool) -> [SafetyReason] {
         var reasons: [SafetyReason] = []
-        if settings.pauseOnHighThermal && thermalSerious {
+        if settings.thermalPolicy == .pause && thermalSerious {
             reasons.append(.highThermal)
         }
         if requirePower && !battery.onAC {
@@ -228,8 +314,8 @@ public enum AutoEnablePolicy {
                                         conditions: SafetySnapshot,
                                         settings: SafetySettings) -> Bool {
         guard target else { return true }
-        return SafetyEvaluator.reasonToDisable(battery: conditions.battery,
-                                               thermalSerious: conditions.thermalSerious,
-                                               settings: settings) == nil
+        return SafetyEvaluator.reasonToBlockActivation(battery: conditions.battery,
+                                                       thermalSerious: conditions.thermalSerious,
+                                                       settings: settings) == nil
     }
 }

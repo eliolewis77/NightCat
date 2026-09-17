@@ -5,14 +5,14 @@ import Foundation
 /// never collide. For app bundle id `com.eliokit.nightcat` the helper id —
 /// which doubles as its LaunchDaemon label, Mach service name, and the `.plist`
 /// basename — is `com.eliokit.nightcat.helper`.
-public enum LidlessHelper {
+public enum NightCatHelper {
     /// Label / Mach service name for a given app bundle id.
     public static func label(appBundleID: String) -> String { "\(appBundleID).helper" }
 
     /// Env var the generated LaunchDaemon plist passes to the (bundle-less) helper
     /// executable so it knows which Mach service to listen on without relying on
     /// an embedded bundle id.
-    public static let machLabelEnvKey = "LIDLESS_MACH_LABEL"
+    public static let machLabelEnvKey = "NIGHTCAT_MACH_LABEL"
 
     /// Fallback used only if the app bundle id / env var is unavailable.
     public static let fallbackLabel = "com.eliokit.nightcat.helper"
@@ -59,7 +59,7 @@ public enum LidlessHelper {
 /// `SleepDisabled` flag without an admin prompt. A heartbeat watchdog inside the
 /// helper auto-restores normal sleep if the app stops checking in — so the Mac
 /// can never get stuck awake if the app crashes or is force-quit.
-@objc public protocol LidlessHelperProtocol {
+@objc public protocol NightCatHelperProtocol {
     /// Enable/disable lid-close sleep prevention. reply: (success, errorMessage?).
     func setKeepAwake(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void)
 

@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Hosts the Settings window in a standalone AppKit window.
 ///
-/// Lidless is an `LSUIElement` menu-bar app with no Dock presence, so SwiftUI's
+/// NightCat is an `LSUIElement` menu-bar app with no Dock presence, so SwiftUI's
 /// `Settings` scene doesn't reliably surface: `SettingsLink` (macOS 14+) never
 /// activates an accessory app, and the `showSettingsWindow:` selector isn't a
 /// dependable way to present the scene. A plain `NSWindow` gives precise control
@@ -24,7 +24,7 @@ final class SettingsWindowController {
 
     init(title: String = "NightCat Settings",
          contentSize: CGSize,
-         frameAutosaveName: String = "LidlessSettingsWindow",
+         frameAutosaveName: String = "NightCatSettingsWindow",
          makeContent: @escaping () -> AnyView) {
         self.title = title
         self.contentSize = contentSize
