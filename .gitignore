@@ -37,6 +37,12 @@ dsa_priv*
 *.cert
 *.mobileprovision
 *.provisionprofile
+# Internal project docs (spec / decisions / recon notes / design mockups)
+# stay local — not part of the public repo. The one exception is
+# docs/appcast.xml: the Sparkle feed that GitHub Pages serves from /docs.
+/docs/*
+!/docs/appcast.xml
+
 # Env / credential dumps
 .env
 .env.*

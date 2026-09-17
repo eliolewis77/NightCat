@@ -34,7 +34,7 @@ macOS 菜单栏小工具：控制这台 Mac 什么时候可以睡、什么时候
 
 本项目是 [`nghialuong/Lidless`](https://github.com/nghialuong/Lidless) 的 fork，基线为 tag `v0.1.3`（commit `1c432ed`）。
 
-上游以 MIT 许可发布，版权归原作者 **Nghia Luong** 所有。本 fork 保留 `LICENSE` 中的原始版权声明，改造部分版权归本仓库所有者。上游 README 存档在 `docs/upstream-README.md`。
+上游以 MIT 许可发布，版权归原作者 **Nghia Luong** 所有。本 fork 保留 `LICENSE` 中的原始版权声明，改造部分版权归本仓库所有者。
 
 `upstream` 已配置为 git remote，便于日后对比与择取上游修复：
 
@@ -42,17 +42,10 @@ macOS 菜单栏小工具：控制这台 Mac 什么时候可以睡、什么时候
 git fetch upstream && git log --oneline HEAD..upstream/main
 ```
 
-## 文档索引
+## 文档
 
-| 文件 | 内容 |
-|---|---|
-| `AGENTS.md` | 接手开发的操作说明：环境、构建、必改项、坑 |
-| `docs/SPEC.md` | 功能规格定稿（三档、图标、锁定、电池、定时） |
-| `docs/DECISIONS.md` | 已拍板决策与理由，含被砍掉的范围 |
-| `docs/FORK-NOTES.md` | 上游代码侦察：架构、关键文件、必须改的硬编码、改造映射 |
-| `docs/PLAN.md` | 分阶段任务清单与验收标准 |
-| `docs/design/panel-mockup.html` | 面板与菜单栏图标设计稿（已确认） |
-| `docs/upstream-README.md` | 上游 README 存档 |
+`AGENTS.md`（接手说明）与代码注释在仓库内。内部开发文档——功能规格、决策记录、
+上游侦察笔记、UI 设计稿——保存在维护者本地，不入库。
 
 ## 环境要求
 
@@ -87,4 +80,3 @@ xcodebuild build -scheme NightCat -destination 'generic/platform=macOS' \
 - **Helper**：root LaunchDaemon，经 `SMAppService` 注册，通过 XPC 响应 App 请求
 - **`Sources/Shared`**：纯逻辑，可单测（pmset 解析、看门狗、安全评估、设置存储）
 
-详细架构、关键文件与坑见 `docs/FORK-NOTES.md`。
