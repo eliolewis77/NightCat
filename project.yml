@@ -5,6 +5,11 @@ options:
     macOS: "13.0"
   createIntermediateGroups: true
 
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.6.4
+
 settings:
   base:
     SWIFT_VERSION: "5.0"
@@ -38,6 +43,13 @@ targets:
         CFBundleIconName: AppIcon
         LSMinimumSystemVersion: "13.0"
         NSHumanReadableCopyright: "© 2026 Nghia Luong. © 2026 TAO LIU"
+        # Sparkle auto-update. PLACEHOLDERS — before the first release, run the
+        # one-time setup documented at the top of scripts/release.sh: it walks
+        # through generating the EdDSA keypair and hosting the appcast feed,
+        # then these two values get filled in and stay valid for every release
+        # after that.
+        SUFeedURL: https://YOUR_GITHUB_PAGES_HOST/NightCat/appcast.xml
+        SUPublicEDKey: REPLACE_WITH_EDDSA_PUBLIC_KEY
     settings:
       base:
         MARKETING_VERSION: "1.0.0"
@@ -52,6 +64,7 @@ targets:
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.eliokit.nightcat
     dependencies:
+      - package: Sparkle
       - target: NightCatHelper
         copy:
           destination: executables

@@ -40,6 +40,8 @@ just runs the same `NightCat-CI` scheme.
 - **Debug builds use bundle id `com.eliokit.nightcat.dev`** so a dev build
   coexists with the released app (separate UserDefaults, login item, and
   privileged helper). Release uses `com.eliokit.nightcat`.
-- **No release pipeline.** Sparkle was removed in M1 and the upstream
-  release script/appcast tooling deleted in M6; distribution (if ever needed)
-  is a manual Developer ID archive.
+- **Auto-update via Sparkle** (SPM package, EdDSA-signed appcast). The
+  Info.plist `SUFeedURL` / `SUPublicEDKey` are placeholders until the one-time
+  setup documented at the top of `scripts/release.sh` is done. Releases:
+  bump `MARKETING_VERSION` in project.yml, run `./scripts/release.sh`, upload
+  the DMG to GitHub Releases and push `docs/appcast.xml` to Pages.

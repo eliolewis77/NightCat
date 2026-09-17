@@ -951,6 +951,16 @@
         }
       }
     },
+    "检查更新": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for Updates"
+          }
+        }
+      }
+    },
     "检测到保持唤醒被其他程序关闭，已自动恢复。": {
       "localizations": {
         "en": {

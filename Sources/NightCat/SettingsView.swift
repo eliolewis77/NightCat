@@ -111,6 +111,11 @@ struct SettingsView: View {
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
+                    Spacer()
+                    Button("检查更新") {
+                        UpdaterManager.shared.checkForUpdates()
+                    }
+                    .disabled(!UpdaterManager.shared.canCheckForUpdates)
                 }
             }
         }
