@@ -106,6 +106,14 @@ final class AppState: ObservableObject {
     /// the panel's battery row so the overheat-pause has a visible cause.
     @Published var thermalState: ProcessInfo.ThermalState = .nominal
 
+    /// When the current lid-tier hold began (`nil` unless the lid tier is
+    /// active). Resets when the tier leaves — switching away and back starts
+    /// a fresh hold.
+    @Published var keepAwakeStartedAt: Date?
+    /// Human-readable hold duration (e.g. `已保持 3 小时 12 分钟`), refreshed
+    /// by the 30-second tick.
+    @Published var keepAwakeDuration = ""
+
     /// Whether the user has finished first-run onboarding (persisted).
     @Published var onboardingComplete = false
 
@@ -233,6 +241,16 @@ final class AppState: ObservableObject {
             onboardingComplete = true
             store.saveOnboardingComplete(true)
             DispatchQueue.main.async { [weak self] in self?.showOnboarding() }
+        }
+        // Chain self-check: the launch restore only works if the login item
+        // brings the app back after a reboot. Warn once when the user armed
+        // the restore but disconnected its first link.
+        if settings.restoreLidTierOnLaunch && !launchAtLogin {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                AppNotifier.post(NSLocalizedString(
+                    "启动恢复合盖档已开启，但「登录时启动」已关闭——重启后 NightCat 不会自启，合盖机器将无法远程唤醒。",
+                    comment: "login item chain warning"))
+            }
         }
         // Opt-in launch restore: a restarted Mac with the lid closed would
         // otherwise sit unreachable on the Off tier (disablesleep is cleared by
@@ -819,6 +837,7 @@ final class AppState: ObservableObject {
         // owned the flag, so there's nothing to turn off.
         if enabled {
             mode = .lidClosed
+            if keepAwakeStartedAt == nil { keepAwakeStartedAt = Date() }
             // This 1 wasn't written by us, so the exit restore isn't ours to
             // issue either (SPEC §9): void any stale baseline rather than
             // clear someone else's session on quit. The crash-path watchdog
@@ -826,6 +845,7 @@ final class AppState: ObservableObject {
             exitBaseline = nil
         } else if mode == .lidClosed {
             mode = .off
+            keepAwakeStartedAt = nil
         }
         caffeinate.apply(mode)
         sync.beginMutation()            // supersede every read and write still in flight
@@ -948,6 +968,7 @@ final class AppState: ObservableObject {
                 if ok {
                     self.mode = land
                     self.lastError = resultMessage
+                    self.keepAwakeStartedAt = land == .lidClosed ? Date() : nil
                     self.manageHeartbeat()
                     self.updateAutoOff(for: land != .off)
                     // Deliberately not `hasConfirmedState`: the helper's success
@@ -969,6 +990,7 @@ final class AppState: ObservableObject {
                 try power.setSleepDisabled(target)
                 mode = land
                 lastError = resultMessage
+                keepAwakeStartedAt = land == .lidClosed ? Date() : nil
                 updateAutoOff(for: land != .off)
                 pendingVerification = PendingVerification(target: target)
                 verifySetApplied(target: target)
@@ -1181,6 +1203,23 @@ final class AppState: ObservableObject {
             evaluateSafety()
         }
         updateThermalNotification()
+        refreshKeepAwakeDuration()
+    }
+
+    /// Minute-granularity hold duration for the panel. Only the lid tier
+    /// counts: screen/idle tiers don't write system state, so "how long has
+    /// this been held" doesn't apply to them the same way.
+    private func refreshKeepAwakeDuration() {
+        guard let start = keepAwakeStartedAt else {
+            keepAwakeDuration = ""
+            return
+        }
+        let minutes = max(1, Int(Date().timeIntervalSince(start) / 60))
+        keepAwakeDuration = minutes < 60
+            ? String(format: NSLocalizedString("已保持 %lld 分钟", comment: "hold duration"),
+                     minutes)
+            : String(format: NSLocalizedString("已保持 %lld 小时 %lld 分钟", comment: "hold duration"),
+                     minutes / 60, minutes % 60)
     }
 
     /// One-shot hot Mac notification under the notify-only policy: fires on the

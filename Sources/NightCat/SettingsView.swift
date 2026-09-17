@@ -17,11 +17,11 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("通用") {
-                Toggle("登录时启动 NightCat", isOn: Binding(
+                Toggle("登录时启动", isOn: Binding(
                     get: { state.launchAtLogin },
                     set: { state.setLaunchAtLogin($0) }
                 ))
-                Toggle("启动定时时自动锁定档位", isOn: Binding(
+                Toggle("定时开始时锁定档位", isOn: Binding(
                     get: { state.settings.autoLockOnTimerStart },
                     set: { v in var s = state.settings; s.autoLockOnTimerStart = v; state.updateSettings(s) }
                 ))
@@ -38,7 +38,7 @@ struct SettingsView: View {
                     Text("简体中文").tag("zh-Hans")
                     Text("English").tag("en")
                 }
-                Toggle("启动时自动恢复合盖档", isOn: Binding(
+                Toggle("启动时恢复合盖档", isOn: Binding(
                     get: { state.settings.restoreLidTierOnLaunch },
                     set: { v in var s = state.settings; s.restoreLidTierOnLaunch = v; state.updateSettings(s) }
                 ))
@@ -73,7 +73,7 @@ struct SettingsView: View {
             }
 
             Section("自动") {
-                Toggle("充电时自动开启（合盖档）", isOn: Binding(
+                Toggle("充电时自动开启合盖档", isOn: Binding(
                     get: { state.settings.autoEnableWhenCharging },
                     set: { v in var s = state.settings; s.autoEnableWhenCharging = v; state.updateSettings(s) }
                 ))
@@ -89,7 +89,7 @@ struct SettingsView: View {
                     }
                 }
                 if !state.helperInstalled {
-                    Text("安装一次后台 Helper，切换档位时便不再询问管理员密码，看门狗也能防止 Mac 卡在保持唤醒状态。")
+                    Text("安装后切换档位不再询问管理员密码，并启用安全看门狗。")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                     Button(state.helperNeedsApproval ? NSLocalizedString("前往登录项批准", comment: "button") : NSLocalizedString("安装后台 Helper", comment: "button")) {

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Shared horizontal inset so every row, divider, and the footer line up on the
 /// same leading/trailing columns.
-private let hInset: CGFloat = 14
+let hInset: CGFloat = 14
 
 /// The menu bar popover (panel-mockup §2): status row, tier segments, inline
 /// warnings, timer chips, battery + helper rows, footer. Secondary settings
@@ -12,8 +12,6 @@ struct MenuContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            StatusRow()
-
             TierSegmentRow()
 
             // Neutral notices first (external takeover / verification / the
@@ -52,6 +50,7 @@ struct MenuContent: View {
 
             BatteryRow()
             HelperRow()
+            LocalIPRow()
 
             HStack {
                 SettingsButton()
@@ -96,51 +95,6 @@ struct MenuContent: View {
     }
 }
 
-// MARK: - Status row
-
-/// Top row (mockup §2): tier full name in the tier's color, one-line meaning,
-/// remaining time in monospaced digits, lock button at the trailing edge.
-private struct StatusRow: View {
-    @EnvironmentObject var state: AppState
-    @Environment(\.colorScheme) private var colorScheme
-
-    private var tierColor: Color {
-        // The lid tier's orange reads as the panel's warning amber — same hue
-        // family, so the status row, the battery banner, and the thermal label
-        // all share one color. Light mode gets the deep variant.
-        if state.controlMode == .lidClosed { return warmAmber(colorScheme) }
-        return MenubarStyle.tierColor(state.controlMode, colorScheme: colorScheme)
-    }
-
-    private var countdown: String? {
-        MenubarStyle.countdownText(mode: state.controlMode,
-                                   autoOffRemaining: state.autoOffRemaining)
-    }
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(state.controlMode.displayName)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(tierColor)
-                Text(state.controlMode.explanation)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.primary.opacity(0.75))
-            }
-            Spacer(minLength: 8)
-            if let countdown {
-                Text(countdown)
-                    .font(.system(size: 13).monospacedDigit())
-                    .foregroundStyle(.primary.opacity(0.88))
-            }
-            ModeLockButton()
-        }
-        .padding(.horizontal, hInset)
-        .padding(.top, 16)
-        .padding(.bottom, 14)
-    }
-}
-
 /// The mode lock: lit pins the current tier. Tapping it while locked releases
 /// the pin — and drops any switch still awaiting confirmation.
 private struct ModeLockButton: View {
@@ -180,30 +134,58 @@ private struct TierSegmentRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Picker("档位", selection: Binding(
-                get: { state.controlMode },
-                set: { state.setControlMode($0) }
-            )) {
-                ForEach(KeepAwakeMode.allCases) { mode in
-                    Text(mode.label).tag(mode)
+            HStack(alignment: .center, spacing: 10) {
+                Picker("档位", selection: Binding(
+                    get: { state.controlMode },
+                    set: { state.setControlMode($0) }
+                )) {
+                    ForEach(KeepAwakeMode.allCases) { mode in
+                        Text(mode.label).tag(mode)
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            // A locked mode can't be clicked away — the whole point of the
-            // lock is that a stray click mustn't change the tier. Selections
-            // while locked can only arrive before the disabled view lands.
-            .disabled(state.isModeLocked)
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+                // A locked mode can't be clicked away — the whole point of the
+                // lock is that a stray click mustn't change the tier. Selections
+                // while locked can only arrive before the disabled view lands.
+                .disabled(state.isModeLocked)
 
-            if !autoMode {
-                Text("自动模式开启时不使用常亮与防空闲档——它只驱动合盖档。")
+                Spacer(minLength: 8)
+
+                ModeLockButton()
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                // The caption carries the active tier's one-line explanation —
+                // or, when auto mode owns the picker, why the others are dimmed.
+                Text(autoMode
+                    ? "自动模式仅驱动合盖档。"
+                    : state.controlMode.explanation)
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 8)
+
+                if let countdown = countdownText {
+                    Text(countdown)
+                        .font(.system(size: 12.5).monospacedDigit())
+                        .foregroundStyle(.primary.opacity(0.88))
+                } else if !state.keepAwakeDuration.isEmpty {
+                    Text(state.keepAwakeDuration)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(.horizontal, hInset)
+        .padding(.top, 12)
         .padding(.bottom, 4)
+    }
+
+    private var countdownText: String? {
+        MenubarStyle.countdownText(autoOffRemaining: state.autoOffRemaining)
     }
 }
 
@@ -245,7 +227,7 @@ private struct BatteryWarningBanner: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label {
-                Text("当前使用电池。合盖不睡约每小时耗电 8–12%，且合盖散热受限。")
+                Text("正在使用电池：合盖不睡每小时耗电约 8–12%，散热受限。")
                     .font(.system(size: 12.5))
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
@@ -264,7 +246,7 @@ private struct BatteryWarningBanner: View {
             }
             .controlSize(.small)
 
-            Toggle("本次会话不再提醒（重启前）",
+            Toggle("本次会话不再提醒",
                    isOn: $state.suppressBatteryWarningThisSession)
                 .font(.system(size: 11.5))
                 .controlSize(.small)
@@ -327,14 +309,10 @@ private struct TimerSection: View {
                 .disabled(autoMode)
 
                 if autoMode {
-                    Text("自动模式开启时不使用定时——由充电状态自动控制。")
+                    Text("自动模式下定时不可用")
                         .font(.system(size: 11.5))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    Text("到点将直接关闭全部档位，不逐级回落")
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -542,14 +520,14 @@ private struct HelperRow: View {
                 Image(systemName: "checkmark")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Color(red: 0.365, green: 0.796, blue: 0.647))
-                Text("特权 Helper 已安装 · 合盖档可用")
+                Text("Helper 已安装 · 合盖档可用")
                     .font(.system(size: 12.5))
                     .foregroundStyle(.primary.opacity(0.85))
             } else {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
-                Text("未安装特权 Helper · 合盖档不可用")
+                Text("未安装 Helper · 合盖档不可用")
                     .font(.system(size: 12.5))
                     .foregroundStyle(.primary.opacity(0.85))
                 Spacer(minLength: 8)

@@ -23,12 +23,10 @@ enum MenubarStyle {
         }
     }
 
-    /// Countdown rules (panel-mockup §1 table): shown only when a timer runs,
-    /// except the lid tier where it's forced — that tier most needs to be
-    /// seen — and reads 持续 when no timer is set.
-    static func countdownText(mode: KeepAwakeMode, autoOffRemaining: String) -> String? {
-        if !autoOffRemaining.isEmpty { return autoOffRemaining }
-        return mode == .lidClosed ? NSLocalizedString("持续", comment: "countdown: indefinite") : nil
+    /// Countdown text: only when a timer is actually running. No placeholder
+    /// for indefinite holds — the tier name already says what's happening.
+    static func countdownText(autoOffRemaining: String) -> String? {
+        autoOffRemaining.isEmpty ? nil : autoOffRemaining
     }
 }
 
@@ -117,8 +115,6 @@ struct MenubarIndicator: View {
 
     private var accessibilitySummary: String {
         var parts = ["NightCat", mode.displayName]
-        if !autoOffRemaining.isEmpty { parts.append(String(format: NSLocalizedString("剩余 %@", comment: "a11y; countdown"), autoOffRemaining)) }
-        else if mode == .lidClosed { parts.append(NSLocalizedString("持续", comment: "a11y; indefinite")) }
         if isModeLocked { parts.append(NSLocalizedString("已锁定", comment: "a11y; locked")) }
         return parts.joined(separator: "，")
     }

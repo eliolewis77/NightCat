@@ -61,6 +61,16 @@
         }
       }
     },
+    "Helper 已安装 · 合盖档可用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Helper installed · Lid tier available"
+          }
+        }
+      }
+    },
     "Mac 正在过热，暂时无法保持唤醒，待冷却后再试。": {
       "localizations": {
         "en": {
@@ -251,12 +261,12 @@
         }
       }
     },
-    "充电时自动开启（合盖档）": {
+    "充电时自动开启合盖档": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn on automatically when charging (Lid tier)"
+            "value": "Turn on the Lid tier when charging"
           }
         }
       }
@@ -311,32 +321,12 @@
         }
       }
     },
-    "到点将直接关闭全部档位，不逐级回落": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When time's up, every tier turns off at once — no stepping down"
-          }
-        }
-      }
-    },
     "前往登录项批准": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Approve in Login Items"
-          }
-        }
-      }
-    },
-    "剩余 %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ remaining"
           }
         }
       }
@@ -451,17 +441,17 @@
         }
       }
     },
-    "启动定时时自动锁定档位": {
+    "启动恢复合盖档已开启，但「登录时启动」已关闭——重启后 NightCat 不会自启，合盖机器将无法远程唤醒。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lock the tier when a timer starts"
+            "value": "Launch restore is on, but Launch at Login is off — after a reboot NightCat won't start, and a lid-closed Mac can't be reached."
           }
         }
       }
     },
-    "启动时自动恢复合盖档": {
+    "启动时恢复合盖档": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -511,12 +501,12 @@
         }
       }
     },
-    "安装一次后台 Helper，切换档位时便不再询问管理员密码，看门狗也能防止 Mac 卡在保持唤醒状态。": {
+    "安装后切换档位不再询问管理员密码，并启用安全看门狗。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Install the background helper once: switching tiers no longer asks for an admin password, and its watchdog prevents the Mac from getting stuck awake."
+            "value": "Install once: switching tiers no longer asks for an admin password, and the safety watchdog turns on."
           }
         }
       }
@@ -571,6 +561,16 @@
         }
       }
     },
+    "定时开始时锁定档位": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lock the tier when a timer starts"
+          }
+        }
+      }
+    },
     "屏幕保持点亮 · 系统仍可睡眠": {
       "localizations": {
         "en": {
@@ -601,6 +601,26 @@
         }
       }
     },
+    "已保持 %lld 分钟": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kept awake for %lld min"
+          }
+        }
+      }
+    },
+    "已保持 %lld 小时 %lld 分钟": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kept awake for %lld hr %lld min"
+          }
+        }
+      }
+    },
     "已关闭——正在使用电池。": {
       "localizations": {
         "en": {
@@ -627,6 +647,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enabled"
+          }
+        }
+      }
+    },
+    "已复制": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
           }
         }
       }
@@ -701,16 +731,6 @@
         }
       }
     },
-    "当前使用电池。合盖不睡约每小时耗电 8–12%，且合盖散热受限。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On battery. Lid-closed keep-awake drains roughly 8–12% per hour, and a closed lid traps heat."
-          }
-        }
-      }
-    },
     "当前由 %@控制。": {
       "localizations": {
         "en": {
@@ -737,16 +757,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ignore"
-          }
-        }
-      }
-    },
-    "持续": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "∞"
           }
         }
       }
@@ -851,12 +861,12 @@
         }
       }
     },
-    "未安装特权 Helper · 合盖档不可用": {
+    "未安装 Helper · 合盖档不可用": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Privileged helper not installed · Lid tier unavailable"
+            "value": "Helper not installed · Lid tier unavailable"
           }
         }
       }
@@ -891,12 +901,22 @@
         }
       }
     },
-    "本次会话不再提醒（重启前）": {
+    "本机 IP %@": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Don't remind again this session (until relaunch)"
+            "value": "Local IP %@"
+          }
+        }
+      }
+    },
+    "本次会话不再提醒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don't remind again this session"
           }
         }
       }
@@ -981,12 +1001,32 @@
         }
       }
     },
+    "正在使用电池：合盖不睡每小时耗电约 8–12%，散热受限。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On battery: lid-closed keep-awake drains ~8–12% per hour and traps heat."
+          }
+        }
+      }
+    },
     "正常": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Normal"
+          }
+        }
+      }
+    },
+    "点击复制本机 IP 地址": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click to copy this Mac's IP address"
           }
         }
       }
@@ -1007,16 +1047,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Version %@"
-          }
-        }
-      }
-    },
-    "特权 Helper 已安装 · 合盖档可用": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Privileged helper installed · Lid tier available"
           }
         }
       }
@@ -1061,12 +1091,12 @@
         }
       }
     },
-    "登录时启动 NightCat": {
+    "登录时启动": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Launch NightCat at login"
+            "value": "Launch at login"
           }
         }
       }
@@ -1131,32 +1161,32 @@
         }
       }
     },
+    "自动模式下定时不可用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timer unavailable in auto mode"
+          }
+        }
+      }
+    },
+    "自动模式仅驱动合盖档。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto mode drives the Lid tier only."
+          }
+        }
+      }
+    },
     "自动模式已开启，但当前条件不满足：%@。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Auto mode is on, but conditions aren't met right now: %@."
-          }
-        }
-      }
-    },
-    "自动模式开启时不使用定时——由充电状态自动控制。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "With auto mode on, the timer isn't used — charging state controls it."
-          }
-        }
-      }
-    },
-    "自动模式开启时不使用常亮与防空闲档——它只驱动合盖档。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "With auto mode on, the Screen and No-Idle tiers aren't used — auto drives the Lid tier only."
           }
         }
       }
