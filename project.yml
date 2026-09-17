@@ -43,13 +43,11 @@ targets:
         CFBundleIconName: AppIcon
         LSMinimumSystemVersion: "13.0"
         NSHumanReadableCopyright: "© 2026 Nghia Luong. © 2026 TAO LIU"
-        # Sparkle auto-update. PLACEHOLDERS — before the first release, run the
-        # one-time setup documented at the top of scripts/release.sh: it walks
-        # through generating the EdDSA keypair and hosting the appcast feed,
-        # then these two values get filled in and stay valid for every release
-        # after that.
+        # Sparkle auto-update: feed served by GitHub Pages from /docs; the
+        # EdDSA public key verifies update signatures (private key lives in
+        # the maintainer's keychain — see scripts/release.sh setup).
         SUFeedURL: https://eliolewis77.github.io/NightCat/appcast.xml
-        SUPublicEDKey: REPLACE_WITH_EDDSA_PUBLIC_KEY
+        SUPublicEDKey: aguBT1OSIJcpNxGe8ufjDh7glQhfP/FYJ7XoUDL5Ljw=
     settings:
       base:
         MARKETING_VERSION: "1.0.0"
