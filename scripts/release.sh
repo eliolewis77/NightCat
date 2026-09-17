@@ -111,7 +111,7 @@ ITEM="    <item>
       <pubDate>$DATE</pubDate>
       <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
       <sparkle:version>$BUILD_NUM</sparkle:version>
-      <enclosure url=\"$FEED_BASE/$(basename "$DMG")\"
+      <enclosure url=\"https://github.com/eliolewis77/NightCat/releases/download/v$VERSION/$(basename "$DMG")\"
                  sparkle:edSignature=\"$SIG\"
                  length=\"$LENGTH\"
                  type=\"application/octet-stream\" />

@@ -31,8 +31,8 @@
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Nghia Luong. © 2026 TAO LIU</string>
 	<key>SUFeedURL</key>
-	<string>https://YOUR_GITHUB_PAGES_HOST/NightCat/appcast.xml</string>
+	<string>https://eliolewis77.github.io/NightCat/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>REPLACE_WITH_EDDSA_PUBLIC_KEY</string>
+	<string>aguBT1OSIJcpNxGe8ufjDh7glQhfP/FYJ7XoUDL5Ljw=</string>
 </dict>
 </plist>
