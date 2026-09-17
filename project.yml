@@ -48,7 +48,7 @@ targets:
         # through generating the EdDSA keypair and hosting the appcast feed,
         # then these two values get filled in and stay valid for every release
         # after that.
-        SUFeedURL: https://YOUR_GITHUB_PAGES_HOST/NightCat/appcast.xml
+        SUFeedURL: https://eliolewis77.github.io/NightCat/appcast.xml
         SUPublicEDKey: REPLACE_WITH_EDDSA_PUBLIC_KEY
     settings:
       base:

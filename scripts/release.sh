@@ -40,7 +40,7 @@ SCHEME="NightCat"
 APP_NAME="NightCat"
 TEAM="UAT3Y8UXCQ"
 NOTARY_PROFILE="${NOTARY_PROFILE:-nightcat-notary}"
-FEED_BASE="${FEED_BASE:-https://YOUR_GITHUB_PAGES_HOST/NightCat}"
+FEED_BASE="${FEED_BASE:-https://eliolewis77.github.io/NightCat}"
 
 BUILD="build/release"
 ARCHIVE="$BUILD/$APP_NAME.xcarchive"
