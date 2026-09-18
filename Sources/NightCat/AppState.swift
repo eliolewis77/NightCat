@@ -117,11 +117,12 @@ final class AppState: ObservableObject {
     /// Whether the user has finished first-run onboarding (persisted).
     @Published var onboardingComplete = false
 
-    /// Buyer email when a valid license is installed, else `nil`. Re-verified
-    /// from the stored key at every launch — editing defaults by hand can't
-    /// fake it, because verification runs against the pinned public key.
+    /// Buyer email once a Gumroad license key has been verified, else `nil`.
+    /// Cached locally after the first online activation; background
+    /// re-verification only *removes* it on an explicit revoked verdict —
+    /// an unreachable Gumroad (offline launch) keeps the license intact.
     @Published var licensedEmail: String?
-    private var licenseKey: String?
+    @Published private(set) var verifyingLicense = false
 
     /// In-app language override ("auto" | "zh-Hans" | "en"). Persisted via the
     /// app's `AppleLanguages` default, so it takes effect on next launch —
@@ -131,14 +132,32 @@ final class AppState: ObservableObject {
     /// a user choice.
     @Published var appLanguage: String
 
-    /// Verify and store a pasted license. Returns the buyer email on success.
-    @discardableResult
-    func applyLicense(_ key: String) -> String? {
-        guard let email = LicenseManager.verify(key) else { return nil }
-        licensedEmail = email
-        licenseKey = key
-        UserDefaults.standard.set(key, forKey: "LicenseKey")
-        return email
+    /// Online activation of a pasted Gumroad license key.
+    func activateLicense(_ key: String) async -> LicenseManager.Outcome {
+        verifyingLicense = true
+        defer { verifyingLicense = false }
+        let outcome = await LicenseManager.verifyOnline(key)
+        switch outcome {
+        case .licensed(let email):
+            UserDefaults.standard.set(key, forKey: "LicenseKey")
+            UserDefaults.standard.set(email, forKey: "LicensedEmail")
+            licensedEmail = email
+        case .revoked:
+            UserDefaults.standard.removeObject(forKey: "LicenseKey")
+            UserDefaults.standard.removeObject(forKey: "LicensedEmail")
+            licensedEmail = nil
+        case .invalid, .networkFailed:
+            break
+        }
+        return outcome
+    }
+
+    private func reverifyLicense() async {
+        guard let key = UserDefaults.standard.string(forKey: "LicenseKey") else { return }
+        let outcome = await LicenseManager.verifyOnline(key)
+        guard case .revoked = outcome else { return }
+        licensedEmail = nil
+        UserDefaults.standard.removeObject(forKey: "LicensedEmail")
     }
 
     func setAppLanguage(_ code: String) {
@@ -212,11 +231,11 @@ final class AppState: ObservableObject {
         autoOffMinutes = store.loadAutoOffMinutes()
         onboardingComplete = store.loadOnboardingComplete()
         appLanguage = UserDefaults.standard.string(forKey: "AppLanguageOverride") ?? "auto"
-        // Re-verify the stored license on launch; drop it silently if invalid.
-        if let saved = UserDefaults.standard.string(forKey: "LicenseKey"),
-           let email = LicenseManager.verify(saved) {
-            licensedEmail = email
-            licenseKey = saved
+        licensedEmail = UserDefaults.standard.string(forKey: "LicensedEmail")
+        // Quiet background re-verification of the cached license; tolerance
+        // for network failure is the point — an offline launch keeps working.
+        if UserDefaults.standard.string(forKey: "LicenseKey") != nil {
+            Task { await reverifyLicense() }
         }
         launchAtLogin = loginItem.isEnabled
         ExitRestoreBridge.appState = self

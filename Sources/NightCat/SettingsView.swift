@@ -15,7 +15,7 @@ struct SettingsView: View {
     @State private var languageChanged = false
     @State private var licenseInputShown = false
     @State private var licenseDraft = ""
-    @State private var licenseError = false
+    @State private var licenseOutcome: LicenseManager.Outcome?
 
     var body: some View {
         Form {
@@ -135,7 +135,7 @@ struct SettingsView: View {
                         }
                         Button("输入 License…") {
                             licenseDraft = ""
-                            licenseError = false
+                            licenseOutcome = nil
                             licenseInputShown = true
                         }
                     }
@@ -143,18 +143,25 @@ struct SettingsView: View {
                 }
             }
             .alert("输入 License", isPresented: $licenseInputShown) {
-                TextField("NC1.…", text: $licenseDraft)
-                Button("验证") {
-                    if state.applyLicense(licenseDraft) == nil {
-                        licenseError = true
+                TextField("粘贴购买后收到的 License Key", text: $licenseDraft)
+                Button(state.verifyingLicense ? "验证中…" : "激活") {
+                    Task {
+                        licenseOutcome = await state.activateLicense(
+                            licenseDraft.trimmingCharacters(in: .whitespacesAndNewlines))
                     }
                 }
+                .disabled(state.verifyingLicense || licenseDraft.isEmpty)
                 Button("取消", role: .cancel) { }
             } message: {
-                if licenseError {
-                    Text("License 无效——请检查是否完整粘贴（以 NC1. 开头）。")
-                } else {
-                    Text("粘贴购买后收到的 License 字符串。")
+                switch licenseOutcome {
+                case .invalid:
+                    Text("License 无效——请检查是否完整粘贴。")
+                case .revoked:
+                    Text("该 License 已被退款或停用。")
+                case .networkFailed:
+                    Text("无法连接 Gumroad，请检查网络后重试。首次激活需要联网。")
+                default:
+                    Text("粘贴购买后 Gumroad 自动发来的 License Key（首次激活需联网）。")
                 }
             }
         }
