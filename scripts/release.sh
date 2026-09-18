@@ -59,7 +59,13 @@ DMG="$BUILD/$APP_NAME-$VERSION.dmg"
 
 echo "==> Release $APP_NAME $VERSION (build $BUILD_NUM)"
 
-# 1. Archive (Release config, signed for Developer ID via automatic signing)
+# 1. Regenerate the project so the archive picks up the current
+#    MARKETING_VERSION / CURRENT_PROJECT_VERSION — a version bump in
+#    project.yml does nothing until xcodegen writes it into the .xcodeproj.
+echo "==> Regenerating project"
+xcodegen generate
+
+# 2. Archive (Release config, signed for Developer ID via automatic signing)
 echo "==> Archiving"
 xcodebuild archive -scheme "$SCHEME" -configuration Release \
   -destination 'generic/platform=macOS' \
