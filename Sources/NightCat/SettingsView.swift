@@ -125,21 +125,31 @@ struct SettingsView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 } else {
-                    HStack {
-                        Text("试用全部功能；觉得好用的话，购买 License 支持开发。")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Button("购买") {
-                            NSWorkspace.shared.open(LicenseManager.purchaseURL)
-                        }
-                        Button("输入 License…") {
-                            licenseDraft = ""
-                            licenseOutcome = nil
-                            licenseInputShown = true
+                    HStack(alignment: .center, spacing: 14) {
+                        CatShape()
+                            .fill(Color.primary.opacity(0.85))
+                            .frame(width: 38, height: 34)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("这只猫不设试用期，功能全开，永不过期。")
+                                .font(.callout)
+                            Text("如果它陪你跑通过通宵，请它喝杯咖啡吧。")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                            HStack {
+                                Button("请喝杯咖啡") {
+                                    NSWorkspace.shared.open(LicenseManager.purchaseURL)
+                                }
+                                .controlSize(.small)
+                                Button("输入 License…") {
+                                    licenseDraft = ""
+                                    licenseOutcome = nil
+                                    licenseInputShown = true
+                                }
+                                .controlSize(.small)
+                            }
                         }
                     }
-                    .controlSize(.small)
                 }
             }
             .alert("输入 License", isPresented: $licenseInputShown) {

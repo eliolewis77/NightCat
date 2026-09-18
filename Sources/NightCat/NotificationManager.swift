@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import UserNotifications
 
@@ -6,7 +7,33 @@ import UserNotifications
 /// the panel is closed — the UU远程 incident showed panel-only notices go
 /// unseen. Authorization is requested once per launch; a denial simply leaves
 /// the events panel-only.
+/// Routes notification taps. The purchase nudge opens the Gumroad page.
+final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = NotificationRouter()
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                didReceive response: UNNotificationResponse) async {
+        if response.notification.request.content.categoryIdentifier == "PURCHASE" {
+            NSWorkspace.shared.open(LicenseManager.purchaseURL)
+        }
+    }
+
+    // Show the banner even when the app is frontmost (menu-bar agent: the
+    // "app" is never really looked at, so foreground silence would hide
+    // everything forever).
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification) async
+        -> UNNotificationPresentationOptions {
+        [.banner, .sound]
+    }
+}
+
 enum AppNotifier {
+    /// Attach the tap router and banner options. Call once at startup.
+    static func install() {
+        UNUserNotificationCenter.current().delegate = NotificationRouter.shared
+    }
+
     static func requestAuthorizationIfNeeded() {
         Task { @MainActor in
             _ = try? await UNUserNotificationCenter.current()

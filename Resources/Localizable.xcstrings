@@ -311,6 +311,16 @@
         }
       }
     },
+    "关闭购买提示": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dismiss the purchase hint"
+          }
+        }
+      }
+    },
     "分钟（1–240）": {
       "localizations": {
         "en": {
@@ -471,12 +481,32 @@
         }
       }
     },
+    "喜欢 NightCat？购买 License 支持开发。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enjoying NightCat? Buy a license to support development."
+          }
+        }
+      }
+    },
     "好": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "OK"
+          }
+        }
+      }
+    },
+    "如果它陪你跑通过通宵，请它喝杯咖啡吧。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If it has seen you through an all-nighter, buy it a coffee."
           }
         }
       }
@@ -921,6 +951,16 @@
         }
       }
     },
+    "本周不再显示": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don't show this week"
+          }
+        }
+      }
+    },
     "本机 IP %@": {
       "localizations": {
         "en": {
@@ -1261,22 +1301,22 @@
         }
       }
     },
-    "试用全部功能；觉得好用的话，购买 License 支持开发。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Full-featured trial. If you find it useful, buy a license to support development."
-          }
-        }
-      }
-    },
     "语言": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Language"
+          }
+        }
+      }
+    },
+    "请喝杯咖啡": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buy it a coffee"
           }
         }
       }
@@ -1397,6 +1437,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pause automatically when hot"
+          }
+        }
+      }
+    },
+    "这只猫不设试用期，功能全开，永不过期。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No trials, no locks, no expiry — this cat leaves everything on."
           }
         }
       }

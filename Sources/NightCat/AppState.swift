@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Foundation
+import UserNotifications
 
 @MainActor
 final class AppState: ObservableObject {
@@ -123,6 +124,11 @@ final class AppState: ObservableObject {
     /// an unreachable Gumroad (offline launch) keeps the license intact.
     @Published var licensedEmail: String?
     @Published private(set) var verifyingLicense = false
+    /// Whether the in-panel support row should show. The panel is the only
+    /// nudge channel — it needs no notification permission (many users deny
+    /// it) and is only seen when the user actually opens the app. The row
+    /// stays up until tapped or licensed, then rests for 30 days.
+    @Published var panelPurchaseNudgeVisible = false
 
     /// In-app language override ("auto" | "zh-Hans" | "en"). Persisted via the
     /// app's `AppleLanguages` default, so it takes effect on next launch —
@@ -199,6 +205,7 @@ final class AppState: ObservableObject {
     private var batteryTimer: Timer?
     private var heartbeatTimer: Timer?
     private var autoOffTimer: Timer?
+    private let launchTime = Date()
 
     /// Last-known "helper is usable" value, so we can detect it flipping on at
     /// runtime (right after the user approves it) and prompt a restart.
@@ -240,6 +247,7 @@ final class AppState: ObservableObject {
         launchAtLogin = loginItem.isEnabled
         ExitRestoreBridge.appState = self
         caffeinate.onError = { [weak self] message in self?.lastError = message }
+        AppNotifier.install()
         AppNotifier.requestAuthorizationIfNeeded()
         refreshHelperStatus()
         refreshHelperRegistrationIfUpdated()
@@ -1245,6 +1253,42 @@ final class AppState: ObservableObject {
         }
         updateThermalNotification()
         refreshKeepAwakeDuration()
+        updatePurchaseNudge()
+    }
+
+    /// The in-panel support row: shows while due, and goes quiet on the
+    /// user's terms — tapping 购买 rests it 30 days, tapping × rests it a
+    /// week — and disappears forever once a license is verified.
+    private func updatePurchaseNudge() {
+        guard licensedEmail == nil else {
+            panelPurchaseNudgeVisible = false
+            return
+        }
+        let defaults = UserDefaults.standard
+        // Both exits rest a week: × says "not now", 购买 says "on it" —
+        // either way, licensed silences everything permanently.
+        if let dismissed = defaults.object(forKey: "PurchaseNudgeDismissedAt") as? Date,
+           Date().timeIntervalSince(dismissed) < 7 * 86400 {
+            panelPurchaseNudgeVisible = false
+            return
+        }
+        let last = defaults.object(forKey: "LastPurchaseNudgeAt") as? Date ?? .distantPast
+        let due = Date().timeIntervalSince(last) >= 7 * 86400
+            && Date().timeIntervalSince(launchTime) >= 120
+        panelPurchaseNudgeVisible = due
+    }
+
+    /// × on the support row: not interested right now — a month of quiet.
+    func dismissPurchaseNudge() {
+        UserDefaults.standard.set(Date(), forKey: "PurchaseNudgeDismissedAt")
+        panelPurchaseNudgeVisible = false
+    }
+
+    /// The panel row was tapped: record the contact and open Gumroad.
+    func purchaseNudgeTapped() {
+        UserDefaults.standard.set(Date(), forKey: "LastPurchaseNudgeAt")
+        panelPurchaseNudgeVisible = false
+        NSWorkspace.shared.open(LicenseManager.purchaseURL)
     }
 
     /// Minute-granularity hold duration for the panel. Only the lid tier

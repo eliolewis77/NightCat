@@ -52,6 +52,30 @@ struct MenuContent: View {
             HelperRow()
             LocalIPRow()
 
+            if state.panelPurchaseNudgeVisible {
+                HStack(spacing: 6) {
+                    Spacer(minLength: 0)
+                    Text("喜欢 NightCat？")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
+                    Button("请喝杯咖啡") { state.purchaseNudgeTapped() }
+                        .buttonStyle(.link)
+                        .font(.system(size: 11.5))
+                    Button {
+                        state.dismissPurchaseNudge()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("本周不再显示")
+                    .accessibilityLabel("关闭购买提示")
+                }
+                .padding(.horizontal, hInset)
+                .padding(.top, 4)
+            }
+
             HStack {
                 SettingsButton()
                 Spacer()
