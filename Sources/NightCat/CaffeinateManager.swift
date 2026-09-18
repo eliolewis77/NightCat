@@ -16,6 +16,10 @@ final class CaffeinateManager {
 
     private var process: Process?
     private var runningFlags: [String] = []
+    /// Separate display keep-awake (`caffeinate -d`), orthogonal to the tier:
+    /// lives across tier switches and can coexist with the tier process
+    /// (e.g. lid tier's disablesleep + display assertion at the same time).
+    private var displayProcess: Process?
 
     /// The pid of the live caffeinate, for attribution filtering: our own
     /// assertion holder must never be reported as an external takeover.
@@ -42,7 +46,23 @@ final class CaffeinateManager {
         runningFlags = []
     }
 
+    /// Keep the display awake in every tier, independent of mode switches.
+    func setDisplayAlwaysOn(_ on: Bool) {
+        if on {
+            guard displayProcess?.isRunning != true else { return }
+            displayProcess = spawn(["-d"])
+        } else if let proc = displayProcess {
+            if proc.isRunning { proc.terminate() }
+            displayProcess = nil
+        }
+    }
+
     private func start(_ flags: [String]) {
+        process = spawn(flags)
+        runningFlags = flags
+    }
+
+    private func spawn(_ flags: [String]) -> Process? {
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/caffeinate")
         proc.arguments = flags + ["-w", String(ProcessInfo.processInfo.processIdentifier)]
@@ -53,10 +73,10 @@ final class CaffeinateManager {
         proc.terminationHandler = { _ in }
         do {
             try proc.run()
-            process = proc
-            runningFlags = flags
+            return proc
         } catch {
             onError?(error.localizedDescription)
+            return nil
         }
     }
 }

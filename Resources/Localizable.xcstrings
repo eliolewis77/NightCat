@@ -261,6 +261,16 @@
         }
       }
     },
+    "保持屏幕常亮": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep the display awake"
+          }
+        }
+      }
+    },
     "偏热": {
       "localizations": {
         "en": {

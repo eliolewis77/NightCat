@@ -118,6 +118,16 @@ final class AppState: ObservableObject {
     /// Whether the user has finished first-run onboarding (persisted).
     @Published var onboardingComplete = false
 
+    /// Independent display keep-awake: on means a `caffeinate -d` assertion
+    /// lives in every tier, orthogonal to the mode switches. Persisted.
+    @Published var displayAlwaysOn: Bool {
+        didSet {
+            guard displayAlwaysOn != oldValue else { return }
+            UserDefaults.standard.set(displayAlwaysOn, forKey: "DisplayAlwaysOn")
+            caffeinate.setDisplayAlwaysOn(displayAlwaysOn)
+        }
+    }
+
     /// Buyer email once a Gumroad license key has been verified, else `nil`.
     /// Cached locally after the first online activation; background
     /// re-verification only *removes* it on an explicit revoked verdict —
@@ -244,6 +254,8 @@ final class AppState: ObservableObject {
         autoOffMinutes = store.loadAutoOffMinutes()
         onboardingComplete = store.loadOnboardingComplete()
         appLanguage = UserDefaults.standard.string(forKey: "AppLanguageOverride") ?? "auto"
+        displayAlwaysOn = UserDefaults.standard.bool(forKey: "DisplayAlwaysOn")
+        if displayAlwaysOn { caffeinate.setDisplayAlwaysOn(true) }
         licensedEmail = store.loadLicensedEmail()
         // Quiet background re-verification of the cached license; tolerance
         // for network failure is the point — an offline launch keeps working.
