@@ -23,7 +23,7 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild test \
-            -scheme Lidless-CI \
+            -scheme NightCat-CI \
             -destination 'platform=macOS' \
             CODE_SIGNING_ALLOWED=NO \
             | xcbeautify
