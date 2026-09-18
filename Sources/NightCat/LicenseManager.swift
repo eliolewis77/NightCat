@@ -10,9 +10,8 @@ import Foundation
 /// an offline or unreachable Gumroad never removes an existing license —
 /// only an explicit "disabled/refunded" verdict does.
 enum LicenseManager {
-    /// Gumroad product id, visible on the product's edit page. Placeholder
-    /// until the Gumroad product is created — release.sh refuses to ship it.
-    static let productID = "REPLACE_WITH_GUMROAD_PRODUCT_ID"
+    /// Gumroad product id (from the product edit page URL).
+    static let productID = "gonyb"
     static let purchaseURL = URL(string: "https://eliowave2.gumroad.com/l/nightcat")!
 
     private static let verifyURL = URL(string: "https://api.gumroad.com/v2/licenses/verify")!
