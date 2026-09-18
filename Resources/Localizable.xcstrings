@@ -71,6 +71,16 @@
         }
       }
     },
+    "License 无效——请检查是否完整粘贴（以 NC1. 开头）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invalid license — check that you pasted it in full (it starts with NC1.)."
+          }
+        }
+      }
+    },
     "Mac 正在过热，暂时无法保持唤醒，待冷却后再试。": {
       "localizations": {
         "en": {
@@ -661,6 +671,16 @@
         }
       }
     },
+    "已授权：%@ · 感谢支持！": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licensed to %@ · thank you for your support!"
+          }
+        }
+      }
+    },
     "已自动暂停：Mac 正在过热。": {
       "localizations": {
         "en": {
@@ -1121,6 +1141,16 @@
         }
       }
     },
+    "粘贴购买后收到的 License 字符串。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste the license string you received after purchase."
+          }
+        }
+      }
+    },
     "系统不因空闲睡眠 · 屏幕可熄灭": {
       "localizations": {
         "en": {
@@ -1231,6 +1261,16 @@
         }
       }
     },
+    "试用全部功能；觉得好用的话，购买 License 支持开发。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full-featured trial. If you find it useful, buy a license to support development."
+          }
+        }
+      }
+    },
     "语言": {
       "localizations": {
         "en": {
@@ -1281,6 +1321,16 @@
         }
       }
     },
+    "购买": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buy"
+          }
+        }
+      }
+    },
     "跟随 Mac 的正常睡眠设置": {
       "localizations": {
         "en": {
@@ -1297,6 +1347,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Follow System"
+          }
+        }
+      }
+    },
+    "输入 License": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter License"
+          }
+        }
+      }
+    },
+    "输入 License…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter License…"
           }
         }
       }
@@ -1397,6 +1467,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No Idle"
+          }
+        }
+      }
+    },
+    "验证": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verify"
           }
         }
       }

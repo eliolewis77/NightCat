@@ -13,6 +13,9 @@ struct SettingsView: View {
 
     /// Set once the user picks a language, until relaunch applies it.
     @State private var languageChanged = false
+    @State private var licenseInputShown = false
+    @State private var licenseDraft = ""
+    @State private var licenseError = false
 
     var body: some View {
         Form {
@@ -116,6 +119,42 @@ struct SettingsView: View {
                         UpdaterManager.shared.checkForUpdates()
                     }
                     .disabled(!UpdaterManager.shared.canCheckForUpdates)
+                }
+                if let email = state.licensedEmail {
+                    Text("已授权：\(email) · 感谢支持！")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                } else {
+                    HStack {
+                        Text("试用全部功能；觉得好用的话，购买 License 支持开发。")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("购买") {
+                            NSWorkspace.shared.open(LicenseManager.purchaseURL)
+                        }
+                        Button("输入 License…") {
+                            licenseDraft = ""
+                            licenseError = false
+                            licenseInputShown = true
+                        }
+                    }
+                    .controlSize(.small)
+                }
+            }
+            .alert("输入 License", isPresented: $licenseInputShown) {
+                TextField("NC1.…", text: $licenseDraft)
+                Button("验证") {
+                    if state.applyLicense(licenseDraft) == nil {
+                        licenseError = true
+                    }
+                }
+                Button("取消", role: .cancel) { }
+            } message: {
+                if licenseError {
+                    Text("License 无效——请检查是否完整粘贴（以 NC1. 开头）。")
+                } else {
+                    Text("粘贴购买后收到的 License 字符串。")
                 }
             }
         }

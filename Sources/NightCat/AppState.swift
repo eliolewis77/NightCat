@@ -117,6 +117,12 @@ final class AppState: ObservableObject {
     /// Whether the user has finished first-run onboarding (persisted).
     @Published var onboardingComplete = false
 
+    /// Buyer email when a valid license is installed, else `nil`. Re-verified
+    /// from the stored key at every launch — editing defaults by hand can't
+    /// fake it, because verification runs against the pinned public key.
+    @Published var licensedEmail: String?
+    private var licenseKey: String?
+
     /// In-app language override ("auto" | "zh-Hans" | "en"). Persisted via the
     /// app's `AppleLanguages` default, so it takes effect on next launch —
     /// bundle lookup tables load once at startup. The *selection* itself lives
@@ -124,6 +130,16 @@ final class AppState: ObservableObject {
     /// would hit the system's global domain (always present) and masquerade as
     /// a user choice.
     @Published var appLanguage: String
+
+    /// Verify and store a pasted license. Returns the buyer email on success.
+    @discardableResult
+    func applyLicense(_ key: String) -> String? {
+        guard let email = LicenseManager.verify(key) else { return nil }
+        licensedEmail = email
+        licenseKey = key
+        UserDefaults.standard.set(key, forKey: "LicenseKey")
+        return email
+    }
 
     func setAppLanguage(_ code: String) {
         appLanguage = code
@@ -196,6 +212,12 @@ final class AppState: ObservableObject {
         autoOffMinutes = store.loadAutoOffMinutes()
         onboardingComplete = store.loadOnboardingComplete()
         appLanguage = UserDefaults.standard.string(forKey: "AppLanguageOverride") ?? "auto"
+        // Re-verify the stored license on launch; drop it silently if invalid.
+        if let saved = UserDefaults.standard.string(forKey: "LicenseKey"),
+           let email = LicenseManager.verify(saved) {
+            licensedEmail = email
+            licenseKey = saved
+        }
         launchAtLogin = loginItem.isEnabled
         ExitRestoreBridge.appState = self
         caffeinate.onError = { [weak self] message in self?.lastError = message }
