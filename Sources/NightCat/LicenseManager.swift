@@ -13,7 +13,7 @@ enum LicenseManager {
     /// Gumroad product id, visible on the product's edit page. Placeholder
     /// until the Gumroad product is created — release.sh refuses to ship it.
     static let productID = "REPLACE_WITH_GUMROAD_PRODUCT_ID"
-    static let purchaseURL = URL(string: "https://eliolewis77.gumroad.com/l/nightcat")!
+    static let purchaseURL = URL(string: "https://eliowave2.gumroad.com/l/nightcat")!
 
     private static let verifyURL = URL(string: "https://api.gumroad.com/v2/licenses/verify")!
     /// Gumroad is a small POST-JSON endpoint; without an explicit interval a
