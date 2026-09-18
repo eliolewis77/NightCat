@@ -17,7 +17,7 @@ final class HelperIdentityTests: XCTestCase {
     /// the real one.
     func testAppBundleIDHandlesFallbackLabel() {
         XCTAssertEqual(NightCatHelper.appBundleID(fromLabel: NightCatHelper.fallbackLabel),
-                       "com.nghialuong.lidless")
+                       "com.eliokit.nightcat")
     }
 
     func testAppBundleIDLeavesUnexpectedLabelAlone() {

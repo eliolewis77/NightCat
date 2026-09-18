@@ -55,16 +55,16 @@ final class SafetyEvaluatorTests: XCTestCase {
     }
 
     func testReasonMessages() {
-        XCTAssertEqual(SafetyReason.highThermal.message, "已自动暂停：Mac 正在过热。")
-        XCTAssertEqual(SafetyReason.notCharging.message, "已自动暂停：未连接充电器。")
-        XCTAssertEqual(SafetyReason.lowBattery(12).message, "已自动暂停：使用电池，电量 12%。")
-        XCTAssertEqual(SafetyReason.notOnPower.message, "已自动暂停：未连接电源。")
+        XCTAssertEqual(SafetyReason.highThermal.localizedMessage(), "已自动暂停：Mac 正在过热。")
+        XCTAssertEqual(SafetyReason.notCharging.localizedMessage(), "已自动暂停：未连接充电器。")
+        XCTAssertEqual(SafetyReason.lowBattery(12).localizedMessage(), "已自动暂停：使用电池，电量 12%。")
+        XCTAssertEqual(SafetyReason.notOnPower.localizedMessage(), "已自动暂停：未连接电源。")
     }
 
     func testNotOnPowerPhrasing() {
-        XCTAssertEqual(SafetyReason.notOnPower.blockedMessage,
+        XCTAssertEqual(SafetyReason.notOnPower.localizedBlockedMessage(),
                        "请连接电源后再保持唤醒。")
-        XCTAssertEqual(SafetyReason.notOnPower.checkLabel, "未连接电源")
+        XCTAssertEqual(SafetyReason.notOnPower.localizedCheckLabel(), "未连接电源")
     }
 
     // MARK: Low-battery cutoff = "Never" (0)

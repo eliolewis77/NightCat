@@ -160,19 +160,19 @@ final class AssertionsParsingTests: XCTestCase {
 
     func testSingleHolderIsNamed() {
         XCTAssertEqual(StateReconciler.externalTakeoverMessage(holders: ["Amphetamine"]),
-                       "Currently held by Amphetamine.")
+                       "当前由 Amphetamine控制。")
     }
 
     func testMultipleHoldersJoinWithAnd() {
         XCTAssertEqual(StateReconciler.externalTakeoverMessage(holders: ["Amphetamine", "caffeinate"]),
-                       "Currently held by Amphetamine and caffeinate.")
+                       "当前由 Amphetamine 和 caffeinate控制。")
     }
 
     /// One process commonly holds several assertions (Amphetamine holds a
     /// system one per session); the wording must not repeat it.
     func testDuplicateHolderNamesCollapseKeepingFirstSeenOrder() {
         XCTAssertEqual(StateReconciler.externalTakeoverMessage(holders: ["coreaudiod", "Amphetamine", "coreaudiod"]),
-                       "Currently held by coreaudiod and Amphetamine.")
+                       "当前由 coreaudiod 和 Amphetamine控制。")
     }
 
     /// Holders we couldn't name fall back to the existing generic wording —

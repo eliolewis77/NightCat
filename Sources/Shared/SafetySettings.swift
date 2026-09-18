@@ -72,7 +72,7 @@ public enum SafetyReason: Equatable {
         case .notCharging:
             return NSLocalizedString("已自动暂停：未连接充电器。", comment: "safety pause")
         case .lowBattery:
-            return NSLocalizedString("已自动暂停：使用电池，电量 %lld%。", comment: "safety pause; percent")
+            return NSLocalizedString("已自动暂停：使用电池，电量 %lld%%。", comment: "safety pause; percent")
         case .notOnPower:
             return NSLocalizedString("已自动暂停：未连接电源。", comment: "safety pause")
         }
@@ -87,7 +87,7 @@ public enum SafetyReason: Equatable {
         case .notCharging:
             return NSLocalizedString("「仅插电时保持」已开启，请连接电源后再保持唤醒。", comment: "blocked reason")
         case .lowBattery:
-            return NSLocalizedString("当前电量 %lld%，低于低电量阈值，请先充电。", comment: "blocked reason; percent")
+            return NSLocalizedString("当前电量 %lld%%，低于低电量阈值，请先充电。", comment: "blocked reason; percent")
         case .notOnPower:
             return NSLocalizedString("请连接电源后再保持唤醒。", comment: "blocked reason")
         }
@@ -102,7 +102,7 @@ public enum SafetyReason: Equatable {
         case .notCharging:
             return NSLocalizedString("未连接充电器", comment: "check label")
         case .lowBattery:
-            return NSLocalizedString("电量 %lld% 已到低电量阈值", comment: "check label; percent")
+            return NSLocalizedString("电量 %lld%% 已到低电量阈值", comment: "check label; percent")
         case .notOnPower:
             return NSLocalizedString("未连接电源", comment: "check label")
         }
