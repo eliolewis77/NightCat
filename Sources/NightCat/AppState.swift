@@ -848,7 +848,16 @@ final class AppState: ObservableObject {
                 self.externalNotice = NSLocalizedString("检测到保持唤醒被其他程序关闭，已自动恢复。", comment: "restored")
                 self.pendingVerification = PendingVerification(target: true)
                 self.verifySetApplied(target: true)
-                AppNotifier.post(NSLocalizedString("检测到保持唤醒被其他程序关闭，已自动恢复。", comment: "restored"))
+                // The restore itself runs every time; the *notification* is
+                // throttled to once per 24h — against a periodic clearer
+                // (e.g. UU远程's 10-minute sync) this is the difference
+                // between informed and spammed. The panel notice stays live.
+                let defaults = UserDefaults.standard
+                let last = defaults.object(forKey: "LastRestoreNotifiedAt") as? Date ?? .distantPast
+                if Date().timeIntervalSince(last) >= 24 * 3600 {
+                    defaults.set(Date(), forKey: "LastRestoreNotifiedAt")
+                    AppNotifier.post(NSLocalizedString("检测到保持唤醒被其他程序关闭，已自动恢复。", comment: "restored"))
+                }
             } else {
                 self.externalNotice = String(format: NSLocalizedString("保持唤醒被其他程序关闭，自动恢复失败：%@", comment: "restore failed"), err ?? NSLocalizedString("未知错误", comment: "unknown error"))
                 self.mode = .off
