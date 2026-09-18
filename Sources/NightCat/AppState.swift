@@ -138,19 +138,22 @@ final class AppState: ObservableObject {
     /// a user choice.
     @Published var appLanguage: String
 
-    /// Online activation of a pasted Gumroad license key.
-    func activateLicense(_ key: String) async -> LicenseManager.Outcome {
+    /// Online activation of a pasted Gumroad license key. Returns nil when an
+    /// activation is already in flight — the alert dismisses on click, so a
+    /// double-tap would otherwise fire two concurrent verifications and let a
+    /// rate-limited retry overwrite a successful one.
+    func activateLicense(_ key: String) async -> LicenseManager.Outcome? {
+        guard !verifyingLicense else { return nil }
         verifyingLicense = true
         defer { verifyingLicense = false }
         let outcome = await LicenseManager.verifyOnline(key)
         switch outcome {
         case .licensed(let email):
-            UserDefaults.standard.set(key, forKey: "LicenseKey")
-            UserDefaults.standard.set(email, forKey: "LicensedEmail")
+            store.saveLicenseKey(key)
+            store.saveLicensedEmail(email)
             licensedEmail = email
         case .revoked:
-            UserDefaults.standard.removeObject(forKey: "LicenseKey")
-            UserDefaults.standard.removeObject(forKey: "LicensedEmail")
+            store.removeLicense()
             licensedEmail = nil
         case .invalid, .networkFailed:
             break
@@ -159,11 +162,14 @@ final class AppState: ObservableObject {
     }
 
     private func reverifyLicense() async {
-        guard let key = UserDefaults.standard.string(forKey: "LicenseKey") else { return }
+        guard let key = store.loadLicenseKey() else { return }
         let outcome = await LicenseManager.verifyOnline(key)
+        // The user may have activated a new key while this check was in
+        // flight; the old key's verdict must not clear the new activation.
+        guard store.loadLicenseKey() == key else { return }
         guard case .revoked = outcome else { return }
+        store.removeLicense()
         licensedEmail = nil
-        UserDefaults.standard.removeObject(forKey: "LicensedEmail")
     }
 
     func setAppLanguage(_ code: String) {
@@ -238,10 +244,10 @@ final class AppState: ObservableObject {
         autoOffMinutes = store.loadAutoOffMinutes()
         onboardingComplete = store.loadOnboardingComplete()
         appLanguage = UserDefaults.standard.string(forKey: "AppLanguageOverride") ?? "auto"
-        licensedEmail = UserDefaults.standard.string(forKey: "LicensedEmail")
+        licensedEmail = store.loadLicensedEmail()
         // Quiet background re-verification of the cached license; tolerance
         // for network failure is the point — an offline launch keeps working.
-        if UserDefaults.standard.string(forKey: "LicenseKey") != nil {
+        if store.loadLicenseKey() != nil {
             Task { await reverifyLicense() }
         }
         launchAtLogin = loginItem.isEnabled

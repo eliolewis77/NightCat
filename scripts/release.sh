@@ -57,6 +57,13 @@ BUILD_NUM=$(grep -E '^[[:space:]]*CURRENT_PROJECT_VERSION:' project.yml | head -
 [ "$VERSION" != "" ] && [ "$BUILD_NUM" != "" ] || { echo "error: could not read version from project.yml"; exit 1; }
 DMG="$BUILD/$APP_NAME-$VERSION.dmg"
 
+# Release gate: an unfilled Gumroad product id would make every activation
+# query a non-existent product and report a bogus failure.
+if grep -q "REPLACE_WITH_GUMROAD_PRODUCT_ID" Sources/NightCat/LicenseManager.swift; then
+  echo "error: LicenseManager.productID is still the placeholder — create the Gumroad product and fill it in before releasing"
+  exit 1
+fi
+
 echo "==> Release $APP_NAME $VERSION (build $BUILD_NUM)"
 
 # 1. Regenerate the project so the archive picks up the current

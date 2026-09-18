@@ -257,4 +257,40 @@ final class SharedLogicTests: XCTestCase {
         XCTAssertTrue(SettingsStore(defaults: defaults).load().autoLockOnTimerStart)
         XCTAssertEqual(SettingsStore(defaults: defaults).load(), settings)
     }
+
+    // MARK: SettingsStore license cache
+
+    func testLicenseDefaultsToAbsent() {
+        let suite = "lidless.test.license.default"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = SettingsStore(defaults: defaults)
+        XCTAssertNil(store.loadLicenseKey())
+        XCTAssertNil(store.loadLicensedEmail())
+    }
+
+    func testLicenseRoundTrips() {
+        let suite = "lidless.test.license.roundtrip"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = SettingsStore(defaults: defaults)
+        store.saveLicenseKey("NC1.TEST-KEY")
+        store.saveLicensedEmail("buyer@example.com")
+        XCTAssertEqual(SettingsStore(defaults: defaults).loadLicenseKey(), "NC1.TEST-KEY")
+        XCTAssertEqual(SettingsStore(defaults: defaults).loadLicensedEmail(), "buyer@example.com")
+    }
+
+    /// Revocation must clear both halves together — a surviving key would be
+    /// re-verified against Gumroad on every launch.
+    func testRemoveLicenseClearsBothHalves() {
+        let suite = "lidless.test.license.remove"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = SettingsStore(defaults: defaults)
+        store.saveLicenseKey("NC1.TEST-KEY")
+        store.saveLicensedEmail("buyer@example.com")
+        store.removeLicense()
+        XCTAssertNil(SettingsStore(defaults: defaults).loadLicenseKey())
+        XCTAssertNil(SettingsStore(defaults: defaults).loadLicensedEmail())
+    }
 }

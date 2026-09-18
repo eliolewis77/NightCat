@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 /// License verification backed by Gumroad's license-key system.
@@ -10,11 +11,15 @@ import Foundation
 /// only an explicit "disabled/refunded" verdict does.
 enum LicenseManager {
     /// Gumroad product id, visible on the product's edit page. Placeholder
-    /// until the Gumroad product is created.
+    /// until the Gumroad product is created — release.sh refuses to ship it.
     static let productID = "REPLACE_WITH_GUMROAD_PRODUCT_ID"
     static let purchaseURL = URL(string: "https://eliolewis77.gumroad.com/l/nightcat")!
 
     private static let verifyURL = URL(string: "https://api.gumroad.com/v2/licenses/verify")!
+    /// Gumroad is a small POST-JSON endpoint; without an explicit interval a
+    /// black-holed connection holds the awaiting task for URLSession's 60s
+    /// default.
+    private static let timeout: TimeInterval = 10
 
     enum Outcome: Equatable {
         case licensed(email: String)   // verified; buyer email for the About row
@@ -23,23 +28,45 @@ enum LicenseManager {
         case networkFailed             // inconclusive — keep any cached state
     }
 
+    /// Single funnel for every "buy" affordance (panel row, About section) so
+    /// a distribution change lands in one place.
+    static func openPurchasePage() {
+        NSWorkspace.shared.open(purchaseURL)
+    }
+
     /// Ask Gumroad whether this license key is valid for our product.
     static func verifyOnline(_ key: String) async -> Outcome {
+        // Per-value encoding via URLComponents: pasting the whole query string
+        // through percent-encoding would leave `&`/`=`/`+` unencoded, so a key
+        // containing `+` would arrive as a space and one with `&` truncated.
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "product_id", value: productID),
+            URLQueryItem(name: "license_key", value: key),
+        ]
         var request = URLRequest(url: verifyURL)
         request.httpMethod = "POST"
-        request.httpBody = "product_id=\(productID)&license_key=\(key)"
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)?
-            .data(using: .utf8)
+        request.timeoutInterval = timeout
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = components.percentEncodedQuery?.data(using: .utf8)
 
         guard let (data, response) = try? await URLSession.shared.data(for: request),
-              let http = response as? HTTPURLResponse, http.statusCode == 200,
+              let http = response as? HTTPURLResponse,
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return .networkFailed }
 
+        // Gumroad answers "no such key" with HTTP 404 + `success:false`, so
+        // the status code alone can't separate invalid from unreachable.
+        guard (200...299).contains(http.statusCode) else {
+            return json["success"] as? Bool == false ? .invalid : .networkFailed
+        }
         guard json["success"] as? Bool == true,
               let purchase = json["purchase"] as? [String: Any] else { return .invalid }
-        if purchase["refunded"] as? Bool == true || purchase["disputed"] as? Bool == true {
+        // A disabled key still answers 200/success:true — only the flags
+        // tell it apart.
+        if json["disabled"] as? Bool == true
+            || purchase["refunded"] as? Bool == true
+            || purchase["disputed"] as? Bool == true {
             return .revoked
         }
         let email = purchase["email"] as? String ?? ""

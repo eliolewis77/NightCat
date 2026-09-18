@@ -19,6 +19,8 @@ public struct SettingsStore {
         static let onboarded    = "onboardingComplete"
         static let resumeOnboarding = "resumeOnboarding"
         static let helperBuild  = "lastRegisteredHelperBuild"
+        static let licenseKey   = "LicenseKey"
+        static let licensedEmail = "LicensedEmail"
     }
 
     public init(defaults: UserDefaults = .standard) {
@@ -110,5 +112,33 @@ public struct SettingsStore {
 
     public func saveLastHelperBuild(_ build: String) {
         defaults.set(build, forKey: Key.helperBuild)
+    }
+
+    // MARK: License cache
+
+    /// The pasted Gumroad license key, persisted only after a verified
+    /// activation; nil until then and after a revoked verdict.
+    public func loadLicenseKey() -> String? {
+        defaults.string(forKey: Key.licenseKey)
+    }
+
+    public func saveLicenseKey(_ key: String) {
+        defaults.set(key, forKey: Key.licenseKey)
+    }
+
+    /// Buyer email shown on the About row; only meaningful alongside a key.
+    public func loadLicensedEmail() -> String? {
+        defaults.string(forKey: Key.licensedEmail)
+    }
+
+    public func saveLicensedEmail(_ email: String) {
+        defaults.set(email, forKey: Key.licensedEmail)
+    }
+
+    /// Clears both halves of the license cache together — leaving a dead key
+    /// behind would re-verify it against Gumroad on every launch.
+    public func removeLicense() {
+        defaults.removeObject(forKey: Key.licenseKey)
+        defaults.removeObject(forKey: Key.licensedEmail)
     }
 }

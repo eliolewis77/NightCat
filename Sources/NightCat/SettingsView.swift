@@ -138,7 +138,7 @@ struct SettingsView: View {
                                 .foregroundStyle(.secondary)
                             HStack {
                                 Button("请喝杯咖啡") {
-                                    NSWorkspace.shared.open(LicenseManager.purchaseURL)
+                                    LicenseManager.openPurchasePage()
                                 }
                                 .controlSize(.small)
                                 Button("输入 License…") {
@@ -148,35 +148,51 @@ struct SettingsView: View {
                                 }
                                 .controlSize(.small)
                             }
+                            // The activation alert closes on click, so the
+                            // verdict surfaces here — failure text inside the
+                            // alert would never be seen.
+                            if let failure = licenseFailureMessage {
+                                Text(failure)
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                            }
                         }
                     }
                 }
             }
             .alert("输入 License", isPresented: $licenseInputShown) {
                 TextField("粘贴购买后收到的 License Key", text: $licenseDraft)
-                Button(state.verifyingLicense ? "验证中…" : "激活") {
+                Button("激活") {
                     Task {
+                        // activateLicense itself ignores a second call while
+                        // one is in flight (double-tap before dismissal).
                         licenseOutcome = await state.activateLicense(
                             licenseDraft.trimmingCharacters(in: .whitespacesAndNewlines))
                     }
                 }
-                .disabled(state.verifyingLicense || licenseDraft.isEmpty)
+                .disabled(licenseDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 Button("取消", role: .cancel) { }
             } message: {
-                switch licenseOutcome {
-                case .invalid:
-                    Text("License 无效——请检查是否完整粘贴。")
-                case .revoked:
-                    Text("该 License 已被退款或停用。")
-                case .networkFailed:
-                    Text("无法连接 Gumroad，请检查网络后重试。首次激活需要联网。")
-                default:
-                    Text("粘贴购买后 Gumroad 自动发来的 License Key（首次激活需联网）。")
-                }
+                Text("粘贴购买后 Gumroad 自动发来的 License Key（首次激活需联网）。")
             }
         }
         .formStyle(.grouped)
         .frame(width: Self.preferredSize.width, height: Self.preferredSize.height)
+    }
+
+    /// Failure text for the inline row under the license buttons; `.licensed`
+    /// never surfaces (the row switches to 已授权) and `nil` is "not yet tried".
+    private var licenseFailureMessage: String? {
+        switch licenseOutcome {
+        case .invalid:
+            NSLocalizedString("License 无效——请检查是否完整粘贴。", comment: "license activation failed")
+        case .revoked:
+            NSLocalizedString("该 License 已被退款或停用。", comment: "license revoked")
+        case .networkFailed:
+            NSLocalizedString("无法连接 Gumroad，请检查网络后重试。首次激活需要联网。", comment: "license network failed")
+        case .licensed, .none:
+            nil
+        }
     }
 }
 
