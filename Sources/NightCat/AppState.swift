@@ -127,7 +127,7 @@ final class AppState: ObservableObject {
     /// Whether the in-panel support row should show. The panel is the only
     /// nudge channel — it needs no notification permission (many users deny
     /// it) and is only seen when the user actually opens the app. The row
-    /// stays up until tapped or licensed, then rests for 30 days.
+    /// stays up until tapped or licensed; either exit rests it a week.
     @Published var panelPurchaseNudgeVisible = false
 
     /// In-app language override ("auto" | "zh-Hans" | "en"). Persisted via the
@@ -858,11 +858,20 @@ final class AppState: ObservableObject {
                 // throttled to once per 24h — against a periodic clearer
                 // (e.g. UU远程's 10-minute sync) this is the difference
                 // between informed and spammed. The panel notice stays live.
+                // The quota is spent only when the system accepts the banner
+                // (pending/denied authorization makes `add` fail), so a
+                // not-yet-granted permission doesn't burn the window on
+                // notifications that never showed.
                 let defaults = UserDefaults.standard
                 let last = defaults.object(forKey: "LastRestoreNotifiedAt") as? Date ?? .distantPast
-                if Date().timeIntervalSince(last) >= 24 * 3600 {
-                    defaults.set(Date(), forKey: "LastRestoreNotifiedAt")
-                    AppNotifier.post(NSLocalizedString("检测到保持唤醒被其他程序关闭，已自动恢复。", comment: "restored"))
+                let now = Date()
+                if now.timeIntervalSince(last) >= 24 * 3600 {
+                    Task { @MainActor in
+                        let body = NSLocalizedString("检测到保持唤醒被其他程序关闭，已自动恢复。", comment: "restored")
+                        if await AppNotifier.postDelivered(body) {
+                            defaults.set(now, forKey: "LastRestoreNotifiedAt")
+                        }
+                    }
                 }
             } else {
                 self.externalNotice = String(format: NSLocalizedString("保持唤醒被其他程序关闭，自动恢复失败：%@", comment: "restore failed"), err ?? NSLocalizedString("未知错误", comment: "unknown error"))
@@ -1271,39 +1280,37 @@ final class AppState: ObservableObject {
         updatePurchaseNudge()
     }
 
+    /// Both exits rest a week: × says "not now", 购买 says "on it" — either
+    /// way, licensed silences everything permanently.
+    private static let purchaseNudgeRest: TimeInterval = 7 * 86400
+
     /// The in-panel support row: shows while due, and goes quiet on the
-    /// user's terms — tapping 购买 rests it 30 days, tapping × rests it a
-    /// week — and disappears forever once a license is verified.
-    private func updatePurchaseNudge() {
-        guard licensedEmail == nil else {
-            panelPurchaseNudgeVisible = false
-            return
+    /// user's terms — disappearing forever once a license is verified.
+    func updatePurchaseNudge() {
+        let now = Date()
+        var due = licensedEmail == nil && now.timeIntervalSince(launchTime) >= 120
+        if due, let snoozed = UserDefaults.standard.object(forKey: "PurchaseNudgeSnoozedAt") as? Date {
+            due = now.timeIntervalSince(snoozed) >= Self.purchaseNudgeRest
         }
-        let defaults = UserDefaults.standard
-        // Both exits rest a week: × says "not now", 购买 says "on it" —
-        // either way, licensed silences everything permanently.
-        if let dismissed = defaults.object(forKey: "PurchaseNudgeDismissedAt") as? Date,
-           Date().timeIntervalSince(dismissed) < 7 * 86400 {
-            panelPurchaseNudgeVisible = false
-            return
+        // Same-value @Published writes still fire objectWillChange, and this
+        // runs on every 30-second tick — only write on an actual flip.
+        if panelPurchaseNudgeVisible != due {
+            panelPurchaseNudgeVisible = due
         }
-        let last = defaults.object(forKey: "LastPurchaseNudgeAt") as? Date ?? .distantPast
-        let due = Date().timeIntervalSince(last) >= 7 * 86400
-            && Date().timeIntervalSince(launchTime) >= 120
-        panelPurchaseNudgeVisible = due
     }
 
-    /// × on the support row: not interested right now — a month of quiet.
+    /// × on the support row: not interested right now — a week of quiet.
     func dismissPurchaseNudge() {
-        UserDefaults.standard.set(Date(), forKey: "PurchaseNudgeDismissedAt")
+        UserDefaults.standard.set(Date(), forKey: "PurchaseNudgeSnoozedAt")
         panelPurchaseNudgeVisible = false
     }
 
-    /// The panel row was tapped: record the contact and open Gumroad.
+    /// The panel row was tapped: record the contact (same week of quiet) and
+    /// open Gumroad.
     func purchaseNudgeTapped() {
-        UserDefaults.standard.set(Date(), forKey: "LastPurchaseNudgeAt")
+        UserDefaults.standard.set(Date(), forKey: "PurchaseNudgeSnoozedAt")
         panelPurchaseNudgeVisible = false
-        NSWorkspace.shared.open(LicenseManager.purchaseURL)
+        LicenseManager.openPurchasePage()
     }
 
     /// Minute-granularity hold duration for the panel. Only the lid tier

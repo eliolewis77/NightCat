@@ -94,8 +94,13 @@ struct MenuContent: View {
         }
         .frame(width: 324)
         // The popover is the moment the user actually looks at the toggle, so
-        // it's the moment it most needs to be true.
-        .onAppear { state.refreshState() }
+        // it's the moment it most needs to be true. The support row re-evaluates
+        // here too — it would otherwise lag the 30-second tick by up to one
+        // panel-open.
+        .onAppear {
+            state.refreshState()
+            state.updatePurchaseNudge()
+        }
         // Second confirmation for a switch the mode lock intercepted. The
         // dialog's presence *is* the pending intent: dismissing it any other
         // way (Esc, clicking away) cancels.

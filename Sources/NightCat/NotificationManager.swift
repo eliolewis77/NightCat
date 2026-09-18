@@ -2,25 +2,12 @@ import AppKit
 import Foundation
 import UserNotifications
 
-/// Posts system notifications for keep-awake lifecycle events (safety pause,
-/// external-clear restore, timer expiry). These must reach the user even when
-/// the panel is closed — the UU远程 incident showed panel-only notices go
-/// unseen. Authorization is requested once per launch; a denial simply leaves
-/// the events panel-only.
-/// Routes notification taps. The purchase nudge opens the Gumroad page.
+/// UNUserNotificationCenter delegate: shows the banner even when the app is
+/// frontmost (menu-bar agent: the "app" is never really looked at, so
+/// foreground silence would hide everything forever).
 final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationRouter()
 
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                didReceive response: UNNotificationResponse) async {
-        if response.notification.request.content.categoryIdentifier == "PURCHASE" {
-            NSWorkspace.shared.open(LicenseManager.purchaseURL)
-        }
-    }
-
-    // Show the banner even when the app is frontmost (menu-bar agent: the
-    // "app" is never really looked at, so foreground silence would hide
-    // everything forever).
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification) async
         -> UNNotificationPresentationOptions {
@@ -28,8 +15,13 @@ final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
     }
 }
 
+/// Posts system notifications for keep-awake lifecycle events (safety pause,
+/// external-clear restore, timer expiry). These must reach the user even when
+/// the panel is closed — the UU远程 incident showed panel-only notices go
+/// unseen. Authorization is requested once per launch; a denial simply leaves
+/// the events panel-only.
 enum AppNotifier {
-    /// Attach the tap router and banner options. Call once at startup.
+    /// Attach the presentation options. Call once at startup.
     static func install() {
         UNUserNotificationCenter.current().delegate = NotificationRouter.shared
     }
@@ -44,12 +36,25 @@ enum AppNotifier {
     /// Fire-and-forget. Duplicates are acceptable (each event carries its own
     /// identity), and every current caller fires at most once per incident.
     static func post(_ body: String) {
+        Task { _ = await postDelivered(body) }
+    }
+
+    /// Posts and reports whether the system accepted the banner — `add` fails
+    /// when authorization is pending or denied, in which case nothing will
+    /// ever show. Callers that spend a scarce quota on a notification (a
+    /// throttle window) must mark it only on `true`.
+    static func postDelivered(_ body: String) async -> Bool {
         let content = UNMutableNotificationContent()
         content.title = "NightCat"
         content.body = body
         content.sound = .default
         let request = UNNotificationRequest(identifier: UUID().uuidString,
                                             content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            return true
+        } catch {
+            return false
+        }
     }
 }
