@@ -11,7 +11,7 @@ import Foundation
 /// only an explicit "disabled/refunded" verdict does.
 enum LicenseManager {
     /// Gumroad product id (from the product edit page URL).
-    static let productID = "gonyb"
+    static let productID = "Zw2vSj4SG_tvXIvfhW5TqQ=="
     static let purchaseURL = URL(string: "https://eliowave2.gumroad.com/l/nightcat")!
 
     private static let verifyURL = URL(string: "https://api.gumroad.com/v2/licenses/verify")!
