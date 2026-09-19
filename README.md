@@ -15,6 +15,10 @@ macOS 菜单栏保持唤醒工具。四档递进，不是通用电源管理器�
 
 中英双语（跟随系统，可切换）、系统通知、猫头菜单栏图标按档位变色、Sparkle 自动更新。
 
+<p align="center">
+  <img src="panel.png" width="420" alt="NightCat menu bar panel">
+</p>
+
 ## 下载
 
 从 [Releases](https://github.com/eliolewis77/NightCat/releases/latest) 下载 DMG
