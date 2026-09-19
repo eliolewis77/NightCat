@@ -35,5 +35,15 @@
                  length="2305010"
                  type="application/octet-stream" />
     </item>
+      <item>
+      <title>Version 1.3.0</title>
+      <pubDate>Sat, 19 Sep 2026 08:48:24 +0000</pubDate>
+      <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
+      <sparkle:version>4</sparkle:version>
+      <enclosure url="https://github.com/eliolewis77/NightCat/releases/download/v1.3.0/NightCat-1.3.0.dmg"
+                 sparkle:edSignature="vy9HilCf+ZrI7lMbJJM/8DKieYL1c+ZFBbyIb+iUJd2vembNDgi8yBxAwY+kv5HSeCSrEFQhqbLtgkzerUeIAQ=="
+                 length="2320336"
+                 type="application/octet-stream" />
+    </item>
   </channel>
 </rss>
