@@ -42,8 +42,25 @@ xcodebuild build -scheme NightCat -destination 'platform=macOS' -configuration D
 
 ## 发布
 
-见 `scripts/release.sh` 头部文档：bump `MARKETING_VERSION` → `./scripts/release.sh`
-→ DMG 传 GitHub Release、appcast push（Pages 自动部署）。
+`scripts/release.sh` 只做到本地：archive → 公证 → DMG → EdDSA 签名 → 写入
+`docs/appcast.xml`。它**不上传任何东西**，脚本跑完 ≠ 发布完成。
+
+完整流程（bump 两个版本号，Sparkle 认 `CURRENT_PROJECT_VERSION` 递增）：
+
+```bash
+# project.yml: MARKETING_VERSION / CURRENT_PROJECT_VERSION 各 +1
+git add ... && git commit && git push          # 1. 代码
+./scripts/release.sh                            # 2. 本地产物（需 xcodebuild + notarytool）
+gh release create vX.Y.Z build/release/NightCat-X.Y.Z.dmg \
+  --title "vX.Y.Z" --notes "..."                # 3. DMG 传 Release（易漏）
+git add docs/appcast.xml && git commit -m "vX.Y.Z appcast" && git push   # 4. 更新线上 feed（易漏）
+
+# 5. 验证：线上 appcast 含新版本 + Release 下载 URL 返回 200
+curl -s https://eliolewis77.github.io/NightCat/appcast.xml | grep X.Y.Z
+gh release view vX.Y.Z
+```
+
+第 3、4 步最容易漏——漏掉时本地一切正常，但线上 feed 不变，用户收不到更新。
 
 ## 交付与验证习惯（项目所有者的明确偏好）
 
