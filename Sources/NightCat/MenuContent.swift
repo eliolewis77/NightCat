@@ -2,21 +2,52 @@ import SwiftUI
 
 /// Shared horizontal inset so every row, divider, and the footer line up on the
 /// same leading/trailing columns.
-let hInset: CGFloat = 14
+let hInset: CGFloat = 16
 
-/// The menu bar popover (panel-mockup §2): status row, tier segments, inline
-/// warnings, timer chips, battery + helper rows, footer. Secondary settings
+/// The menu bar popover (panel-redesign §A): status header, inline warnings,
+/// tier segments, timer chips, power + helper rows, footer. Secondary settings
 /// live in the Settings window.
 struct MenuContent: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // The headline. Someone opening the menu bar is asking one question
+            // — what is it doing right now, and for how much longer — so the
+            // answer leads, in the tier's own color.
+            StatusHeader()
+
             TierSegmentRow()
 
-            // Neutral notices first (external takeover / verification / the
-            // ordinary error or safety note), strongest slot above the picker
-            // so they're read before any decision (mockup §3 variant 2).
+            // The battery warning sits directly under the picker: it is an
+            // answer to the switch just made, so it belongs beside the control
+            // that raised it rather than further down the column.
+            if state.batteryWarning != nil {
+                BatteryWarningBanner()
+            }
+
+            TimerSection()
+
+            Divider()
+                .padding(.horizontal, hInset)
+                .padding(.top, 13)
+
+            // One group, tight leading: power, helper, network. All three are
+            // read-only facts about this Mac, so they share a rhythm instead of
+            // each claiming a full row of the panel's attention.
+            VStack(alignment: .leading, spacing: 7) {
+                BatteryRow()
+                HelperRow()
+                LocalIPRow()
+            }
+            .padding(.horizontal, hInset)
+            .padding(.top, 10)
+            .padding(.bottom, 4)
+
+            // Neutral notices (external takeover / verification / the ordinary
+            // error or safety note) sit at the panel's quiet end now. Above the
+            // picker they turned the panel's cleanest band into a wall of small
+            // print — the status header is meant to be read first, and alone.
             if !state.autoWarningReasons.isEmpty {
                 NoticeBanner(text: String(format: NSLocalizedString("自动模式已开启，但当前条件不满足：%@", comment: "auto-mode warning"), state.autoWarningReasons.map { $0.localizedCheckLabel() }.joined(separator: NSLocalizedString("、", comment: "list separator"))),
                              systemImage: "exclamationmark.circle.fill",
@@ -38,29 +69,15 @@ struct MenuContent: View {
                              tint: Color.secondary)
             }
 
-            if state.batteryWarning != nil {
-                BatteryWarningBanner()
-            }
-
-            TimerSection()
-
-            Divider()
-                .padding(.horizontal, hInset)
-                .padding(.top, 16)
-
-            BatteryRow()
-            HelperRow()
-            LocalIPRow()
-
             if state.panelPurchaseNudgeVisible {
                 HStack(spacing: 6) {
                     Spacer(minLength: 0)
                     Text("喜欢 NightCat？")
-                        .font(.system(size: 11.5))
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                     Button("请喝杯咖啡") { state.purchaseNudgeTapped() }
                         .buttonStyle(.link)
-                        .font(.system(size: 11.5))
+                        .font(.system(size: 11))
                     Button {
                         state.dismissPurchaseNudge()
                     } label: {
@@ -73,7 +90,7 @@ struct MenuContent: View {
                     .accessibilityLabel("关闭购买提示")
                 }
                 .padding(.horizontal, hInset)
-                .padding(.top, 4)
+                .padding(.top, 6)
             }
 
             HStack {
@@ -90,7 +107,7 @@ struct MenuContent: View {
             .buttonStyle(.plain)
             .font(.system(size: 12.5))
             .padding(.horizontal, hInset)
-            .padding(.vertical, 12)
+            .padding(.vertical, 10)
         }
         .frame(width: 324)
         // The popover is the moment the user actually looks at the toggle, so
@@ -124,6 +141,92 @@ struct MenuContent: View {
     }
 }
 
+// MARK: - Status header
+
+/// The panel's headline (panel-redesign §A): the tier mark on the left, and —
+/// when a countdown is running — how long is left at the trailing edge.
+///
+/// No tier name, no caption. The mark's color is the tier, and the segments
+/// directly below spell out which one is lit; naming it again here only made
+/// the header something to read.
+private struct StatusHeader: View {
+    @EnvironmentObject var state: AppState
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var accent: Color { tierAccent(state.controlMode, colorScheme) }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 11) {
+            mark
+
+            Spacer(minLength: 8)
+
+            trailing
+        }
+        .padding(.horizontal, hInset)
+        .padding(.vertical, 11)
+        .background(accent.opacity(colorScheme == .dark ? 0.10 : 0.085))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(accent.opacity(colorScheme == .dark ? 0.22 : 0.18))
+                .frame(height: 1)
+        }
+    }
+
+    /// The cat-head mark, echoing the app icon and the menu bar indicator. The
+    /// lock badge appears only while the tier is pinned — same corner as the
+    /// menu bar mark, so the two read as the same object seen twice.
+    private var mark: some View {
+        CatShape()
+            .fill(accent)
+            .frame(width: 26, height: 23)
+            .overlay(alignment: .bottomTrailing) {
+                if state.isModeLocked {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 6.5, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 13, height: 13)
+                        .background(Circle().fill(accent))
+                        .offset(x: 3, y: 2)
+                }
+            }
+            .frame(width: 26, height: 26)
+            .accessibilityHidden(true)
+    }
+
+    /// Countdown when a timer is armed; otherwise how long this hold has been
+    /// running (`lidClosed` only — a tier that doesn't write system state has
+    /// no "how long" worth tracking). Nothing at all when every tier is off.
+    @ViewBuilder
+    private var trailing: some View {
+        if let countdown = MenubarStyle.countdownText(autoOffRemaining: state.autoOffRemaining) {
+            Text(countdown)
+                .font(.system(size: 17, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(accent)
+        } else if !state.keepAwakeDuration.isEmpty {
+            Text(state.keepAwakeDuration)
+                .font(.system(size: 11.5))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+    }
+}
+
+/// The tier color as panel text. Dark appearance reuses the menu bar's own
+/// value; light appearance deepens the two bright tiers, which are tuned
+/// against a translucent menu bar and would otherwise land at unreadable
+/// contrast on the popover's light background.
+private func tierAccent(_ mode: KeepAwakeMode, _ scheme: ColorScheme) -> Color {
+    guard scheme == .light else { return MenubarStyle.tierColor(mode, colorScheme: .dark) }
+    switch mode {
+    case .off:         return Color(red: 0.435, green: 0.427, blue: 0.388)   // #6F6D63
+    case .screen:      return Color(red: 0.184, green: 0.431, blue: 0.671)   // #2F6EAB
+    case .preventIdle: return Color(red: 0.118, green: 0.498, blue: 0.388)   // #1E7F63
+    case .lidClosed:   return Color(red: 0.702, green: 0.416, blue: 0.000)   // #B36A00
+    }
+}
+
 /// The mode lock: lit pins the current tier. Tapping it while locked releases
 /// the pin — and drops any switch still awaiting confirmation.
 private struct ModeLockButton: View {
@@ -154,74 +257,49 @@ private struct ModeLockButton: View {
 
 // MARK: - Tier segments
 
-/// The four-tier segmented picker (mockup §2). Short names; the status row
-/// above carries the full name, so segments stay narrow enough for four.
+/// The four-tier segmented picker (panel-redesign §A). The tier's full name and
+/// its explanation now live in the status header above, so this row is just the
+/// control: segments on the left, the lock at its trailing edge where the two
+/// read as one group.
 private struct TierSegmentRow: View {
     @EnvironmentObject var state: AppState
 
-    private var autoMode: Bool { state.settings.autoEnableWhenCharging }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .center, spacing: 10) {
-                Picker("档位", selection: Binding(
-                    get: { state.controlMode },
-                    set: { state.setControlMode($0) }
-                )) {
-                    ForEach(KeepAwakeMode.allCases) { mode in
-                        Text(mode.label).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .fixedSize()
-                // A locked mode can't be clicked away — the whole point of the
-                // lock is that a stray click mustn't change the tier. Selections
-                // while locked can only arrive before the disabled view lands.
-                .disabled(state.isModeLocked)
-
-                Spacer(minLength: 8)
-
-                ModeLockButton()
-            }
-
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                // The caption carries the active tier's one-line explanation —
-                // or, when auto mode owns the picker, why the others are dimmed.
-                Text(autoMode
-                    ? "自动模式仅驱动合盖档。"
-                    : state.controlMode.explanation)
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Spacer(minLength: 8)
-
-                if let countdown = countdownText {
-                    Text(countdown)
-                        .font(.system(size: 12.5).monospacedDigit())
-                        .foregroundStyle(.primary.opacity(0.88))
-                } else if !state.keepAwakeDuration.isEmpty {
-                    Text(state.keepAwakeDuration)
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(.secondary)
+        HStack(alignment: .center, spacing: 10) {
+            Picker("档位", selection: Binding(
+                get: { state.controlMode },
+                set: { state.setControlMode($0) }
+            )) {
+                ForEach(KeepAwakeMode.allCases) { mode in
+                    Text(mode.label).tag(mode)
                 }
             }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            // A locked mode can't be clicked away — the whole point of the
+            // lock is that a stray click mustn't change the tier. Selections
+            // while locked can only arrive before the disabled view lands.
+            .disabled(state.isModeLocked)
+            // `disabled` alone is easy to miss at this size; dimming the row
+            // makes "pinned" legible at a glance, with the lock button staying
+            // solid so the state keeps one obvious undo.
+            .opacity(state.isModeLocked ? 0.55 : 1)
+
+            Spacer(minLength: 8)
+
+            ModeLockButton()
         }
         .padding(.horizontal, hInset)
-        .padding(.top, 12)
-        .padding(.bottom, 4)
-    }
-
-    private var countdownText: String? {
-        MenubarStyle.countdownText(autoOffRemaining: state.autoOffRemaining)
+        .padding(.top, 11)
     }
 }
 
 // MARK: - Notices
 
-/// A quiet inline bar for transient explanations (mockup §3): neutral tint,
-/// no actions.
+/// A quiet inline bar for the panel's tail (mockup §3): neutral tint, no
+/// actions. Sized down to match the status rows it now sits among, so a notice
+/// reads as a footnote rather than a headline.
 private struct NoticeBanner: View {
     let text: String
     let systemImage: String
@@ -230,15 +308,16 @@ private struct NoticeBanner: View {
     var body: some View {
         Label {
             Text(text)
-                .font(.system(size: 12.5))
+                .font(.system(size: 11.5))
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
             Image(systemName: systemImage)
+                .font(.system(size: 11))
                 .foregroundStyle(tint)
         }
-        .foregroundStyle(.primary.opacity(0.85))
+        .foregroundStyle(.secondary)
         .padding(.horizontal, hInset)
-        .padding(.top, 8)
+        .padding(.top, 6)
     }
 }
 
@@ -297,9 +376,10 @@ private struct BatteryWarningBanner: View {
 
 // MARK: - Timer (SPEC §7)
 
-/// Timer chips (mockup §2A): 不限时 / presets / 自定义. Selecting a duration
-/// both sets it and (via `keepAwakeFor`) turns keep-awake on when off — one
-/// gesture. D8's note under the chips: expiry closes every tier at once.
+/// Timer chips (panel-redesign §A): preset chips plus 自定义, with 不限时
+/// demoted to the row's trailing clear action. Selecting a duration both sets
+/// it and (via `keepAwakeFor`) turns keep-awake on when off — one gesture.
+/// D8's note under the chips: expiry closes every tier at once.
 private struct TimerSection: View {
     @EnvironmentObject var state: AppState
     @State private var isEditingCustom = false
@@ -312,10 +392,30 @@ private struct TimerSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("定时关闭", systemImage: "timer")
-                .font(.system(size: 12.5, weight: .medium))
-                .foregroundStyle(.primary.opacity(0.7))
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 8) {
+                Label("定时关闭", systemImage: "timer")
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+
+                Spacer(minLength: 8)
+
+                // "No limit" is the absence of a timer, not a fourth preset —
+                // as a chip it sat in the same row as the values people actually
+                // pick and read as one of them. Here it's the clear action, and
+                // a plain label once there is nothing left to clear.
+                if state.autoOffMinutes > 0 {
+                    Button("不限时") { state.keepAwakeFor(minutes: 0) }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Color.accentColor)
+                        .disabled(autoMode)
+                } else {
+                    Text("不限时")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.tertiary)
+                }
+            }
 
             if isEditingCustom {
                 HStack(spacing: 8) {
@@ -346,8 +446,7 @@ private struct TimerSection: View {
             }
         }
         .padding(.horizontal, hInset)
-        .padding(.top, 14)
-        .padding(.bottom, 4)
+        .padding(.top, 12)
     }
 
     /// `nil` selects nothing (a custom value keeps 自定义 lit via the flag).
@@ -363,9 +462,9 @@ private struct TimerSection: View {
     }
 }
 
-/// Chip flow: leading 不限时 chip, preset chips, trailing 自定义, wrapping to
-/// as many rows as the panel width needs. The custom chip lights whenever the
-/// current value is neither 0 nor a preset.
+/// Chip flow: preset chips plus a trailing 自定义, wrapping to as many rows as
+/// the panel width needs. The custom chip lights whenever the current value is
+/// neither 0 nor a preset.
 private struct FlowChips: View {
     let selected: Int?
     let choose: (Int, String) -> Void
@@ -378,7 +477,6 @@ private struct FlowChips: View {
 
     var body: some View {
         FlowLayout(spacing: 6) {
-            chip(0, NSLocalizedString("不限时", comment: "duration: no limit"))
             ForEach(AutoOff.presetMinutes, id: \.self) { minutes in
                 chip(minutes, AutoOff.optionLabel(minutes: minutes))
             }
@@ -483,12 +581,12 @@ private func warmAmber(_ colorScheme: ColorScheme) -> Color {
         : Color(red: 0.702, green: 0.494, blue: 0.016)
 }
 
-/// Power row: source icon + label, thin charge bar, percentage, and the
-/// thermal level at the trailing edge (thermal-row-mockup §2 option 1).
-/// The bar stays neutral — color is the tier channel, not a battery channel.
-/// Temperature color, in contrast, *is* a warning channel: gray while
-/// nominal, then the battery amber, the tier orange at the overheat-pause
-/// trigger, and alarm red at critical.
+/// Power row: source icon, thin charge bar, percentage, and the thermal level
+/// at the trailing edge (thermal-row-mockup §2 option 1). The bar stays
+/// neutral — color is the tier channel, not a battery channel. Temperature
+/// color, in contrast, *is* a warning channel: gray while nominal, then the
+/// battery amber, the tier orange at the overheat-pause trigger, and alarm
+/// red at critical.
 private struct BatteryRow: View {
     @EnvironmentObject var state: AppState
     @Environment(\.colorScheme) private var colorScheme
@@ -500,9 +598,6 @@ private struct BatteryRow: View {
                 .foregroundStyle(state.batteryOnAC
                     ? warmAmber(colorScheme)
                     : Color.secondary)
-            Text(state.batteryOnAC ? "电源适配器" : "电池")
-                .font(.system(size: 12.5))
-                .foregroundStyle(.primary.opacity(0.85))
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.primary.opacity(0.12))
@@ -511,34 +606,43 @@ private struct BatteryRow: View {
                         .frame(width: geo.size.width * CGFloat(state.batteryPercent) / 100)
                 }
             }
-            .frame(height: 4)
+            .frame(height: 3.5)
             Text("\(state.batteryPercent)%")
                 .font(.system(size: 11.5).monospacedDigit())
-                .foregroundStyle(.primary.opacity(0.75))
+                .foregroundStyle(.secondary)
             thermalLabel
         }
-        .padding(.horizontal, hInset)
-        .padding(.top, 10)
+        .help(rowHelp)
     }
 
+    /// Always visible, nominal included: "normal" is a reading the user asked
+    /// for by having the row at all, and hiding it made the row's width — and
+    /// the bar's — jump every time the Mac warmed up or cooled down.
     private var thermalLabel: some View {
         let color: Color
         let text: String
         switch state.thermalState {
-        case .nominal:   color = Color.primary.opacity(0.65); text = NSLocalizedString("正常", comment: "thermal: nominal")
-        case .fair:      color = warmAmber(colorScheme); text = NSLocalizedString("偏热", comment: "thermal: fair")
-        case .serious:   color = warmAmber(colorScheme); text = NSLocalizedString("过热", comment: "thermal: serious")
-        case .critical:  color = Color(red: 0.898, green: 0.322, blue: 0.290); text = NSLocalizedString("严重过热", comment: "thermal: critical")
-        @unknown default: color = Color.primary.opacity(0.65); text = NSLocalizedString("正常", comment: "thermal: nominal")
+        case .fair:     color = warmAmber(colorScheme); text = NSLocalizedString("偏热", comment: "thermal: fair")
+        case .serious:  color = warmAmber(colorScheme); text = NSLocalizedString("过热", comment: "thermal: serious")
+        case .critical: color = Color(red: 0.898, green: 0.322, blue: 0.290); text = NSLocalizedString("严重过热", comment: "thermal: critical")
+        default:        color = Color.secondary; text = NSLocalizedString("正常", comment: "thermal: nominal")
         }
         return Label(text, systemImage: "thermometer.medium")
             .font(.system(size: 11.5, weight: state.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue ? .semibold : .regular))
             .foregroundStyle(color)
     }
+
+    /// The source name lives here instead of on the row, so the bar keeps the
+    /// width the label used to cost.
+    private var rowHelp: String {
+        state.batteryOnAC
+            ? NSLocalizedString("电源适配器", comment: "power source tooltip")
+            : NSLocalizedString("电池", comment: "power source tooltip")
+    }
 }
 
-/// Helper availability (mockup §2): a quiet green line when installed; when
-/// not, an orange line with the install action — the lid tier is unusable
+/// Helper availability (panel-redesign §A): a quiet green line when installed;
+/// when not, an orange line with the install action — the lid tier is unusable
 /// without it, so the panel must say so where the tier is picked.
 private struct HelperRow: View {
     @EnvironmentObject var state: AppState
@@ -547,17 +651,17 @@ private struct HelperRow: View {
         HStack(spacing: 9) {
             if state.usingHelper {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 10.5, weight: .semibold))
                     .foregroundStyle(Color(red: 0.365, green: 0.796, blue: 0.647))
                 Text("Helper 已安装 · 合盖档可用")
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(.primary.opacity(0.85))
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
             } else {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
                 Text("未安装 Helper · 合盖档不可用")
-                    .font(.system(size: 12.5))
+                    .font(.system(size: 11.5))
                     .foregroundStyle(.primary.opacity(0.85))
                 Spacer(minLength: 8)
                 Button("安装") { state.installHelper() }
@@ -565,9 +669,6 @@ private struct HelperRow: View {
                     .buttonStyle(.link)
             }
         }
-        .padding(.horizontal, hInset)
-        .padding(.top, 9)
-        .padding(.bottom, 6)
     }
 }
 

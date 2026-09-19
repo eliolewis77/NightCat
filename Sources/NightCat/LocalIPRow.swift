@@ -1,8 +1,11 @@
 import SwiftUI
 
-/// One quiet row under the helper status: this Mac's primary LAN IPv4, click
-/// to copy. For the remote-workflow user this is the number they look up most
-/// often — DHCP makes it move, and System Settings is a detour.
+/// One quiet row in the panel's status group: this Mac's primary LAN IPv4,
+/// click to copy. For the remote-workflow user this is the number they look up
+/// most often — DHCP makes it move, and System Settings is a detour.
+///
+/// Layout-agnostic by design (panel-redesign §A): no insets of its own, so the
+/// group that owns the row decides where the column starts.
 struct LocalIPRow: View {
     @State private var ip: String?
     @State private var copied = false
@@ -25,8 +28,8 @@ struct LocalIPRow: View {
                         Text(copied
                              ? NSLocalizedString("已复制", comment: "IP copied feedback")
                              : String(format: NSLocalizedString("本机 IP %@", comment: "local IP row"), ip))
-                            .font(.system(size: 12))
-                            .foregroundStyle(.primary.opacity(0.85))
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(.secondary)
                         Spacer(minLength: 0)
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 10))
@@ -37,9 +40,6 @@ struct LocalIPRow: View {
                 .help(NSLocalizedString("点击复制本机 IP 地址", comment: "IP copy help"))
             }
         }
-        .padding(.horizontal, hInset)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
         .onAppear { ip = Self.primaryIPv4() }
     }
 
