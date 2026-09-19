@@ -24,9 +24,19 @@ struct PowerManager {
         return PowerParsers.sleepDisabled(pmsetG: out)
     }
 
-    /// Set or clear the flag. Throws with the underlying error message on failure
-    /// (including the user cancelling the admin prompt).
-    func setSleepDisabled(_ enabled: Bool) throws {
+    /// Set or clear the flag. Calls `completion` exactly once with the
+    /// underlying error on failure (including the user cancelling the admin
+    /// prompt), `nil` on success — **on an arbitrary background thread**; hop to
+    /// the queue you need yourself.
+    ///
+    /// Runs asynchronously on purpose: the admin prompt can sit on screen for as
+    /// long as the user takes, and blocking the main actor here freezes the whole
+    /// menu-bar app — its status item, its popover, and the 30-second heartbeat
+    /// that keeps the helper's watchdog from restoring sleep under a live tier.
+    /// (No main-queue hop here either: the exit path waits on the completion with
+    /// a semaphore while its caller is already parked on the main thread, and a
+    /// main-queue dispatch could never run under that wait.)
+    func setSleepDisabled(_ enabled: Bool, completion: @escaping (Error?) -> Void) {
         let value = enabled ? "1" : "0"
         let script = "do shell script \"/usr/bin/pmset -a disablesleep \(value)\" with administrator privileges"
 
@@ -37,18 +47,29 @@ struct PowerManager {
         proc.standardError = errPipe
         proc.standardOutput = Pipe()
 
-        try proc.run()
-        proc.waitUntilExit()
+        // The error pipe is only read once the process has exited, so the read
+        // can't deadlock; it happens before completion is dispatched.
+        proc.terminationHandler = { process in
+            if process.terminationStatus != 0 {
+                let data = errPipe.fileHandleForReading.readDataToEndOfFile()
+                let msg = String(data: data, encoding: .utf8)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                completion(NSError(
+                    domain: "NightCat.PowerManager",
+                    code: Int(process.terminationStatus),
+                    userInfo: [NSLocalizedDescriptionKey: msg.isEmpty
+                        ? NSLocalizedString("已取消管理员授权。", comment: "pmset error")
+                        : msg]
+                ))
+            } else {
+                completion(nil)
+            }
+        }
 
-        if proc.terminationStatus != 0 {
-            let data = errPipe.fileHandleForReading.readDataToEndOfFile()
-            let msg = String(data: data, encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? NSLocalizedString("未知错误", comment: "pmset error")
-            throw NSError(
-                domain: "NightCat.PowerManager",
-                code: Int(proc.terminationStatus),
-                userInfo: [NSLocalizedDescriptionKey: msg.isEmpty ? NSLocalizedString("已取消管理员授权。", comment: "pmset error") : msg]
-            )
+        do {
+            try proc.run()
+        } catch {
+            completion(error)
         }
     }
 }

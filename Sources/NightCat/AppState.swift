@@ -1061,28 +1061,62 @@ final class AppState: ObservableObject {
                     self.pendingVerification = PendingVerification(target: target)
                     self.verifySetApplied(target: target)
                 } else {
-                    // The helper can fail without a message (e.g. a dropped XPC
-                    // reply, or the daemon failing to launch after an update);
-                    // surface it instead of letting the toggle silently no-op.
+                    // Report it, then try the password path rather than leaving the
+                    // click with no effect at all. No blocking alert here: if the
+                    // fallback runs, its own prompt is the thing the user needs to
+                    // see, and two dialogs stacked on top of each other is worse
+                    // than one.
                     let message = err ?? NSLocalizedString("后台 Helper 未响应。", comment: "helper timeout")
                     self.lastError = message
-                    if origin == .user { self.presentHelperFailureAlert(message: message) }
-                    self.recoverStateAfterFailedWrite()
+                    self.writeViaAdminPrompt(target: target, note: resultMessage,
+                                             landingMode: land, origin: origin, token: token)
                 }
             }
         } else {
-            do {
-                try power.setSleepDisabled(target)
-                mode = land
-                lastError = resultMessage
-                keepAwakeStartedAt = land == .lidClosed ? Date() : nil
-                updateAutoOff(for: land != .off)
-                pendingVerification = PendingVerification(target: target)
-                verifySetApplied(target: target)
-            } catch {
-                lastError = error.localizedDescription
-                if origin == .user { presentFailureAlert(target: target, message: error.localizedDescription) }
-                recoverStateAfterFailedWrite()
+            writeViaAdminPrompt(target: target, note: resultMessage,
+                                landingMode: land, origin: origin, token: token)
+        }
+    }
+
+    /// The password path: `pmset -a disablesleep` through `osascript` with
+    /// administrator privileges.
+    ///
+    /// Used when no helper is installed — and as the fallback for a helper that
+    /// is registered but not answering. A registered daemon can go unreachable
+    /// without the app's own build number changing: its launchd record keeps
+    /// pointing at whatever binary it was registered from, and a locally rebuilt
+    /// bundle (hand-signed, same `CFBundleVersion`) leaves that record stale.
+    /// `refreshHelperRegistrationIfUpdated` only probes when the build number
+    /// changes, so nothing repairs it — and an XPC timeout reported as an error
+    /// makes the toggle look broken rather than merely unprivileged. Falling
+    /// through to here costs a password, but it moves the flag.
+    ///
+    /// Asynchronous (see `PowerManager.setSleepDisabled`), so the same
+    /// superseded-write token the XPC path honours applies here too: a second
+    /// click while the admin prompt is up wins, and this stale completion is
+    /// dropped.
+    private func writeViaAdminPrompt(target: Bool,
+                                     note: String?,
+                                     landingMode: KeepAwakeMode,
+                                     origin: SetOrigin,
+                                     token: StateSync.MutationToken) {
+        // The completion arrives on a background thread (see PowerManager); the
+        // state updates below are MainActor, so hop before touching them.
+        power.setSleepDisabled(target) { [weak self] error in
+            DispatchQueue.main.async {
+                guard let self, self.sync.shouldApply(token) else { return }
+                if let error {
+                    self.lastError = error.localizedDescription
+                    if origin == .user { self.presentFailureAlert(target: target, message: error.localizedDescription) }
+                    self.recoverStateAfterFailedWrite()
+                } else {
+                    self.mode = landingMode
+                    self.lastError = note
+                    self.keepAwakeStartedAt = landingMode == .lidClosed ? Date() : nil
+                    self.updateAutoOff(for: landingMode != .off)
+                    self.pendingVerification = PendingVerification(target: target)
+                    self.verifySetApplied(target: target)
+                }
             }
         }
     }
@@ -1150,23 +1184,6 @@ final class AppState: ObservableObject {
         alert.informativeText = message
         alert.addButton(withTitle: NSLocalizedString("好", comment: "button"))
         alert.runModal()
-    }
-
-    /// The helper is registered but didn't respond — almost always a stale
-    /// registration after an app update (launchd refuses to launch the new
-    /// binary). Offer a one-click reinstall, which re-registers and refreshes
-    /// that record.
-    private func presentHelperFailureAlert(message: String) {
-        NSApp.activate(ignoringOtherApps: true)
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = NSLocalizedString("无法连接后台 Helper", comment: "alert title")
-        alert.informativeText = String(format: NSLocalizedString("%@\n\n这通常发生在更新之后，重新安装后台 Helper 即可修复。", comment: "alert body; error detail"), message)
-        alert.addButton(withTitle: NSLocalizedString("重新安装 Helper", comment: "button"))
-        alert.addButton(withTitle: NSLocalizedString("取消", comment: "button"))
-        if alert.runModal() == .alertFirstButtonReturn {
-            repairHelper()
-        }
     }
 
     /// Re-register the privileged helper to refresh launchd's record, then report
@@ -1394,7 +1411,14 @@ final class AppState: ObservableObject {
         // Fallback path: the admin prompt may appear (same as every other
         // write without the helper); cancelling it just leaves the flag as-is,
         // and the worst case equals the crash path's delayed 0.
-        do { try power.setSleepDisabled(value) } catch { }
+        //
+        // This one *waits*: the process is mid-terminate, and returning before
+        // the write lands would let macOS finish quitting underneath it. The
+        // completion comes back on a background thread, so a plain semaphore is
+        // safe — no main-queue dispatch to deadlock against.
+        let written = DispatchSemaphore(value: 0)
+        power.setSleepDisabled(value) { _ in written.signal() }
+        written.wait()
         return .terminateNow
     }
 }
