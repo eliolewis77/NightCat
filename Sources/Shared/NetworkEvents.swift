@@ -53,6 +53,9 @@ public enum NetworkEvent: Equatable {
     case ipv4Changed(old: String?, new: String?)
     case gatewayChanged(old: String?, new: String?)
     case interfaceChanged(old: String?, new: String?)
+    /// Same route, different name — 2.4G/5G roaming on one router, a renamed
+    /// SSID. Log-only: worth a timeline entry, not a notification.
+    case ssidChanged(old: String?, new: String?)
 }
 
 /// Diffs consecutive snapshots into events. Offline periods report nothing
@@ -85,6 +88,9 @@ public enum NetworkEventDetector {
         if old.interfaceName != new.interfaceName {
             events.append(.interfaceChanged(old: old.interfaceName, new: new.interfaceName))
         }
+        if old.ssid != new.ssid {
+            events.append(.ssidChanged(old: old.ssid, new: new.ssid))
+        }
         return events
     }
 }
@@ -112,6 +118,8 @@ public enum NetworkLog {
         case .gatewayChanged(let old, let new):
             parts.append(contentsOf: ["from=\(old ?? "-")", "to=\(new ?? "-")"])
         case .interfaceChanged(let old, let new):
+            parts.append(contentsOf: ["from=\(old ?? "-")", "to=\(new ?? "-")"])
+        case .ssidChanged(let old, let new):
             parts.append(contentsOf: ["from=\(old ?? "-")", "to=\(new ?? "-")"])
         case .online:
             break
@@ -146,6 +154,7 @@ public enum NetworkLog {
         case .ipv4Changed: return "ipv4_changed"
         case .gatewayChanged: return "gateway_changed"
         case .interfaceChanged: return "interface_changed"
+        case .ssidChanged: return "ssid_changed"
         }
     }
 }

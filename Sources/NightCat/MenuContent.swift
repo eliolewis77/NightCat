@@ -687,10 +687,11 @@ private struct NetworkStatusRow: View {
         case nil:
             EmptyView()
         case .some(let status):
-            if status.online, status.ssid == nil {
-                // Online with no network name to show: the IP row below
-                // already says "online", and a bare "Wi-Fi" says nothing the
-                // user didn't know. Silence is the honest entry here.
+            if status.online, status.interfaceKind == .wifi, status.ssid == nil {
+                // Online Wi-Fi with no name to show: the IP row below already
+                // says "online", and a bare "Wi-Fi" says nothing the user
+                // didn't know. Wired/other keep their row — there "online" is
+                // the whole message.
                 EmptyView()
             } else {
                 HStack(spacing: 9) {

@@ -147,6 +147,22 @@ final class NetworkKeepAliveTests: XCTestCase {
                         .interfaceChanged(old: "en0", new: "en5")])
     }
 
+    /// Same route, different name — 2.4G/5G roaming on one router.
+    func testSSIDChangeWhileOnline() {
+        let old = snapshot(online: true, ipv4: "1.2.3.4", gateway: "1.2.3.1", ssid: "Home-2G")
+        let new = snapshot(online: true, ipv4: "1.2.3.4", gateway: "1.2.3.1", ssid: "Home-5G")
+        XCTAssertEqual(NetworkEventDetector.events(from: old, to: new),
+                       [.ssidChanged(old: "Home-2G", new: "Home-5G")])
+    }
+
+    func testSSIDChangedLineCarriesFromAndTo() {
+        let snap = snapshot(online: true, ipv4: "1.2.3.4", gateway: "1.2.3.1", ssid: "Home-5G")
+        let line = logLine(.ssidChanged(old: "Home-2G", new: "Home-5G"), snapshot: snap)
+        XCTAssertTrue(line.contains("ssid_changed"))
+        XCTAssertTrue(line.contains("from=Home-2G"))
+        XCTAssertTrue(line.contains("to=Home-5G"))
+    }
+
     func testNoChangeIsEmpty() {
         let snap = snapshot(online: true, ipv4: "1.2.3.4", gateway: "1.2.3.1", interface: "en0")
         XCTAssertTrue(NetworkEventDetector.events(from: snap, to: snap).isEmpty)
