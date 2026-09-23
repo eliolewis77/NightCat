@@ -971,6 +971,16 @@
         }
       }
     },
+    "有线网络" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ethernet"
+          }
+        }
+      }
+    },
     "未安装" : {
       "localizations" : {
         "en" : {
@@ -1337,6 +1347,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Network keep-alive"
+          }
+        }
+      }
+    },
+    "网络保活无法启动:%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network keep-alive could not start: %@"
           }
         }
       }

@@ -277,7 +277,12 @@ final class AppState: ObservableObject {
         launchAtLogin = loginItem.isEnabled
         ExitRestoreBridge.appState = self
         caffeinate.onError = { [weak self] message in self?.lastError = message }
-        keepAlive.onError = { [weak self] message in self?.lastError = message }
+        keepAlive.onError = { [weak self] message in
+            self?.lastError = String(
+                format: NSLocalizedString("网络保活无法启动:%@",
+                                          comment: "keep-alive spawn error"),
+                message)
+        }
         keepAlive.onRunningChanged = { [weak self] running in self?.keepAliveRunning = running }
         networkMonitor.onEvent = { [weak self] events, snapshot in
             self?.handleNetworkEvents(events, snapshot: snapshot)
