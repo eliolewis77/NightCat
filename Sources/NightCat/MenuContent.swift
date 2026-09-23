@@ -709,23 +709,30 @@ private struct NetworkStatusRow: View {
                         .foregroundStyle(.primary.opacity(0.85))
                 }
             }
+            .help(tooltip(for: status))
         }
     }
 
-    /// SSID when macOS hands it over; the interface name when it doesn't.
-    /// Never a permission prompt's worth of effort for a label.
+    /// The interface name ("en0") is useful on hover, meaningless in the row —
+    /// an empty help shows no bubble at all.
+    private func tooltip(for status: NetworkSnapshot) -> String {
+        guard status.online, let name = status.interfaceName else { return "" }
+        return String(format: NSLocalizedString("网络接口：%@", comment: "network row tooltip"), name)
+    }
+
+    /// SSID when macOS hands it over; otherwise just "Wi-Fi" — the interface
+    /// name is developer vocabulary, it lives in the tooltip instead.
     private func label(for status: NetworkSnapshot) -> String {
         switch status.interfaceKind {
         case .wifi:
             if let ssid = status.ssid {
                 return String(format: NSLocalizedString("Wi-Fi · %@", comment: "network row; ssid"), ssid)
             }
-            return status.interfaceName ?? NSLocalizedString("Wi-Fi", comment: "network row")
+            return NSLocalizedString("Wi-Fi", comment: "network row")
         case .wired:
-            return String(format: NSLocalizedString("有线 · %@", comment: "network row; interface"),
-                          status.interfaceName ?? "ethernet")
+            return NSLocalizedString("有线网络", comment: "network row; wired")
         default:
-            return status.interfaceName ?? NSLocalizedString("已连接", comment: "network row; connected")
+            return NSLocalizedString("已连接", comment: "network row; connected")
         }
     }
 }
