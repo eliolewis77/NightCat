@@ -47,3 +47,5 @@ dsa_priv*
 .env
 .env.*
 *.netrc
+.workbuddy
+.claude
