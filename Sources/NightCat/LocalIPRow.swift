@@ -8,8 +8,13 @@ import SwiftUI
 /// group that owns the row decides where the column starts.
 struct LocalIPRow: View {
     @EnvironmentObject var state: AppState
-    @State private var ip: String?
+    @State private var fallbackIP: String?
     @State private var copied = false
+
+    /// The monitor's sample is the source of truth — it refreshes on every
+    /// network event and lands within a second of launch. The one-shot read
+    /// only covers the instant before that first sample arrives.
+    private var ip: String? { state.networkStatus?.ipv4 ?? fallbackIP }
 
     var body: some View {
         Group {
@@ -46,12 +51,7 @@ struct LocalIPRow: View {
                 .help(NSLocalizedString("点击复制本机 IP 地址", comment: "IP copy help"))
             }
         }
-        .onAppear { ip = Self.primaryIPv4() }
-        // The monitor's sample is fresher than a one-shot read: DHCP moved the
-        // address under us the moment the snapshot says so.
-        .onChange(of: state.networkStatus?.ipv4) { newValue in
-            if let newValue { ip = newValue }
-        }
+        .onAppear { fallbackIP = Self.primaryIPv4() }
     }
 
     /// First IPv4 of the built-in interfaces, preferring `en0` (Wi-Fi on
