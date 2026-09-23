@@ -7,6 +7,7 @@ import SwiftUI
 /// Layout-agnostic by design (panel-redesign §A): no insets of its own, so the
 /// group that owns the row decides where the column starts.
 struct LocalIPRow: View {
+    @EnvironmentObject var state: AppState
     @State private var ip: String?
     @State private var copied = false
 
@@ -41,6 +42,11 @@ struct LocalIPRow: View {
             }
         }
         .onAppear { ip = Self.primaryIPv4() }
+        // The monitor's sample is fresher than a one-shot read: DHCP moved the
+        // address under us the moment the snapshot says so.
+        .onChange(of: state.networkStatus?.ipv4) { newValue in
+            if let newValue { ip = newValue }
+        }
     }
 
     /// First IPv4 of the built-in interfaces, preferring `en0` (Wi-Fi on

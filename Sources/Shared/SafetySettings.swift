@@ -31,6 +31,14 @@ public struct SafetySettings: Equatable {
     /// Opt-in: the default keeps the historical "no tier survives a relaunch"
     /// guarantee. The helper watchdog still covers crashes.
     public var restoreLidTierOnLaunch: Bool
+    /// Network keep-alive: an always-running `ping` against the default
+    /// gateway, so idle-throttling APs and NIC power save never drop the
+    /// link under an unattended Mac. Fully independent of the tiers —
+    /// reachability matters in every state the machine can be in.
+    public var networkKeepAliveEnabled: Bool
+    /// Keep-alive interval in minutes; domain and default live in
+    /// `NetworkKeepAlivePolicy`.
+    public var networkKeepAliveIntervalMinutes: Int
 
     public static let `default` = SafetySettings(
         lowBatteryThreshold: 20,
@@ -46,13 +54,17 @@ public struct SafetySettings: Equatable {
                 thermalPolicy: ThermalPolicy,
                 autoEnableWhenCharging: Bool = false,
                 autoLockOnTimerStart: Bool = false,
-                restoreLidTierOnLaunch: Bool = false) {
+                restoreLidTierOnLaunch: Bool = false,
+                networkKeepAliveEnabled: Bool = false,
+                networkKeepAliveIntervalMinutes: Int = NetworkKeepAlivePolicy.defaultMinutes) {
         self.lowBatteryThreshold = lowBatteryThreshold
         self.onlyWhileCharging = onlyWhileCharging
         self.thermalPolicy = thermalPolicy
         self.autoEnableWhenCharging = autoEnableWhenCharging
         self.autoLockOnTimerStart = autoLockOnTimerStart
         self.restoreLidTierOnLaunch = restoreLidTierOnLaunch
+        self.networkKeepAliveEnabled = networkKeepAliveEnabled
+        self.networkKeepAliveIntervalMinutes = networkKeepAliveIntervalMinutes
     }
 }
 

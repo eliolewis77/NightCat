@@ -21,6 +21,8 @@ public struct SettingsStore {
         static let helperBuild  = "lastRegisteredHelperBuild"
         static let licenseKey   = "LicenseKey"
         static let licensedEmail = "LicensedEmail"
+        static let keepAliveEnabled  = "networkKeepAliveEnabled"
+        static let keepAliveMinutes  = "networkKeepAliveIntervalMinutes"
     }
 
     public init(defaults: UserDefaults = .standard) {
@@ -49,7 +51,12 @@ public struct SettingsStore {
             thermalPolicy: thermal,
             autoEnableWhenCharging: defaults.bool(forKey: Key.autoEnable),
             autoLockOnTimerStart: defaults.bool(forKey: Key.autoLock),
-            restoreLidTierOnLaunch: defaults.bool(forKey: Key.restoreLid)
+            restoreLidTierOnLaunch: defaults.bool(forKey: Key.restoreLid),
+            networkKeepAliveEnabled: defaults.bool(forKey: Key.keepAliveEnabled),
+            // Absent key reads as 0, which `clampedMinutes` folds back to the
+            // default — old installs upgrade to 3 without a migration.
+            networkKeepAliveIntervalMinutes: NetworkKeepAlivePolicy.clampedMinutes(
+                defaults.integer(forKey: Key.keepAliveMinutes))
         )
     }
 
@@ -60,6 +67,8 @@ public struct SettingsStore {
         defaults.set(settings.restoreLidTierOnLaunch, forKey: Key.restoreLid)
         defaults.set(settings.autoEnableWhenCharging, forKey: Key.autoEnable)
         defaults.set(settings.autoLockOnTimerStart, forKey: Key.autoLock)
+        defaults.set(settings.networkKeepAliveEnabled, forKey: Key.keepAliveEnabled)
+        defaults.set(settings.networkKeepAliveIntervalMinutes, forKey: Key.keepAliveMinutes)
         defaults.set(true, forKey: Key.seeded)
     }
 

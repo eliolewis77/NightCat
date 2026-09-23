@@ -86,6 +86,10 @@ struct SettingsView: View {
                 ))
             }
 
+            Section("网络") {
+                NetworkKeepAliveRow()
+            }
+
             Section("后台 Helper") {
                 LabeledContent("状态") {
                     HStack(spacing: 6) {
@@ -251,5 +255,70 @@ private struct LowBatteryCutoffRow: View {
                 .labelsHidden()
         }
         .padding(.vertical, 4)
+    }
+}
+
+/// Network keep-alive: an on/off switch plus an interval slider (1–30 min,
+/// whole minutes). Same commit-on-drag-end contract as `LowBatteryCutoffRow`.
+private struct NetworkKeepAliveRow: View {
+    @EnvironmentObject var state: AppState
+
+    @State private var dragging: Double?
+
+    private var minutes: Int { state.settings.networkKeepAliveIntervalMinutes }
+
+    /// The committed value, or the in-flight one while a drag is in progress.
+    private var shown: Int { Int((dragging ?? Double(minutes)).rounded()) }
+
+    private var value: Binding<Double> {
+        Binding(get: { dragging ?? Double(minutes) },
+                set: { dragging = $0 })
+    }
+
+    private func commit(editing: Bool) {
+        guard !editing, let value = dragging else { return }
+        dragging = nil
+        var updated = state.settings
+        updated.networkKeepAliveIntervalMinutes = Int(value.rounded())
+        guard updated != state.settings else { return }
+        state.updateSettings(updated)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Toggle("网络保活", isOn: Binding(
+                get: { state.settings.networkKeepAliveEnabled },
+                set: { v in var s = state.settings; s.networkKeepAliveEnabled = v; state.updateSettings(s) }
+            ))
+
+            if state.settings.networkKeepAliveEnabled {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 12) {
+                        Text("保活间隔")
+                        Spacer(minLength: 16)
+                        Text(String(format: NSLocalizedString("%lld 分钟", comment: "minutes"), shown))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+
+                    Slider(value: value,
+                           in: Double(NetworkKeepAlivePolicy.minutesRange.lowerBound)...Double(NetworkKeepAlivePolicy.minutesRange.upperBound),
+                           step: 1,
+                           label: { Text("保活间隔") },
+                           minimumValueLabel: { Text("1").font(.caption2).foregroundStyle(.secondary) },
+                           maximumValueLabel: { Text("30 分钟").font(.caption2).foregroundStyle(.secondary) },
+                           onEditingChanged: commit)
+                        .labelsHidden()
+
+                    Text("间隔过长可能失去保活效果。")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Text("间隔只影响保活流量，掉线发现速度不受影响。")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            }
+        }
     }
 }

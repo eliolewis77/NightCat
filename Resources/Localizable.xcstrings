@@ -1,1586 +1,1706 @@
 {
-  "sourceLanguage": "zh-Hans",
-  "strings": {
-    " 和 ": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " and "
+  "sourceLanguage" : "zh-Hans",
+  "strings" : {
+    " 和 " : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " and "
           }
         }
       }
     },
-    "%@\n\n这通常发生在更新之后，重新安装后台 Helper 即可修复。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@\n\nThis usually happens after an update. Reinstalling the background helper fixes it."
+    "%@\n\n这通常发生在更新之后，重新安装后台 Helper 即可修复。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@\n\nThis usually happens after an update. Reinstalling the background helper fixes it."
           }
         }
       }
     },
-    "%lld 分钟": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld min"
+    "%lld 分钟" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min"
           }
         }
       }
     },
-    "%lld 小时": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld hr"
+    "%lld 小时" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld hr"
           }
         }
       }
     },
-    "%lld%%": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld%%"
+    "%lld%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
           }
         }
       }
     },
-    "1 小时": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 hour"
+    "1 小时" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 hour"
           }
         }
       }
     },
-    "Helper 已安装 · 合盖档可用": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Helper installed · Lid tier available"
+    "Helper 已安装 · 合盖档可用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Helper installed · Lid tier available"
           }
         }
       }
     },
-    "License 无效——请检查是否完整粘贴。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Invalid license — check that you pasted it in full."
+    "License 无效——请检查是否完整粘贴。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid license — check that you pasted it in full."
           }
         }
       }
     },
-    "Mac 正在过热，暂时无法保持唤醒，待冷却后再试。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The Mac is running hot — keep-awake can't start right now. Try again once it cools down."
+    "Mac 正在过热，暂时无法保持唤醒，待冷却后再试。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Mac is running hot — keep-awake can't start right now. Try again once it cools down."
           }
         }
       }
     },
-    "Mac 正在过热，请留意散热。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The Mac is running hot — check its cooling."
+    "Mac 正在过热，请留意散热。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Mac is running hot — check its cooling."
           }
         }
       }
     },
-    "Mac 过热或电量过低时自动暂停，无人值守也安全。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pauses automatically when the Mac runs hot or the battery runs low — safe when unattended."
+    "Mac 过热或电量过低时自动暂停，无人值守也安全。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pauses automatically when the Mac runs hot or the battery runs low — safe when unattended."
           }
         }
       }
     },
-    "NightCat 退出或崩溃时，看门狗会自动恢复正常睡眠，Mac 不会卡在保持唤醒状态。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "If NightCat quits or crashes, a watchdog restores normal sleep automatically — the Mac can't get stuck awake."
+    "NightCat 退出或崩溃时，看门狗会自动恢复正常睡眠，Mac 不会卡在保持唤醒状态。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If NightCat quits or crashes, a watchdog restores normal sleep automatically — the Mac can't get stuck awake."
           }
         }
       }
     },
-    "、": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": ", "
+    "Wi-Fi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi"
           }
         }
       }
     },
-    "「仅插电时保持」已开启，请连接电源后再保持唤醒。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“Keep only while charging” is on — connect the charger before keeping awake."
+    "Wi-Fi · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi · %@"
           }
         }
       }
     },
-    "一切就绪": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All set"
+    "、" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", "
           }
         }
       }
     },
-    "上一步": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Back"
+    "「仅插电时保持」已开启，请连接电源后再保持唤醒。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Keep only while charging” is on — connect the charger before keeping awake."
           }
         }
       }
     },
-    "不限": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Never"
+    "一切就绪" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All set"
           }
         }
       }
     },
-    "不限时": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No limit"
+    "上一步" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
           }
         }
       }
     },
-    "严重过热": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Critical"
+    "不限" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Never"
           }
         }
       }
     },
-    "仅插电时保持": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep only while charging"
+    "不限时" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No limit"
           }
         }
       }
     },
-    "仅通知": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notify only"
+    "严重过热" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Critical"
           }
         }
       }
     },
-    "低电量阈值": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Low-battery threshold"
+    "仅插电时保持" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep only while charging"
           }
         }
       }
     },
-    "保持唤醒已在 NightCat 之外被关闭。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep-awake was turned off outside NightCat."
+    "仅通知" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify only"
           }
         }
       }
     },
-    "保持唤醒已在 NightCat 之外被开启。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep-awake was turned on outside NightCat."
+    "低电量阈值" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low-battery threshold"
           }
         }
       }
     },
-    "保持唤醒被其他程序关闭，自动恢复失败：%@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep-awake was turned off by another program, and the restore failed: %@"
+    "保持唤醒已在 NightCat 之外被关闭。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep-awake was turned off outside NightCat."
           }
         }
       }
     },
-    "保持唤醒被其他程序反复关闭，已停止自动恢复。请检查远程软件等工具的电源设置。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep-awake was repeatedly turned off by another program; auto-restore has stopped. Check the power settings of remote-desktop tools."
+    "保持唤醒已在 NightCat 之外被开启。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep-awake was turned on outside NightCat."
           }
         }
       }
     },
-    "保持屏幕常亮": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep the display awake"
+    "保持唤醒被其他程序关闭，自动恢复失败：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep-awake was turned off by another program, and the restore failed: %@"
           }
         }
       }
     },
-    "偏热": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Warm"
+    "保持唤醒被其他程序反复关闭，已停止自动恢复。请检查远程软件等工具的电源设置。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep-awake was repeatedly turned off by another program; auto-restore has stopped. Check the power settings of remote-desktop tools."
           }
         }
       }
     },
-    "充电时自动开启合盖档": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Turn on the Lid tier when charging"
+    "保持屏幕常亮" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the display awake"
           }
         }
       }
     },
-    "免去密码弹窗": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No more password prompts"
+    "保活中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep-alive on"
           }
         }
       }
     },
-    "关于": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "About"
+    "保活间隔" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep-alive interval"
           }
         }
       }
     },
-    "关闭": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Off"
+    "偏热" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warm"
           }
         }
       }
     },
-    "关闭购买提示": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dismiss the purchase hint"
+    "充电时自动开启合盖档" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on the Lid tier when charging"
           }
         }
       }
     },
-    "分钟（1–240）": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minutes (1–240)"
+    "免去密码弹窗" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No more password prompts"
           }
         }
       }
     },
-    "切换并解除锁定": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Switch and Unlock"
+    "关于" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
           }
         }
       }
     },
-    "前往登录项批准": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Approve in Login Items"
+    "关闭" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
           }
         }
       }
     },
-    "取消": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancel"
+    "关闭购买提示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dismiss the purchase hint"
           }
         }
       }
     },
-    "可选——不安装也能用，只是每次切换档位时会询问密码。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Optional — without it, everything still works; switching tiers just asks for a password each time."
+    "分钟（1–240）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minutes (1–240)"
           }
         }
       }
     },
-    "合上盖子带走 Mac 时，编码代理、下载和构建仍可继续运行。系统自带的 `caffeinate` 做不到这一点——NightCat 可以。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Coding agents, downloads, and builds keep running while the Mac travels with its lid closed. The built-in `caffeinate` can't do that — NightCat can."
+    "切换并解除锁定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch and Unlock"
           }
         }
       }
     },
-    "合上盖子继续运行 · 需要特权 Helper": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep running with the lid closed · requires the privileged helper"
+    "前往登录项批准" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve in Login Items"
           }
         }
       }
     },
-    "合盖": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lid"
+    "取消" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
           }
         }
       }
     },
-    "合盖不睡": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lid Closed Awake"
+    "可选——不安装也能用，只是每次切换档位时会询问密码。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional — without it, everything still works; switching tiers just asks for a password each time."
           }
         }
       }
     },
-    "后台 Helper": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Background Helper"
+    "合上盖子带走 Mac 时，编码代理、下载和构建仍可继续运行。系统自带的 `caffeinate` 做不到这一点——NightCat 可以。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coding agents, downloads, and builds keep running while the Mac travels with its lid closed. The built-in `caffeinate` can't do that — NightCat can."
           }
         }
       }
     },
-    "后台 Helper 已启用": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Background helper enabled"
+    "合上盖子继续运行 · 需要特权 Helper" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep running with the lid closed · requires the privileged helper"
           }
         }
       }
     },
-    "后台 Helper 已安装并运行。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The background helper is installed and running."
+    "合盖" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lid"
           }
         }
       }
     },
-    "后台 Helper 已重新安装——请重试切换。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The background helper has been reinstalled — try the switch again."
+    "合盖不睡" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lid Closed Awake"
           }
         }
       }
     },
-    "后台 Helper 未响应。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The background helper isn't responding."
+    "后台 Helper" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background Helper"
           }
         }
       }
     },
-    "启动恢复合盖档已开启，但「登录时启动」已关闭——重启后 NightCat 不会自启，合盖机器将无法远程唤醒。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Launch restore is on, but Launch at Login is off — after a reboot NightCat won't start, and a lid-closed Mac can't be reached."
+    "后台 Helper 已启用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background helper enabled"
           }
         }
       }
     },
-    "启动时恢复合盖档": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restore the Lid tier at launch"
+    "后台 Helper 已安装并运行。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The background helper is installed and running."
           }
         }
       }
     },
-    "喜欢 NightCat？": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enjoying NightCat?"
+    "后台 Helper 已重新安装——请重试切换。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The background helper has been reinstalled — try the switch again."
           }
         }
       }
     },
-    "好": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OK"
+    "后台 Helper 未响应。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The background helper isn't responding."
           }
         }
       }
     },
-    "如果它陪你跑通过通宵，请它喝杯咖啡吧。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "If it has seen you through an all-nighter, buy it a coffee."
+    "启动恢复合盖档已开启，但「登录时启动」已关闭——重启后 NightCat 不会自启，合盖机器将无法远程唤醒。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launch restore is on, but Launch at Login is off — after a reboot NightCat won't start, and a lid-closed Mac can't be reached."
           }
         }
       }
     },
-    "安全": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Safety"
+    "启动时恢复合盖档" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore the Lid tier at launch"
           }
         }
       }
     },
-    "安装": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Install"
+    "喜欢 NightCat？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enjoying NightCat?"
           }
         }
       }
     },
-    "安装一个很小的后台 Helper，开关保持唤醒时便不再询问管理员密码，安全看门狗也随之可用。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Install a tiny background helper: switching keep-awake no longer asks for an admin password, and the safety watchdog becomes available."
+    "好" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
           }
         }
       }
     },
-    "安装后切换档位不再询问管理员密码，并启用安全看门狗。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Install once: switching tiers no longer asks for an admin password, and the safety watchdog turns on."
+    "如果它陪你跑通过通宵，请它喝杯咖啡吧。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If it has seen you through an all-nighter, buy it a coffee."
           }
         }
       }
     },
-    "安装后台 Helper": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Install Background Helper"
+    "安全" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safety"
           }
         }
       }
     },
-    "完成": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Done"
+    "安装" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install"
           }
         }
       }
     },
-    "定时关闭": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto-Off Timer"
+    "安装一个很小的后台 Helper，开关保持唤醒时便不再询问管理员密码，安全看门狗也随之可用。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install a tiny background helper: switching keep-awake no longer asks for an admin password, and the safety watchdog becomes available."
           }
         }
       }
     },
-    "定时已到，保持唤醒已关闭。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Time's up; keep-awake is off."
+    "安装后切换档位不再询问管理员密码，并启用安全看门狗。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install once: switching tiers no longer asks for an admin password, and the safety watchdog turns on."
           }
         }
       }
     },
-    "定时已到：已按 %@ 自动关闭。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Time's up: keep-awake was turned off (%@)."
+    "安装后台 Helper" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install Background Helper"
           }
         }
       }
     },
-    "定时开始时锁定档位": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lock the tier when a timer starts"
+    "完成" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
           }
         }
       }
     },
-    "屏幕保持点亮 · 系统仍可睡眠": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Display stays lit · the system may still sleep"
+    "定时关闭" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto-Off Timer"
           }
         }
       }
     },
-    "屏幕常亮": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Screen Always On"
+    "定时已到，保持唤醒已关闭。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time's up; keep-awake is off."
           }
         }
       }
     },
-    "工作原理": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "How it works"
+    "定时已到：已按 %@ 自动关闭。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time's up: keep-awake was turned off (%@)."
           }
         }
       }
     },
-    "已保持 %lld 分钟": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kept awake for %lld min"
+    "定时开始时锁定档位" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock the tier when a timer starts"
           }
         }
       }
     },
-    "已保持 %lld 小时 %lld 分钟": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kept awake for %lld hr %lld min"
+    "屏幕保持点亮 · 系统仍可睡眠" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display stays lit · the system may still sleep"
           }
         }
       }
     },
-    "已关闭——正在使用电池。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Turned off — running on battery."
+    "屏幕常亮" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen Always On"
           }
         }
       }
     },
-    "已取消管理员授权。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Admin authorization was cancelled."
+    "工作原理" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How it works"
           }
         }
       }
     },
-    "已启用": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enabled"
+    "已保持 %lld 分钟" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept awake for %lld min"
           }
         }
       }
     },
-    "已复制": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copied"
+    "已保持 %lld 小时 %lld 分钟" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept awake for %lld hr %lld min"
           }
         }
       }
     },
-    "已授权：%@ · 感谢支持！": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Licensed to %@ · thank you for your support!"
+    "已关闭——正在使用电池。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turned off — running on battery."
           }
         }
       }
     },
-    "已自动暂停：Mac 正在过热。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paused automatically: the Mac is running hot."
+    "已取消管理员授权。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Admin authorization was cancelled."
           }
         }
       }
     },
-    "已自动暂停：使用电池，电量 %lld%%。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paused automatically: on battery at %lld%%."
+    "已启用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enabled"
           }
         }
       }
     },
-    "已自动暂停：未连接充电器。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paused automatically: the charger isn't connected."
+    "已复制" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
           }
         }
       }
     },
-    "已自动暂停：未连接电源。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paused automatically: not connected to power."
+    "已授权：%@ · 感谢支持！" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licensed to %@ · thank you for your support!"
           }
         }
       }
     },
-    "已锁定": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Locked"
+    "已自动暂停：Mac 正在过热。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused automatically: the Mac is running hot."
           }
         }
       }
     },
-    "已锁定，点击解锁": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Locked — click to unlock"
+    "已自动暂停：使用电池，电量 %lld%%。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused automatically: on battery at %lld%%."
           }
         }
       }
     },
-    "常亮": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Screen"
+    "已自动暂停：未连接充电器。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused automatically: the charger isn't connected."
           }
         }
       }
     },
-    "当前由 %@控制。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Currently held by %@."
+    "已自动暂停：未连接电源。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused automatically: not connected to power."
           }
         }
       }
     },
-    "当前电量 %lld%%，低于低电量阈值，请先充电。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Battery is at %lld%%, below the low-battery threshold. Charge first."
+    "已连接" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connected"
           }
         }
       }
     },
-    "忽略": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ignore"
+    "已锁定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locked"
           }
         }
       }
     },
-    "改用防空闲": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use No Idle instead"
+    "已锁定，点击解锁" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locked — click to unlock"
           }
         }
       }
     },
-    "无 Helper 连接": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No helper connection"
+    "常亮" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen"
           }
         }
       }
     },
-    "无法保持 Mac 唤醒": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Can't keep the Mac awake"
+    "当前由 %@控制。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Currently held by %@."
           }
         }
       }
     },
-    "无法关闭保持唤醒": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Can't turn keep-awake off"
+    "当前电量 %lld%%，低于低电量阈值，请先充电。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Battery is at %lld%%, below the low-battery threshold. Charge first."
           }
         }
       }
     },
-    "无法向系统确认保持唤醒已生效——合盖后可能不会保持唤醒。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Can't confirm with the system that keep-awake took effect — the Mac may not stay awake with the lid closed."
+    "忽略" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore"
           }
         }
       }
     },
-    "无法确认睡眠已恢复——Mac 可能仍处于保持唤醒。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Can't confirm that sleep was restored — the Mac may still be held awake."
+    "改用防空闲" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use No Idle instead"
           }
         }
       }
     },
-    "无法连接 Gumroad，请检查网络后重试。首次激活需要联网。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't reach Gumroad — check your network and try again. First activation needs internet."
+    "无 Helper 连接" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No helper connection"
           }
         }
       }
     },
-    "无法连接后台 Helper": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Can't reach the background helper"
+    "无法保持 Mac 唤醒" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't keep the Mac awake"
           }
         }
       }
     },
-    "更改未生效——系统显示保持唤醒仍处于开启。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The change didn't take effect — the system reports keep-awake still on."
+    "无法关闭保持唤醒" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't turn keep-awake off"
           }
         }
       }
     },
-    "更改未生效——系统显示保持唤醒已关闭。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The change didn't take effect — the system reports keep-awake off."
+    "无法向系统确认保持唤醒已生效——合盖后可能不会保持唤醒。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't confirm with the system that keep-awake took effect — the Mac may not stay awake with the lid closed."
           }
         }
       }
     },
-    "未安装": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not installed"
+    "无法确认睡眠已恢复——Mac 可能仍处于保持唤醒。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't confirm that sleep was restored — the Mac may still be held awake."
           }
         }
       }
     },
-    "未安装 Helper · 合盖档不可用": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Helper not installed · Lid tier unavailable"
+    "无法连接 Gumroad，请检查网络后重试。首次激活需要联网。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't reach Gumroad — check your network and try again. First activation needs internet."
           }
         }
       }
     },
-    "未知错误": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unknown error"
+    "无法连接后台 Helper" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't reach the background helper"
           }
         }
       }
     },
-    "未连接充电器": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Charger not connected"
+    "更改未生效——系统显示保持唤醒仍处于开启。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The change didn't take effect — the system reports keep-awake still on."
           }
         }
       }
     },
-    "未连接电源": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not connected to power"
+    "更改未生效——系统显示保持唤醒已关闭。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The change didn't take effect — the system reports keep-awake off."
           }
         }
       }
     },
-    "本周不再显示": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Don't show this week"
+    "有线 · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ethernet · %@"
           }
         }
       }
     },
-    "本机 IP %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Local IP %@"
+    "未安装" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not installed"
           }
         }
       }
     },
-    "本次会话不再提醒": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Don't remind again this session"
+    "未安装 Helper · 合盖档不可用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Helper not installed · Lid tier unavailable"
           }
         }
       }
     },
-    "查看设置指南": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View Setup Guide"
+    "未知错误" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown error"
           }
         }
       }
     },
-    "档位": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tier"
+    "未连接充电器" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Charger not connected"
           }
         }
       }
     },
-    "档位已锁定": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tier locked"
+    "未连接电源" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not connected to power"
           }
         }
       }
     },
-    "档位已锁定。切换到「%@」可能中断正在运行的任务。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The tier is locked. Switching to “%@” may interrupt a running task."
+    "未连接网络" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No network"
           }
         }
       }
     },
-    "档位未锁定": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tier unlocked"
+    "本周不再显示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't show this week"
           }
         }
       }
     },
-    "检查更新": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Check for Updates"
+    "本机 IP %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local IP %@"
           }
         }
       }
     },
-    "检测到保持唤醒被其他程序关闭，已自动恢复。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep-awake was turned off by another program; it has been restored automatically."
+    "本机 IP 已变化：%1$@ → %2$@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Mac's IP changed: %1$@ → %2$@"
           }
         }
       }
     },
-    "欢迎使用 NightCat": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Welcome to NightCat"
+    "本次会话不再提醒" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't remind again this session"
           }
         }
       }
     },
-    "正在使用电池：合盖不睡每小时耗电约 8–12%，散热受限。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On battery: lid-closed keep-awake drains ~8–12% per hour and traps heat."
+    "查看设置指南" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Setup Guide"
           }
         }
       }
     },
-    "正常": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Normal"
+    "档位" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tier"
           }
         }
       }
     },
-    "激活": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activate"
+    "档位已锁定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tier locked"
           }
         }
       }
     },
-    "点击复制本机 IP 地址": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Click to copy this Mac's IP address"
+    "档位已锁定。切换到「%@」可能中断正在运行的任务。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The tier is locked. Switching to “%@” may interrupt a running task."
           }
         }
       }
     },
-    "点击菜单栏的 NightCat 图标，按需在「关闭 / 常亮 / 防空闲 / 合盖」四个档位间切换。安全选项在「设置」里。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Click the NightCat icon in the menu bar to switch between the four tiers: Off / Screen / No Idle / Lid. Safety options live in Settings."
+    "档位未锁定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tier unlocked"
           }
         }
       }
     },
-    "版本 %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Version %@"
+    "检查更新" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check for Updates"
           }
         }
       }
     },
-    "状态": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Status"
+    "检测到保持唤醒被其他程序关闭，已自动恢复。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep-awake was turned off by another program; it has been restored automatically."
           }
         }
       }
     },
-    "电池": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Battery"
+    "欢迎使用 NightCat" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome to NightCat"
           }
         }
       }
     },
-    "电源适配器": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Power Adapter"
+    "正在使用电池：合盖不睡每小时耗电约 8–12%，散热受限。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On battery: lid-closed keep-awake drains ~8–12% per hour and traps heat."
           }
         }
       }
     },
-    "电量 %lld%% 已到低电量阈值": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Battery at %lld%% (at the low-battery threshold)"
+    "正常" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal"
           }
         }
       }
     },
-    "登录时启动": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Launch at login"
+    "激活" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activate"
           }
         }
       }
     },
-    "稍后": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Later"
+    "点击复制本机 IP 地址" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click to copy this Mac's IP address"
           }
         }
       }
     },
-    "立即重启": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restart Now"
+    "点击菜单栏的 NightCat 图标，按需在「关闭 / 常亮 / 防空闲 / 合盖」四个档位间切换。安全选项在「设置」里。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click the NightCat icon in the menu bar to switch between the four tiers: Off / Screen / No Idle / Lid. Safety options live in Settings."
           }
         }
       }
     },
-    "粘贴购买后 Gumroad 自动发来的 License Key（首次激活需联网）。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paste the license key Gumroad emailed you after purchase (first activation needs internet)."
+    "版本 %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@"
           }
         }
       }
     },
-    "粘贴购买后收到的 License Key": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paste the license key from your Gumroad purchase email"
+    "状态" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
           }
         }
       }
     },
-    "系统不因空闲睡眠 · 屏幕可熄灭": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The system won't idle-sleep · the display may turn off"
+    "电池" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Battery"
           }
         }
       }
     },
-    "继续": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Continue"
+    "电源适配器" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Power Adapter"
           }
         }
       }
     },
-    "自动": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatic"
+    "电量 %lld%% 已到低电量阈值" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Battery at %lld%% (at the low-battery threshold)"
           }
         }
       }
     },
-    "自动暂停": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pause"
+    "登录时启动" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launch at login"
           }
         }
       }
     },
-    "自动模式下定时不可用": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Timer unavailable in auto mode"
+    "稍后" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
           }
         }
       }
     },
-    "自动模式仅驱动合盖档。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto mode drives the Lid tier only."
+    "立即重启" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Now"
           }
         }
       }
     },
-    "自动模式已开启，但当前条件不满足：%@。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto mode is on, but conditions aren't met right now: %@."
+    "粘贴购买后 Gumroad 自动发来的 License Key（首次激活需联网）。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste the license key Gumroad emailed you after purchase (first activation needs internet)."
           }
         }
       }
     },
-    "自定义": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Custom"
+    "粘贴购买后收到的 License Key" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste the license key from your Gumroad purchase email"
           }
         }
       }
     },
-    "覆盖「合盖即睡眠」的系统行为——合上盖子，一切照常运行。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Overrides the system's “lid closed means sleep” behavior — with the lid closed, everything keeps running."
+    "系统不因空闲睡眠 · 屏幕可熄灭" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The system won't idle-sleep · the display may turn off"
           }
         }
       }
     },
-    "让 Mac 保持唤醒——合上盖子也不睡。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep your Mac awake — even with the lid closed."
+    "继续" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
           }
         }
       }
     },
-    "设置": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Settings"
+    "网络" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network"
           }
         }
       }
     },
-    "该 License 已被退款或停用。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This license has been refunded or disabled."
+    "网络保活" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network keep-alive"
           }
         }
       }
     },
-    "语言": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Language"
+    "自动" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic"
           }
         }
       }
     },
-    "请喝杯咖啡": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Buy it a coffee"
+    "自动暂停" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
           }
         }
       }
     },
-    "请在 系统设置 ▸ 登录项 中批准 NightCat。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Approve NightCat in System Settings ▸ Login Items."
+    "自动模式下定时不可用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timer unavailable in auto mode"
           }
         }
       }
     },
-    "请在 系统设置 ▸ 登录项 中批准 NightCat，然后回到这里。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Approve NightCat in System Settings ▸ Login Items, then come back here."
+    "自动模式仅驱动合盖档。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto mode drives the Lid tier only."
           }
         }
       }
     },
-    "请在 系统设置 ▸ 登录项 中批准 NightCat，然后重试切换。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Approve NightCat in System Settings ▸ Login Items, then try again."
+    "自动模式已开启，但当前条件不满足：%@。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto mode is on, but conditions aren't met right now: %@."
           }
         }
       }
     },
-    "请连接电源后再保持唤醒。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connect to power before keeping awake."
+    "自定义" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom"
           }
         }
       }
     },
-    "购买": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Buy"
+    "覆盖「合盖即睡眠」的系统行为——合上盖子，一切照常运行。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overrides the system's “lid closed means sleep” behavior — with the lid closed, everything keeps running."
           }
         }
       }
     },
-    "跟随 Mac 的正常睡眠设置": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow the Mac's normal sleep settings"
+    "让 Mac 保持唤醒——合上盖子也不睡。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep your Mac awake — even with the lid closed."
           }
         }
       }
     },
-    "跟随系统": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow System"
+    "设置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
           }
         }
       }
     },
-    "输入 License": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter License"
+    "该 License 已被退款或停用。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This license has been refunded or disabled."
           }
         }
       }
     },
-    "输入 License…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter License…"
+    "语言" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
           }
         }
       }
     },
-    "过热": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hot"
+    "请喝杯咖啡" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buy it a coffee"
           }
         }
       }
     },
-    "过热时": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When running hot"
+    "请在 系统设置 ▸ 登录项 中批准 NightCat。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve NightCat in System Settings ▸ Login Items."
           }
         }
       }
     },
-    "过热时自动暂停": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pause automatically when hot"
+    "请在 系统设置 ▸ 登录项 中批准 NightCat，然后回到这里。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve NightCat in System Settings ▸ Login Items, then come back here."
           }
         }
       }
     },
-    "这只猫不设试用期，功能全开，永不过期。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No trials, no locks, no expiry — this cat leaves everything on."
+    "请在 系统设置 ▸ 登录项 中批准 NightCat，然后重试切换。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve NightCat in System Settings ▸ Login Items, then try again."
           }
         }
       }
     },
-    "退出": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quit"
+    "请连接电源后再保持唤醒。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect to power before keeping awake."
           }
         }
       }
     },
-    "通用": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "General"
+    "购买" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buy"
           }
         }
       }
     },
-    "重启 NightCat 以完成与后台 Helper 的连接。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restart NightCat to finish connecting to the background helper."
+    "跟随 Mac 的正常睡眠设置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow the Mac's normal sleep settings"
           }
         }
       }
     },
-    "重启 NightCat 以应用语言更改。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restart NightCat to apply the language change."
+    "跟随系统" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow System"
           }
         }
       }
     },
-    "重新安装 Helper": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reinstall Helper"
+    "输入 License" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter License"
           }
         }
       }
     },
-    "锁定当前档位": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lock the current tier"
+    "输入 License…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter License…"
           }
         }
       }
     },
-    "防空闲": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Idle"
+    "过热" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hot"
           }
         }
       }
     },
-    "高负载运行时请保持通风和供电。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep the Mac ventilated and plugged in during heavy loads."
+    "过热时" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When running hot"
+          }
+        }
+      }
+    },
+    "过热时自动暂停" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause automatically when hot"
+          }
+        }
+      }
+    },
+    "这只猫不设试用期，功能全开，永不过期。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No trials, no locks, no expiry — this cat leaves everything on."
+          }
+        }
+      }
+    },
+    "退出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit"
+          }
+        }
+      }
+    },
+    "通用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        }
+      }
+    },
+    "重启 NightCat 以完成与后台 Helper 的连接。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart NightCat to finish connecting to the background helper."
+          }
+        }
+      }
+    },
+    "重启 NightCat 以应用语言更改。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart NightCat to apply the language change."
+          }
+        }
+      }
+    },
+    "重新安装 Helper" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reinstall Helper"
+          }
+        }
+      }
+    },
+    "锁定当前档位" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock the current tier"
+          }
+        }
+      }
+    },
+    "间隔只影响保活流量，掉线发现速度不受影响。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The interval only affects keep-alive traffic; dropouts are detected just as fast."
+          }
+        }
+      }
+    },
+    "间隔过长可能失去保活效果。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An interval that's too long may lose the keep-alive effect."
+          }
+        }
+      }
+    },
+    "防空闲" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Idle"
+          }
+        }
+      }
+    },
+    "高负载运行时请保持通风和供电。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the Mac ventilated and plugged in during heavy loads."
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

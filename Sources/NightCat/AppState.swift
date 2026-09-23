@@ -107,6 +107,12 @@ final class AppState: ObservableObject {
     /// the panel's battery row so the overheat-pause has a visible cause.
     @Published var thermalState: ProcessInfo.ThermalState = .nominal
 
+    /// Latest network sample (monitoring is always on); nil until the first
+    /// reading arrives. Drives the panel's network row.
+    @Published var networkStatus: NetworkSnapshot?
+    /// Whether a keep-alive ping is alive right now — the panel's「保活中」badge.
+    @Published var keepAliveRunning = false
+
     /// When the current lid-tier hold began (`nil` unless the lid tier is
     /// active). Resets when the tier leaves — switching away and back starts
     /// a fresh hold.
@@ -202,6 +208,12 @@ final class AppState: ObservableObject {
     private let battery = BatteryMonitor()
     private let store = SettingsStore()
     private let loginItem = LoginItemManager()
+    /// Network observation (always on) and the keep-alive ping (gated by the
+    /// setting). The monitor's event log is the morning-after timeline that
+    /// answers "why was remote unreachable last night".
+    private let networkMonitor = NetworkMonitor()
+    private let keepAlive = NetworkKeepAliveManager()
+    private let networkLog = NetworkLogWriter()
     private lazy var onboarding = OnboardingController(state: self)
 
     private lazy var settingsWindow = SettingsWindowController(
@@ -265,6 +277,13 @@ final class AppState: ObservableObject {
         launchAtLogin = loginItem.isEnabled
         ExitRestoreBridge.appState = self
         caffeinate.onError = { [weak self] message in self?.lastError = message }
+        keepAlive.onError = { [weak self] message in self?.lastError = message }
+        keepAlive.onRunningChanged = { [weak self] running in self?.keepAliveRunning = running }
+        networkMonitor.onEvent = { [weak self] events, snapshot in
+            self?.handleNetworkEvents(events, snapshot: snapshot)
+        }
+        networkMonitor.start()
+        syncKeepAlive()
         AppNotifier.install()
         AppNotifier.requestAuthorizationIfNeeded()
         refreshHelperStatus()
@@ -366,6 +385,9 @@ final class AppState: ObservableObject {
         let wasAuto = settings.autoEnableWhenCharging
         settings = new
         store.save(new)
+        // Outside every auto-mode branch on purpose: keep-alive is orthogonal
+        // to tiers and must react to its own switch, nothing else.
+        syncKeepAlive()
         if new.autoEnableWhenCharging {
             if !wasAuto {
                 // Opting into auto mode *is* the request to have keep-awake on, so
@@ -652,6 +674,38 @@ final class AppState: ObservableObject {
         guard mode == .lidClosed, batteryWarning == nil,
               shouldWarnOnBattery() else { return }
         batteryWarning = .powerLost
+    }
+
+    // MARK: Network monitoring + keep-alive
+
+    /// The monitor hands over diffed events. Every event is logged — the
+    /// morning-after timeline is half the feature — and an IP move is announced,
+    /// but only while keep-alive is enabled: that's the setting that says this
+    /// Mac is expected to be reached, and without the gate every DHCP renewal
+    /// in the fleet would chirp.
+    private func handleNetworkEvents(_ events: [NetworkEvent], snapshot: NetworkSnapshot) {
+        networkStatus = snapshot
+        for event in events {
+            networkLog.append(NetworkLog.line(for: event, at: Date(), snapshot: snapshot))
+            if case .ipv4Changed(let old, let new) = event, settings.networkKeepAliveEnabled {
+                AppNotifier.post(String(
+                    format: NSLocalizedString("本机 IP 已变化：%1$@ → %2$@",
+                                              comment: "ip change notification"),
+                    old ?? "-", new ?? "-"))
+            }
+        }
+        // Any event may carry a new gateway (coming online, interface switch…).
+        // `apply` is idempotent, so re-offering the intent is always safe.
+        syncKeepAlive()
+    }
+
+    /// The single place keep-alive intent becomes process state. Called from
+    /// init, `updateSettings`, and network events; idempotent inside the
+    /// manager. A nil gateway (offline, or not yet sampled) simply holds off.
+    private func syncKeepAlive() {
+        keepAlive.apply(enabled: settings.networkKeepAliveEnabled,
+                        intervalMinutes: settings.networkKeepAliveIntervalMinutes,
+                        gateway: networkStatus?.gatewayIPv4)
     }
 
     // MARK: Helper lifecycle
@@ -1307,6 +1361,9 @@ final class AppState: ObservableObject {
         updateThermalNotification()
         refreshKeepAwakeDuration()
         updatePurchaseNudge()
+        // Fallback resample: DHCP renewals that keep the same route don't move
+        // the path and would otherwise never re-trigger a sample.
+        networkMonitor.refreshNow()
     }
 
     /// Both exits rest a week: × says "not now", 购买 says "on it" — either
@@ -1400,6 +1457,7 @@ final class AppState: ObservableObject {
         // Dies with us anyway via `-w <pid>`; stopping it first keeps the exit
         // tidy and keeps it out of any last assertion listing.
         caffeinate.stop()
+        keepAlive.stop()
         guard isEnabled, exitBaseline != nil else { return .terminateNow }
         let value = ExitRestore.restoreValue(of: exitBaseline)
         if helperInstalled {

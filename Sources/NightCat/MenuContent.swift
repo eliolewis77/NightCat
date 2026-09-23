@@ -38,6 +38,7 @@ struct MenuContent: View {
             VStack(alignment: .leading, spacing: 7) {
                 BatteryRow()
                 HelperRow()
+                NetworkStatusRow()
                 LocalIPRow()
             }
             .padding(.horizontal, hInset)
@@ -671,6 +672,64 @@ private struct HelperRow: View {
         }
     }
 }
+
+// MARK: - Footer
+
+/// Network reachability (network-keepalive §monitor): what the link looks
+/// like right now, so a remote user glancing at the panel knows the machine
+/// is online and over what. Unknown (no sample yet) shows nothing — silence
+/// beats a false alarm during the first second of a panel's life.
+private struct NetworkStatusRow: View {
+    @EnvironmentObject var state: AppState
+
+    var body: some View {
+        switch state.networkStatus {
+        case nil:
+            EmptyView()
+        case .some(let status):
+            HStack(spacing: 9) {
+                if status.online {
+                    Image(systemName: status.interfaceKind == .wired ? "cable.connector" : "wifi")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.secondary)
+                    Text(label(for: status))
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
+                    if state.keepAliveRunning {
+                        Text("保活中")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
+                    }
+                } else {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
+                    Text("未连接网络")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.primary.opacity(0.85))
+                }
+            }
+        }
+    }
+
+    /// SSID when macOS hands it over; the interface name when it doesn't.
+    /// Never a permission prompt's worth of effort for a label.
+    private func label(for status: NetworkSnapshot) -> String {
+        switch status.interfaceKind {
+        case .wifi:
+            if let ssid = status.ssid {
+                return String(format: NSLocalizedString("Wi-Fi · %@", comment: "network row; ssid"), ssid)
+            }
+            return status.interfaceName ?? NSLocalizedString("Wi-Fi", comment: "network row")
+        case .wired:
+            return String(format: NSLocalizedString("有线 · %@", comment: "network row; interface"),
+                          status.interfaceName ?? "ethernet")
+        default:
+            return status.interfaceName ?? NSLocalizedString("已连接", comment: "network row; connected")
+        }
+    }
+}
+
 
 // MARK: - Footer
 
