@@ -687,29 +687,31 @@ private struct NetworkStatusRow: View {
         case nil:
             EmptyView()
         case .some(let status):
-            HStack(spacing: 9) {
-                if status.online {
-                    Image(systemName: status.interfaceKind == .wired ? "cable.connector" : "wifi")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.secondary)
-                    Text(label(for: status))
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(.secondary)
-                    if state.keepAliveRunning {
-                        Text("保活中")
+            if status.online, status.ssid == nil {
+                // Online with no network name to show: the IP row below
+                // already says "online", and a bare "Wi-Fi" says nothing the
+                // user didn't know. Silence is the honest entry here.
+                EmptyView()
+            } else {
+                HStack(spacing: 9) {
+                    if status.online {
+                        Image(systemName: status.interfaceKind == .wired ? "cable.connector" : "wifi")
                             .font(.system(size: 11))
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Color.secondary)
+                        Text(label(for: status))
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
+                        Text("未连接网络")
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(.primary.opacity(0.85))
                     }
-                } else {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
-                    Text("未连接网络")
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(.primary.opacity(0.85))
                 }
+                .help(tooltip(for: status))
             }
-            .help(tooltip(for: status))
         }
     }
 

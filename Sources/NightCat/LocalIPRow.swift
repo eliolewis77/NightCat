@@ -31,6 +31,11 @@ struct LocalIPRow: View {
                              : String(format: NSLocalizedString("本机 IP %@", comment: "local IP row"), ip))
                             .font(.system(size: 11.5))
                             .foregroundStyle(.secondary)
+                        if state.keepAliveRunning {
+                            Text("保活中")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.tertiary)
+                        }
                         Spacer(minLength: 0)
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 10))
