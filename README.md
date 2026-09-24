@@ -1,32 +1,34 @@
 # NightCat
 
-macOS 菜单栏保持唤醒工具。四档递进，不是通用电源管理器。
+**English** | [中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-| 档位 | 行为 |
+A macOS menu bar keep-awake utility. Four escalating modes — not a general-purpose power manager.
+
+| Mode | Behavior |
 |---|---|
-| **关闭** | 一切照常 |
-| **屏幕常亮** | 屏幕不灭——演示、看盘 |
-| **防空闲** | 系统不睡，屏幕可灭——下载、跑批、长任务 |
-| **合盖不睡** | 合盖继续跑——无人值守、远程 |
+| **Off** | Everything as usual |
+| **Keep Display On** | Screen never sleeps — presentations, market watching |
+| **Prevent Idle Sleep** | System stays awake, screen may sleep — downloads, batch jobs, long tasks |
+| **Clamshell Awake** | Keeps running with the lid closed — unattended, remote access |
 
-安全网：定时关闭、档位锁定 + 二次确认、仅插电保持、低电量阈值、电池警示、
-外部接管识别、退出恢复、Helper 看门狗防卡死。过热策略三选一：
-**自动暂停 / 仅通知 / 忽略**。可选「启动时恢复合盖档」——重启后远程依旧可达。
-可选「网络保活」：定时 ping 网关防空闲断链；掉线/换 IP 事件自动记录到
-`~/Library/Logs/NightCat/network.log`，远程失联有据可查。
+Safety nets: scheduled shutoff, mode locking + confirmation, AC-power-only keep-awake, low-battery threshold, battery alerts, external-takeover detection, restore on quit, and a Helper watchdog against hangs. Overheating policy, pick one of three: **Auto Pause / Notify Only / Ignore**. Optional "restore clamshell mode on launch" — your Mac stays remotely reachable after a reboot.
 
-中英双语（跟随系统，可切换）、系统通知、猫头菜单栏图标按档位变色、Sparkle 自动更新。
+Optional "Network Keep-Alive": pings the gateway on a timer to prevent idle-link drops; disconnect and IP-change events are logged automatically to `~/Library/Logs/NightCat/network.log`, so remote dropouts leave a trace.
+
+Bilingual (Chinese/English, follows system, switchable), system notifications, a menu bar cat icon that changes color by mode, and Sparkle auto-updates.
 
 <p align="center">
   <img src="panel.png" width="420" alt="NightCat menu bar panel">
 </p>
 
-## 下载
+## Download
 
-从 [Releases](https://github.com/eliolewis77/NightCat/releases/latest) 下载 DMG
-（已公证 + EdDSA 签名）。已安装的用户通过「设置 → 关于 → 检查更新」自动升级。
+💛 Support development: if NightCat is useful to you, you can support it on Gumroad ($4.99 one-time, lifetime updates) — your support goes straight into new features. The GitHub version is free and open source, forever.
 
-## 构建
+Download the DMG from [Releases](https://github.com/eliolewis77/NightCat/releases/latest)
+(notarized + EdDSA signed). Installed users upgrade automatically via "Settings → About → Check for Updates".
+
+## Build
 
 ```bash
 brew install xcodegen        # Xcode 15+
@@ -34,28 +36,28 @@ xcodegen generate
 xcodebuild build -scheme NightCat -destination 'platform=macOS' -configuration Debug
 ```
 
-测试：`xcodebuild test -scheme NightCat-CI -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO`
+Tests: `xcodebuild test -scheme NightCat-CI -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO`
 
-> 运行需要开发者签名——特权 Helper 会校验 App 的代码签名。细节见 [`AGENTS.md`](AGENTS.md)。
+> Running requires developer signing — the privileged Helper verifies the app's code signature. Details in [`AGENTS.md`](AGENTS.md).
 
-## 架构
+## Architecture
 
 ```
-NightCat.app（SwiftUI MenuBarExtra，LSUIElement，非沙盒）
-   │ XPC（Mach service = <bundle id>.helper）
+NightCat.app (SwiftUI MenuBarExtra, LSUIElement, non-sandboxed)
+   │ XPC (Mach service = <bundle id>.helper)
    ▼
-NightCatHelper（root LaunchDaemon，SMAppService 注册）
-   │ pmset -a disablesleep · 90 秒心跳看门狗
+NightCatHelper (root LaunchDaemon, registered via SMAppService)
+   │ pmset -a disablesleep · 90-second heartbeat watchdog
    ▼
 IOPMrootDomain SleepDisabled
 ```
 
-- **App**：全部状态机与 UI；`Sources/NightCat`
-- **Helper**：故意做薄，只写标志 + 收发心跳；`Sources/Helper`
-- **Shared**：纯逻辑（安全评估、状态对账、定时），约 1300 行单测覆盖；`Sources/Shared`
+- **App**: all state machines and UI; `Sources/NightCat`
+- **Helper**: deliberately thin, just sets flags + exchanges heartbeats; `Sources/Helper`
+- **Shared**: pure logic (safety evaluation, state reconciliation, timers), ~1300 lines covered by unit tests; `Sources/Shared`
 
-## 来源与许可
+## Origin & License
 
-fork 自 [nghialuong/Lidless](https://github.com/nghialuong/Lidless) v0.1.3（MIT）。
-上游版权见 [`LICENSE`](LICENSE)，改造部分归本仓库所有者。
-自动更新 feed：https://eliolewis77.github.io/NightCat/appcast.xml
+Forked from [nghialuong/Lidless](https://github.com/nghialuong/Lidless) v0.1.3 (MIT).
+Upstream copyright in [`LICENSE`](LICENSE); modifications belong to this repository's owner.
+Auto-update feed: https://eliolewis77.github.io/NightCat/appcast.xml
