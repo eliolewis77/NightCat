@@ -31,6 +31,7 @@ struct LocalIPRow: View {
                         Image(systemName: copied ? "checkmark" : "wifi")
                             .font(.system(size: 11, weight: copied ? .semibold : .regular))
                             .foregroundStyle(copied ? Color.green : Color.secondary)
+                            .accessibilityHidden(true)
                         Text(copied
                              ? NSLocalizedString("已复制", comment: "IP copied feedback")
                              : String(format: NSLocalizedString("本机 IP %@", comment: "local IP row"), ip))
@@ -45,9 +46,11 @@ struct LocalIPRow: View {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 10))
                             .foregroundStyle(.tertiary)
+                            .accessibilityHidden(true)
                     }
                 }
                 .buttonStyle(.plain)
+                .hoverHighlight(in: RoundedRectangle(cornerRadius: 5), opacity: 0.06)
                 .help(NSLocalizedString("点击复制本机 IP 地址", comment: "IP copy help"))
             }
         }

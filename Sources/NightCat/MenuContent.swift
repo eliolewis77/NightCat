@@ -102,13 +102,19 @@ struct MenuContent: View {
                 } label: {
                     Label("退出", systemImage: "power")
                         .foregroundStyle(.primary.opacity(0.85))
+                        // Inner padding so the hover pill has breathing room
+                        // around the label; the row's outer vertical padding
+                        // shrinks by the same amount to keep its height.
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3.5)
                 }
                 .keyboardShortcut("q")
+                .hoverHighlight(in: RoundedRectangle(cornerRadius: 5))
             }
             .buttonStyle(.plain)
             .font(.system(size: 12.5))
             .padding(.horizontal, hInset)
-            .padding(.vertical, 10)
+            .padding(.vertical, 6.5)
         }
         .frame(width: 324)
         // The popover is the moment the user actually looks at the toggle, so
@@ -410,6 +416,9 @@ private struct TimerSection: View {
                         .buttonStyle(.plain)
                         .font(.system(size: 11.5))
                         .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .hoverHighlight(in: Capsule(), isEnabled: !autoMode)
                         .disabled(autoMode)
                 } else {
                     Text("不限时")
@@ -476,6 +485,10 @@ private struct FlowChips: View {
         state.autoOffMinutes > 0 && !AutoOff.presetMinutes.contains(state.autoOffMinutes)
     }
 
+    /// Hovering a disabled chip must not light it up — the fill would promise
+    /// a click that auto mode has taken away.
+    private var chipsEnabled: Bool { !state.settings.autoEnableWhenCharging }
+
     var body: some View {
         FlowLayout(spacing: 6) {
             ForEach(AutoOff.presetMinutes, id: \.self) { minutes in
@@ -506,6 +519,7 @@ private struct FlowChips: View {
                     : AnyShapeStyle(Color.primary.opacity(0.72)))
         }
         .buttonStyle(.plain)
+        .hoverHighlight(in: Capsule(), opacity: 0.06, isEnabled: chipsEnabled)
     }
 
     private func customChip() -> some View {
@@ -527,6 +541,7 @@ private struct FlowChips: View {
                     : AnyShapeStyle(Color.primary.opacity(0.72)))
         }
         .buttonStyle(.plain)
+        .hoverHighlight(in: Capsule(), opacity: 0.06, isEnabled: chipsEnabled)
     }
 }
 
@@ -614,23 +629,48 @@ private struct BatteryRow: View {
             thermalLabel
         }
         .help(rowHelp)
+        // One sentence for VoiceOver. The row's four visual pieces — source
+        // icon, charge bar, percent, thermometer — would otherwise be read
+        // as fragments one by one.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(a11yLabel)
     }
 
     /// Always visible, nominal included: "normal" is a reading the user asked
     /// for by having the row at all, and hiding it made the row's width — and
     /// the bar's — jump every time the Mac warmed up or cooled down.
+    /// Shared by the visible thermometer label and the VoiceOver sentence.
+    private var thermalText: String {
+        switch state.thermalState {
+        case .fair:     NSLocalizedString("偏热", comment: "thermal: fair")
+        case .serious:  NSLocalizedString("过热", comment: "thermal: serious")
+        case .critical: NSLocalizedString("严重过热", comment: "thermal: critical")
+        default:        NSLocalizedString("正常", comment: "thermal: nominal")
+        }
+    }
+
     private var thermalLabel: some View {
         let color: Color
-        let text: String
         switch state.thermalState {
-        case .fair:     color = warmAmber(colorScheme); text = NSLocalizedString("偏热", comment: "thermal: fair")
-        case .serious:  color = warmAmber(colorScheme); text = NSLocalizedString("过热", comment: "thermal: serious")
-        case .critical: color = Color(red: 0.898, green: 0.322, blue: 0.290); text = NSLocalizedString("严重过热", comment: "thermal: critical")
-        default:        color = Color.secondary; text = NSLocalizedString("正常", comment: "thermal: nominal")
+        case .fair:     color = warmAmber(colorScheme)
+        case .serious:  color = warmAmber(colorScheme)
+        case .critical: color = Color(red: 0.898, green: 0.322, blue: 0.290)
+        default:        color = Color.secondary
         }
-        return Label(text, systemImage: "thermometer.medium")
+        return Label(thermalText, systemImage: "thermometer.medium")
             .font(.system(size: 11.5, weight: state.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue ? .semibold : .regular))
             .foregroundStyle(color)
+    }
+
+    /// Source, charge, and temperature in one breath — and nothing about the
+    /// bar, which is decoration.
+    private var a11yLabel: String {
+        let source = state.batteryOnAC
+            ? NSLocalizedString("已接通电源", comment: "a11y: on AC")
+            : NSLocalizedString("使用电池", comment: "a11y: on battery")
+        let charge = String(format: NSLocalizedString("电量 %lld%%", comment: "a11y: charge"), state.batteryPercent)
+        let thermal = String(format: NSLocalizedString("温度%@", comment: "a11y: thermal"), thermalText)
+        return [source, charge, thermal].joined(separator: NSLocalizedString("，", comment: "list separator"))
     }
 
     /// The source name lives here instead of on the row, so the bar keeps the
@@ -654,6 +694,7 @@ private struct HelperRow: View {
                 Image(systemName: "checkmark")
                     .font(.system(size: 10.5, weight: .semibold))
                     .foregroundStyle(Color(red: 0.365, green: 0.796, blue: 0.647))
+                    .accessibilityHidden(true)
                 Text("Helper 已安装 · 合盖档可用")
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
@@ -661,6 +702,7 @@ private struct HelperRow: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
+                    .accessibilityHidden(true)
                 Text("未安装 Helper · 合盖档不可用")
                     .font(.system(size: 11.5))
                     .foregroundStyle(.primary.opacity(0.85))
@@ -699,6 +741,7 @@ private struct NetworkStatusRow: View {
                         Image(systemName: status.interfaceKind == .wired ? "cable.connector" : "wifi")
                             .font(.system(size: 11))
                             .foregroundStyle(Color.secondary)
+                            .accessibilityHidden(true)
                         Text(label(for: status))
                             .font(.system(size: 11.5))
                             .foregroundStyle(.secondary)
@@ -706,6 +749,7 @@ private struct NetworkStatusRow: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 11))
                             .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
+                            .accessibilityHidden(true)
                         Text("未连接网络")
                             .font(.system(size: 11.5))
                             .foregroundStyle(.primary.opacity(0.85))
@@ -758,8 +802,11 @@ private struct SettingsButton: View {
         } label: {
             Label("设置", systemImage: "gearshape")
                 .foregroundStyle(.primary.opacity(0.85))
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3.5)
         }
         .keyboardShortcut(",", modifiers: .command)
         .buttonStyle(.plain)
+        .hoverHighlight(in: RoundedRectangle(cornerRadius: 5))
     }
 }
