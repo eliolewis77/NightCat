@@ -10,6 +10,11 @@ struct LocalIPRow: View {
     @EnvironmentObject var state: AppState
     @State private var fallbackIP: String?
     @State private var copied = false
+    /// Owns the reset of `copied`. A bare `asyncAfter` would stack one timer
+    /// per click — the first would clear the flag out from under the second —
+    /// and keep firing after the panel closed. Cancelling on re-copy and on
+    /// disappear fixes both.
+    @State private var copyResetTask: Task<Void, Never>?
 
     /// The monitor's sample is the source of truth — it refreshes on every
     /// network event and lands within a second of launch. The one-shot read
@@ -20,26 +25,21 @@ struct LocalIPRow: View {
         Group {
             if let ip {
                 Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(ip, forType: .string)
-                    copied = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        copied = false
-                    }
+                    copyIP(ip)
                 } label: {
                     HStack(spacing: 9) {
                         Image(systemName: copied ? "checkmark" : "wifi")
-                            .font(.system(size: 11, weight: copied ? .semibold : .regular))
+                            .font(PanelFont.micro.weight(copied ? .semibold : .regular))
                             .foregroundStyle(copied ? Color.green : Color.secondary)
                             .accessibilityHidden(true)
                         Text(copied
                              ? NSLocalizedString("已复制", comment: "IP copied feedback")
                              : String(format: NSLocalizedString("本机 IP %@", comment: "local IP row"), ip))
-                            .font(.system(size: 11.5))
+                            .font(PanelFont.footnote)
                             .foregroundStyle(.secondary)
                         if state.keepAliveRunning {
                             Text("保活中")
-                                .font(.system(size: 11))
+                                .font(PanelFont.micro)
                                 .foregroundStyle(.tertiary)
                         }
                         Spacer(minLength: 0)
@@ -55,6 +55,19 @@ struct LocalIPRow: View {
             }
         }
         .onAppear { fallbackIP = Self.primaryIPv4() }
+        .onDisappear { copyResetTask?.cancel() }
+    }
+
+    private func copyIP(_ ip: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(ip, forType: .string)
+        copied = true
+        copyResetTask?.cancel()
+        copyResetTask = Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+            copied = false
+        }
     }
 
     /// First IPv4 of the built-in interfaces, preferring `en0` (Wi-Fi on

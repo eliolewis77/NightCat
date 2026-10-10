@@ -4,6 +4,22 @@ import SwiftUI
 /// same leading/trailing columns.
 let hInset: CGFloat = 16
 
+/// The panel's type scale. Sizes live here and nowhere else, so retuning the
+/// panel's typography is one edit; call sites chain `.weight(_)` or
+/// `.monospacedDigit()` when a row needs a variant. The one-off icon glyphs
+/// (lock badge, close mark, copy mark) are icon sizing, not text, and keep
+/// their literals.
+enum PanelFont {
+    /// The status-header countdown — the one number worth reading first.
+    static let headline = Font.system(size: 17, weight: .semibold)
+    /// Footer actions and the battery warning's body.
+    static let body = Font.system(size: 12.5)
+    /// Status rows, chips, notices — the panel's running text.
+    static let footnote = Font.system(size: 11.5)
+    /// The smallest text and the leading row icons.
+    static let micro = Font.system(size: 11)
+}
+
 /// The menu bar popover (panel-redesign §A): status header, inline warnings,
 /// tier segments, timer chips, power + helper rows, footer. Secondary settings
 /// live in the Settings window.
@@ -74,11 +90,11 @@ struct MenuContent: View {
                 HStack(spacing: 6) {
                     Spacer(minLength: 0)
                     Text("喜欢 NightCat？")
-                        .font(.system(size: 11))
+                        .font(PanelFont.micro)
                         .foregroundStyle(.secondary)
                     Button("请喝杯咖啡") { state.purchaseNudgeTapped() }
                         .buttonStyle(.link)
-                        .font(.system(size: 11))
+                        .font(PanelFont.micro)
                     Button {
                         state.dismissPurchaseNudge()
                     } label: {
@@ -112,7 +128,7 @@ struct MenuContent: View {
                 .hoverHighlight(in: RoundedRectangle(cornerRadius: 5))
             }
             .buttonStyle(.plain)
-            .font(.system(size: 12.5))
+            .font(PanelFont.body)
             .padding(.horizontal, hInset)
             .padding(.vertical, 6.5)
         }
@@ -208,12 +224,12 @@ private struct StatusHeader: View {
     private var trailing: some View {
         if let countdown = MenubarStyle.countdownText(autoOffRemaining: state.autoOffRemaining) {
             Text(countdown)
-                .font(.system(size: 17, weight: .semibold))
+                .font(PanelFont.headline)
                 .monospacedDigit()
                 .foregroundStyle(accent)
         } else if !state.keepAwakeDuration.isEmpty {
             Text(state.keepAwakeDuration)
-                .font(.system(size: 11.5))
+                .font(PanelFont.footnote)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
@@ -315,11 +331,11 @@ private struct NoticeBanner: View {
     var body: some View {
         Label {
             Text(text)
-                .font(.system(size: 11.5))
+                .font(PanelFont.footnote)
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
             Image(systemName: systemImage)
-                .font(.system(size: 11))
+                .font(PanelFont.micro)
                 .foregroundStyle(tint)
         }
         .foregroundStyle(.secondary)
@@ -343,7 +359,7 @@ private struct BatteryWarningBanner: View {
         VStack(alignment: .leading, spacing: 8) {
             Label {
                 Text("正在使用电池：合盖不睡每小时耗电约 8–12%，散热受限。")
-                    .font(.system(size: 12.5))
+                    .font(PanelFont.body)
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -363,7 +379,7 @@ private struct BatteryWarningBanner: View {
 
             Toggle("本次会话不再提醒",
                    isOn: $state.suppressBatteryWarningThisSession)
-                .font(.system(size: 11.5))
+                .font(PanelFont.footnote)
                 .controlSize(.small)
                 .tint(amber)
         }
@@ -402,7 +418,7 @@ private struct TimerSection: View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 8) {
                 Label("定时关闭", systemImage: "timer")
-                    .font(.system(size: 11.5, weight: .semibold))
+                    .font(PanelFont.footnote.weight(.semibold))
                     .foregroundStyle(.tertiary)
 
                 Spacer(minLength: 8)
@@ -414,7 +430,7 @@ private struct TimerSection: View {
                 if state.autoOffMinutes > 0 {
                     Button("不限时") { state.keepAwakeFor(minutes: 0) }
                         .buttonStyle(.plain)
-                        .font(.system(size: 11.5))
+                        .font(PanelFont.footnote)
                         .foregroundStyle(Color.accentColor)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
@@ -422,7 +438,7 @@ private struct TimerSection: View {
                         .disabled(autoMode)
                 } else {
                     Text("不限时")
-                        .font(.system(size: 11.5))
+                        .font(PanelFont.footnote)
                         .foregroundStyle(.tertiary)
                 }
             }
@@ -449,7 +465,7 @@ private struct TimerSection: View {
 
                 if autoMode {
                     Text("自动模式下定时不可用")
-                        .font(.system(size: 11.5))
+                        .font(PanelFont.footnote)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -498,25 +514,29 @@ private struct FlowChips: View {
         }
     }
 
+    /// The chip face both kinds share: label in a capsule that fills when
+    /// lit. Presets and 自定义 differ only in label, lit state, and action.
+    private func chipFace(_ label: String, lit: Bool) -> some View {
+        Text(label)
+            .font(PanelFont.footnote)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 3.5)
+            .background(
+                Capsule().fill(lit ? Color.primary.opacity(0.14) : Color.clear)
+            )
+            .overlay(
+                Capsule().strokeBorder(Color.primary.opacity(0.14))
+            )
+            .foregroundStyle(lit
+                ? AnyShapeStyle(Color.primary)
+                : AnyShapeStyle(Color.primary.opacity(0.72)))
+    }
+
     private func chip(_ minutes: Int, _ label: String) -> some View {
         Button {
             choose(minutes, label)
         } label: {
-            Text(label)
-                .font(.system(size: 11.5))
-                .padding(.horizontal, 9)
-                .padding(.vertical, 3.5)
-                .background(
-                    Capsule().fill(selected == minutes
-                        ? Color.primary.opacity(0.14)
-                        : Color.clear)
-                )
-                .overlay(
-                    Capsule().strokeBorder(Color.primary.opacity(0.14))
-                )
-                .foregroundStyle(selected == minutes
-                    ? AnyShapeStyle(Color.primary)
-                    : AnyShapeStyle(Color.primary.opacity(0.72)))
+            chipFace(label, lit: selected == minutes)
         }
         .buttonStyle(.plain)
         .hoverHighlight(in: Capsule(), opacity: 0.06, isEnabled: chipsEnabled)
@@ -524,21 +544,7 @@ private struct FlowChips: View {
 
     private func customChip() -> some View {
         Button(action: custom) {
-            Text("自定义")
-                .font(.system(size: 11.5))
-                .padding(.horizontal, 9)
-                .padding(.vertical, 3.5)
-                .background(
-                    Capsule().fill(isCustomActive
-                        ? Color.primary.opacity(0.14)
-                        : Color.clear)
-                )
-                .overlay(
-                    Capsule().strokeBorder(Color.primary.opacity(0.14))
-                )
-                .foregroundStyle(isCustomActive
-                    ? AnyShapeStyle(Color.primary)
-                    : AnyShapeStyle(Color.primary.opacity(0.72)))
+            chipFace("自定义", lit: isCustomActive)
         }
         .buttonStyle(.plain)
         .hoverHighlight(in: Capsule(), opacity: 0.06, isEnabled: chipsEnabled)
@@ -610,7 +616,7 @@ private struct BatteryRow: View {
     var body: some View {
         HStack(spacing: 9) {
             Image(systemName: state.batteryOnAC ? "bolt.fill" : "battery.75")
-                .font(.system(size: 11))
+                .font(PanelFont.micro)
                 .foregroundStyle(state.batteryOnAC
                     ? warmAmber(colorScheme)
                     : Color.secondary)
@@ -624,7 +630,7 @@ private struct BatteryRow: View {
             }
             .frame(height: 3.5)
             Text("\(state.batteryPercent)%")
-                .font(.system(size: 11.5).monospacedDigit())
+                .font(PanelFont.footnote.monospacedDigit())
                 .foregroundStyle(.secondary)
             thermalLabel
         }
@@ -658,7 +664,7 @@ private struct BatteryRow: View {
         default:        color = Color.secondary
         }
         return Label(thermalText, systemImage: "thermometer.medium")
-            .font(.system(size: 11.5, weight: state.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue ? .semibold : .regular))
+            .font(PanelFont.footnote.weight(state.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue ? .semibold : .regular))
             .foregroundStyle(color)
     }
 
@@ -696,15 +702,15 @@ private struct HelperRow: View {
                     .foregroundStyle(Color(red: 0.365, green: 0.796, blue: 0.647))
                     .accessibilityHidden(true)
                 Text("Helper 已安装 · 合盖档可用")
-                    .font(.system(size: 11.5))
+                    .font(PanelFont.footnote)
                     .foregroundStyle(.secondary)
             } else {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 11))
+                    .font(PanelFont.micro)
                     .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
                     .accessibilityHidden(true)
                 Text("未安装 Helper · 合盖档不可用")
-                    .font(.system(size: 11.5))
+                    .font(PanelFont.footnote)
                     .foregroundStyle(.primary.opacity(0.85))
                 Spacer(minLength: 8)
                 Button("安装") { state.installHelper() }
@@ -739,19 +745,19 @@ private struct NetworkStatusRow: View {
                 HStack(spacing: 9) {
                     if status.online {
                         Image(systemName: status.interfaceKind == .wired ? "cable.connector" : "wifi")
-                            .font(.system(size: 11))
+                            .font(PanelFont.micro)
                             .foregroundStyle(Color.secondary)
                             .accessibilityHidden(true)
                         Text(label(for: status))
-                            .font(.system(size: 11.5))
+                            .font(PanelFont.footnote)
                             .foregroundStyle(.secondary)
                     } else {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 11))
+                            .font(PanelFont.micro)
                             .foregroundStyle(Color(red: 0.937, green: 0.624, blue: 0.153))
                             .accessibilityHidden(true)
                         Text("未连接网络")
-                            .font(.system(size: 11.5))
+                            .font(PanelFont.footnote)
                             .foregroundStyle(.primary.opacity(0.85))
                     }
                 }
