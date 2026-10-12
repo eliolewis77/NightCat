@@ -82,6 +82,12 @@ final class SettingsWindowController {
             promotedToRegular = true
         }
 
+        // The window is reused across close/open: a control that held the
+        // field editor when the user last closed it (e.g. mid-edit on a time
+        // picker) would resurface with its segment still selected. Every open
+        // starts from a clean slate.
+        window?.makeFirstResponder(nil)
+
         window?.makeKeyAndOrderFront(nil)
 
         if #available(macOS 14.0, *) {
