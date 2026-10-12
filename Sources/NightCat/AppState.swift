@@ -277,6 +277,21 @@ final class AppState: ObservableObject {
     /// happens when the director's marker actually moves.
     private var persistedHandledWindowStart: Date?
 
+    /// Whether the helper is known to understand `setRepeatingWake`. Probed
+    /// via `version` on the first sync and re-probed after helper (re)installs;
+    /// dispatching that selector at a pre-0.2.0 daemon would crash it.
+    private enum WakeSyncSupport { case unknown, supported, unsupported }
+    private var wakeSyncSupport: WakeSyncSupport = .unknown
+    /// The decision last successfully written to the system, so unchanged
+    /// rules don't re-run pmset.
+    private var lastSyncedWake: RepeatingWake.Decision?
+    /// Single-flight for wake syncs: one pmset write at a time; a change
+    /// landing mid-flight replays once the current write settles, so the
+    /// DatePicker's rapid-fire edits converge on the final rule and the
+    /// admin-prompt fallback can never stack dialogs.
+    private var wakeSyncInFlight = false
+    private var wakeSyncPending = false
+
     init() {
         settings = store.load()
         armed = store.loadArmed()
@@ -461,6 +476,10 @@ final class AppState: ObservableObject {
             // and keep-awake is currently on.
             if wasAuto, isEnabled { armAutoOff() }
             evaluateSafety()
+        }
+        if wasAuto != settings.autoEnableWhenCharging {
+            // Auto mode suspends the schedule — including its wake event.
+            syncRepeatingWake()
         }
     }
 
@@ -779,6 +798,10 @@ final class AppState: ObservableObject {
         helperWasUsable = usingHelper
         guard !wasUsable, usingHelper else { return }
         refreshState()
+        // The daemon may be a different generation than the last probe —
+        // re-check its capabilities and bring the wake event along.
+        wakeSyncSupport = .unknown
+        syncRepeatingWake()
         promptRestartAfterHelperEnabled()
     }
 
@@ -832,6 +855,8 @@ final class AppState: ObservableObject {
                 // it as the same enable transition the approval path would hit.
                 if !wasUsable, usingHelper {
                     refreshState()
+                    wakeSyncSupport = .unknown
+                    syncRepeatingWake()
                     promptRestartAfterHelperEnabled()
                 }
             }
@@ -1294,6 +1319,10 @@ final class AppState: ObservableObject {
                 self.helper.openLoginItemsSettings()
             } else {
                 self.lastError = NSLocalizedString("后台 Helper 已重新安装——请重试切换。", comment: "helper reinstalled")
+                // Fresh binary: re-probe what it supports, then bring the wake
+                // event over if the schedule wants one.
+                self.wakeSyncSupport = .unknown
+                self.syncRepeatingWake()
             }
         }
     }
@@ -1461,6 +1490,7 @@ final class AppState: ObservableObject {
             scheduleDirector.relinquish()
             refreshScheduleStatus()
         }
+        syncRepeatingWake()
     }
 
     /// A new window rule. Evaluated right away, so the panel's schedule row
@@ -1471,6 +1501,87 @@ final class AppState: ObservableObject {
         schedule = clean
         store.saveSchedule(clean)
         if scheduleEnabled { scheduleTick() }
+        syncRepeatingWake()
+    }
+
+    // MARK: Repeating wake (system-level, survives sleep)
+
+    /// Keep the system repeating wake event (`pmset repeat wake`) in step with
+    /// the schedule, so a Mac that is already asleep when a window begins is
+    /// woken by the system and the tier then follows on the next tick. Called
+    /// from every schedule change and auto-mode flip; idempotent — an
+    /// unchanged decision never touches pmset.
+    ///
+    /// Deliberately *not* called at launch: with the helper absent the
+    /// fallback would pop an admin prompt out of nowhere, and an event armed
+    /// by a previous session is still exactly as valid as the persisted
+    /// schedule it was built from. Deliberately not cleaned up on quit either —
+    /// the event must outlive the app to be worth anything.
+    func syncRepeatingWake() {
+        let decision = RepeatingWake.decision(enabled: scheduleEnabled,
+                                              autoModeOn: settings.autoEnableWhenCharging,
+                                              schedule: schedule)
+        guard decision != lastSyncedWake else { return }
+        guard !wakeSyncInFlight else {
+            wakeSyncPending = true
+            return
+        }
+        runWakeSync(decision)
+    }
+
+    private func runWakeSync(_ decision: RepeatingWake.Decision) {
+        wakeSyncInFlight = true
+        switch wakeSyncSupport {
+        case .unknown:
+            // Probe once per session (and again after helper reinstalls).
+            // `version` exists in every helper generation, so this probe is
+            // safe against old daemons — unlike the new selector itself.
+            helper.fetchVersion { [weak self] version in
+                guard let self else { return }
+                self.wakeSyncSupport = RepeatingWake.isHelperSupported(version: version ?? "")
+                    ? .supported
+                    : .unsupported
+                self.runWakeSync(decision)
+            }
+        case .supported:
+            let params = wakeParameters(for: decision)
+            helper.setRepeatingWake(params.mask, minutes: params.minutes, enabled: params.enabled) { [weak self] ok, err in
+                self?.finishWakeSync(decision,
+                                     error: ok ? nil : (err ?? NSLocalizedString("后台 Helper 未响应。", comment: "helper error")))
+            }
+        case .unsupported:
+            let params = wakeParameters(for: decision)
+            power.setRepeatingWake(weekdayMask: params.mask, minutes: params.minutes, enabled: params.enabled) { [weak self] error in
+                let message = error?.localizedDescription
+                DispatchQueue.main.async {
+                    self?.finishWakeSync(decision, error: message)
+                }
+            }
+        }
+    }
+
+    private func finishWakeSync(_ decision: RepeatingWake.Decision, error: String?) {
+        wakeSyncInFlight = false
+        if let error {
+            lastError = String(
+                format: NSLocalizedString("定时唤醒设置失败：%@", comment: "repeating wake error"),
+                error)
+        } else {
+            lastSyncedWake = decision
+        }
+        if wakeSyncPending {
+            wakeSyncPending = false
+            syncRepeatingWake()
+        }
+    }
+
+    /// `.cancel` carries no rule — pmset's cancel form ignores the parameters,
+    /// and both write paths re-validate anyway.
+    private func wakeParameters(for decision: RepeatingWake.Decision) -> (mask: Int, minutes: Int, enabled: Bool) {
+        switch decision {
+        case .register(let mask, let minutes): return (mask, minutes, true)
+        case .cancel: return (0, 0, false)
+        }
     }
 
     // MARK: Battery + safety guard

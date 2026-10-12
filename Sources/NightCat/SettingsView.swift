@@ -107,11 +107,14 @@ struct SettingsView: View {
                         ScheduleHintRow("开始与结束相同，日程不会触发。")
                     }
                     ScheduleHintRow("窗口开始时自动开启合盖档；窗口内手动关闭后，本窗口不再自动开启。")
+                    ScheduleHintRow("日程开启时会在窗口开始时刻设置系统定时唤醒；便携 Mac 未接通电源时，系统可能忽略唤醒。")
+                    ScheduleHintRow("系统只允许一组重复电源事件，这里的设置会替换系统中已有的定时事件。")
                     if state.settings.autoEnableWhenCharging {
                         ScheduleHintRow("自动模式开启时日程暂停。")
                     }
                     if !state.helperInstalled {
                         ScheduleHintRow("未安装后台 Helper，日程无法自动开启合盖档。")
+                        ScheduleHintRow("未安装后台 Helper 时，设置定时唤醒需输入管理员密码。")
                     }
                 }
             }

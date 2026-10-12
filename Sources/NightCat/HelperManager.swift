@@ -92,6 +92,39 @@ final class HelperManager {
         }
     }
 
+    /// Set or clear the system-wide repeating wake event. Only safe to call
+    /// after `fetchVersion` confirms the helper understands the method — an
+    /// older daemon would crash on the unknown selector.
+    func setRepeatingWake(_ weekdayMask: Int, minutes: Int, enabled: Bool,
+                          completion: @escaping (Bool, String?) -> Void) {
+        callWithTimeout(completion: completion) { proxy, done in
+            proxy.setRepeatingWake(weekdayMask, minutes: minutes, enabled: enabled) { ok, err in
+                done(ok, err)
+            }
+        }
+    }
+
+    /// The helper's version string, or nil when unreachable or silent. Unlike
+    /// `checkReachable` (which discards the reply), this is what gates the
+    /// `setRepeatingWake` call: `version` exists in every helper generation,
+    /// so probing it can never crash an old daemon.
+    func fetchVersion(completion: @escaping (String?) -> Void) {
+        var finished = false
+        let finish: (String?) -> Void = { version in
+            DispatchQueue.main.async {
+                guard !finished else { return }
+                finished = true
+                completion(version)
+            }
+        }
+        guard let proxy = remote({ _ in finish(nil) }) else {
+            finish(nil)
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { finish(nil) }
+        proxy.version { version in finish(version) }
+    }
+
     // No `getState` wrapper: the helper's reply is a plain `Bool`, so a failed
     // `pmset -g` inside the daemon would come back as "off" and there'd be no
     // way to tell. Reading needs no privileges, so `PowerManager` reads the flag

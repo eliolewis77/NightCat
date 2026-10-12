@@ -38,8 +38,35 @@ struct PowerManager {
     /// main-queue dispatch could never run under that wait.)
     func setSleepDisabled(_ enabled: Bool, completion: @escaping (Error?) -> Void) {
         let value = enabled ? "1" : "0"
-        let script = "do shell script \"/usr/bin/pmset -a disablesleep \(value)\" with administrator privileges"
+        runAdminScript(
+            "do shell script \"/usr/bin/pmset -a disablesleep \(value)\" with administrator privileges",
+            completion: completion)
+    }
 
+    /// Set or clear the system-wide repeating wake event through the admin
+    /// prompt — the fallback for when the helper can't do it (not installed,
+    /// or too old for the `setRepeatingWake` XPC method). Same contract as
+    /// `setSleepDisabled`: asynchronous, exactly one completion on an
+    /// arbitrary background thread.
+    func setRepeatingWake(weekdayMask: Int, minutes: Int, enabled: Bool,
+                          completion: @escaping (Error?) -> Void) {
+        guard let script = RepeatingWake.shellScript(weekdayMask: weekdayMask,
+                                                     minutes: minutes,
+                                                     enabled: enabled) else {
+            completion(NSError(
+                domain: "NightCat.PowerManager",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "invalid repeating wake arguments"]
+            ))
+            return
+        }
+        runAdminScript(script, completion: completion)
+    }
+
+    /// The shared osascript plumbing: run one `do shell script … with
+    /// administrator privileges` line, report stderr (or the user cancelling
+    /// the prompt) through `completion` exactly once.
+    private func runAdminScript(_ script: String, completion: @escaping (Error?) -> Void) {
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         proc.arguments = ["-e", script]

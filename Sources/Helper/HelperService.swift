@@ -49,7 +49,7 @@ final class HelperService: NSObject, NightCatHelperProtocol {
 
     func setKeepAwake(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void) {
         queue.async {
-            let result = self.runPmset(disableSleep: enabled)
+            let result = self.runPmset(arguments: ["-a", "disablesleep", enabled ? "1" : "0"])
             if result.ok {
                 self.keepAwake = enabled
                 self.lastHeartbeat = Date()
@@ -71,7 +71,25 @@ final class HelperService: NSObject, NightCatHelperProtocol {
     }
 
     func version(withReply reply: @escaping (String) -> Void) {
-        reply("0.1.0")
+        reply("0.2.0")
+    }
+
+    func setRepeatingWake(_ weekdayMask: Int, minutes: Int, enabled: Bool,
+                          withReply reply: @escaping (Bool, String?) -> Void) {
+        queue.async {
+            // Refuse anything outside the parameter domain before touching
+            // pmset. The app normally pre-validates through the same Shared
+            // constructor, so a rejection here means a misbehaving client —
+            // it gets a failure, never a command.
+            guard let args = RepeatingWake.pmsetArguments(
+                weekdayMask: weekdayMask, minutes: minutes, enabled: enabled)
+            else {
+                reply(false, "invalid repeating wake arguments")
+                return
+            }
+            let result = self.runPmset(arguments: args)
+            reply(result.ok, result.error)
+        }
     }
 
     // MARK: Watchdog
@@ -84,7 +102,7 @@ final class HelperService: NSObject, NightCatHelperProtocol {
             if Watchdog.shouldAutoRestore(lastHeartbeat: self.lastHeartbeat,
                                           now: Date(),
                                           timeout: self.watchdogTimeout) {
-                _ = self.runPmset(disableSleep: false)
+                _ = self.runPmset(arguments: ["-a", "disablesleep", "0"])
                 self.keepAwake = false
             }
         }
@@ -95,10 +113,10 @@ final class HelperService: NSObject, NightCatHelperProtocol {
     // MARK: Shell
 
     @discardableResult
-    private func runPmset(disableSleep: Bool) -> (ok: Bool, error: String?) {
+    private func runPmset(arguments: [String]) -> (ok: Bool, error: String?) {
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/pmset")
-        proc.arguments = ["-a", "disablesleep", disableSleep ? "1" : "0"]
+        proc.arguments = arguments
         let errPipe = Pipe()
         proc.standardError = errPipe
         do {

@@ -71,4 +71,15 @@ public enum NightCatHelper {
 
     /// Helper version string, for a connection sanity check.
     func version(withReply reply: @escaping (String) -> Void)
+
+    /// Set or clear the system-wide repeating wake event (`pmset repeat wake`),
+    /// so a sleeping Mac wakes when a schedule window begins. `weekdayMask` is
+    /// the Calendar weekday bitmask (1 = Sunday … 7 = Saturday);
+    /// `minutes` is the wake time-of-day, minutes since midnight (0..<1440);
+    /// `enabled == false` cancels all repeating events. Helpers before 0.2.0 do
+    /// not implement this — callers must check `version` first, because
+    /// dispatching an unknown selector crashes the daemon.
+    /// reply: (success, errorMessage?).
+    func setRepeatingWake(_ weekdayMask: Int, minutes: Int, enabled: Bool,
+                          withReply reply: @escaping (Bool, String?) -> Void)
 }
