@@ -96,26 +96,26 @@ struct SettingsView: View {
                     // A custom VStack row gets sized to its content's ideal
                     // width, which wrapped the long hints well short of the
                     // card — while bare Text rows (like the helper section's)
-                    // always get the full width.
+                    // always get the full width. Hints are conditional and
+                    // rare — a rule that can't fire, a suspension, a missing
+                    // helper — never standing prose.
                     ScheduleRuleRow()
                     if state.schedule.crossesMidnight {
-                        ScheduleHintRow("窗口跨过午夜：从当天开始，持续到次日凌晨结束。")
+                        ScheduleHintRow("窗口跨过午夜，持续到次日凌晨。")
                     }
-                    if state.schedule.weekdayMask == 0 {
-                        ScheduleHintRow("未选择任何星期，日程不会触发。")
-                    } else if state.schedule.startMinute == state.schedule.endMinute {
-                        ScheduleHintRow("开始与结束相同，日程不会触发。")
+                    if state.schedule.weekdayMask == 0
+                        || state.schedule.startMinute == state.schedule.endMinute {
+                        ScheduleHintRow("未选星期或起止相同，日程不会触发。")
                     }
-                    ScheduleHintRow("窗口开始时自动开启合盖档；窗口内手动关闭后，本窗口不再自动开启。")
-                    ScheduleHintRow("日程开启时会在窗口开始时刻设置系统定时唤醒；便携 Mac 未接通电源时，系统可能忽略唤醒。")
-                    ScheduleHintRow("系统只允许一组重复电源事件，这里的设置会替换系统中已有的定时事件。")
                     if state.settings.autoEnableWhenCharging {
                         ScheduleHintRow("自动模式开启时日程暂停。")
                     }
                     if !state.helperInstalled {
-                        ScheduleHintRow("未安装后台 Helper，日程无法自动开启合盖档。")
+                        ScheduleHintRow("未安装 Helper，日程无法自动开启。")
                     }
-                    ScheduleHintRow("后台 Helper 未安装或版本过旧时，设置定时唤醒需输入管理员密码。")
+                    if !state.batteryOnAC {
+                        ScheduleHintRow("未接通电源时，系统可能忽略定时唤醒。")
+                    }
                 }
             }
 
