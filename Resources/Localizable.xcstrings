@@ -861,12 +861,12 @@
         }
       }
     },
-    "开始" : {
+    "开始时间" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Start"
+            "value" : "Start time"
           }
         }
       }
@@ -1461,12 +1461,12 @@
         }
       }
     },
-    "结束" : {
+    "结束时间" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "End"
+            "value" : "End time"
           }
         }
       }
@@ -1587,6 +1587,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Custom"
+          }
+        }
+      }
+    },
+    "至" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "to"
           }
         }
       }

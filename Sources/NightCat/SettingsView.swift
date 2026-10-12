@@ -383,9 +383,16 @@ private struct ScheduleRuleRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             WeekdayChips()
-            HStack(spacing: 16) {
-                DatePicker("开始", selection: startBinding, displayedComponents: .hourAndMinute)
-                DatePicker("结束", selection: endBinding, displayedComponents: .hourAndMinute)
+            HStack(spacing: 10) {
+                DatePicker("开始时间", selection: startBinding, displayedComponents: .hourAndMinute)
+                    .labelsHidden()
+                    .accessibilityLabel(Text("开始时间"))
+                Text("至")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                DatePicker("结束时间", selection: endBinding, displayedComponents: .hourAndMinute)
+                    .labelsHidden()
+                    .accessibilityLabel(Text("结束时间"))
             }
         }
         .padding(.vertical, 2)
