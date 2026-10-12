@@ -33,6 +33,13 @@ public enum SetOrigin: Equatable {
     /// as well as off, and it isn't the user acting on the switch — so it must
     /// never present an alert or disturb a notice they haven't seen yet.
     case auto
+    /// The weekly schedule acting at a window boundary. Same nature as `.auto`:
+    /// it turns keep-awake on and off on its own judgment, is not the user
+    /// acting on the switch, and must never present an alert. Any write through
+    /// another origin cancels the schedule's claim on the current hold (see
+    /// `ScheduleDirector`) — that claim is what makes the window-end undo
+    /// revert only what the schedule itself started.
+    case schedule
 }
 
 /// A write whose read-back hasn't confirmed it yet.

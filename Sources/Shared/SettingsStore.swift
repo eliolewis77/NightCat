@@ -23,6 +23,11 @@ public struct SettingsStore {
         static let licensedEmail = "LicensedEmail"
         static let keepAliveEnabled  = "networkKeepAliveEnabled"
         static let keepAliveMinutes  = "networkKeepAliveIntervalMinutes"
+        static let scheduleEnabled   = "weeklyScheduleEnabled"
+        static let scheduleWeekdays  = "weeklyScheduleWeekdays"
+        static let scheduleStart     = "weeklyScheduleStartMinute"
+        static let scheduleEnd       = "weeklyScheduleEndMinute"
+        static let scheduleHandled   = "weeklyScheduleHandledWindowStart"
     }
 
     public init(defaults: UserDefaults = .standard) {
@@ -89,6 +94,50 @@ public struct SettingsStore {
 
     public func saveAutoOffMinutes(_ minutes: Int) {
         defaults.set(minutes, forKey: Key.autoOff)
+    }
+
+    // MARK: Weekly schedule
+
+    /// Whether the weekly schedule drives keep-awake at window boundaries.
+    /// Defaults to false.
+    public func loadScheduleEnabled() -> Bool {
+        defaults.bool(forKey: Key.scheduleEnabled)
+    }
+
+    public func saveScheduleEnabled(_ on: Bool) {
+        defaults.set(on, forKey: Key.scheduleEnabled)
+    }
+
+    /// The weekly window rule. Defaults to `.default` until first saved —
+    /// absent keys would otherwise read as "Sunday only, 00:00–00:00", and the
+    /// whole rule is written together so one absent key means none exist.
+    public func loadSchedule() -> WeeklySchedule {
+        guard defaults.object(forKey: Key.scheduleWeekdays) != nil else { return .default }
+        return WeeklySchedule(weekdayMask: defaults.integer(forKey: Key.scheduleWeekdays),
+                              startMinute: defaults.integer(forKey: Key.scheduleStart),
+                              endMinute: defaults.integer(forKey: Key.scheduleEnd)).sanitized
+    }
+
+    public func saveSchedule(_ schedule: WeeklySchedule) {
+        let clean = schedule.sanitized
+        defaults.set(clean.weekdayMask, forKey: Key.scheduleWeekdays)
+        defaults.set(clean.startMinute, forKey: Key.scheduleStart)
+        defaults.set(clean.endMinute, forKey: Key.scheduleEnd)
+    }
+
+    /// Start of the last window instance the schedule already acted on, so a
+    /// relaunch inside the same window doesn't replay its edge (and resurrect
+    /// a hold the user manually cancelled). nil until the first window.
+    public func loadHandledWindowStart() -> Date? {
+        defaults.object(forKey: Key.scheduleHandled) as? Date
+    }
+
+    public func saveHandledWindowStart(_ date: Date?) {
+        if let date {
+            defaults.set(date, forKey: Key.scheduleHandled)
+        } else {
+            defaults.removeObject(forKey: Key.scheduleHandled)
+        }
     }
 
     /// Whether the user has been through first-run onboarding. Defaults to false.
