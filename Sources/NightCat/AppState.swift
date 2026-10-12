@@ -402,7 +402,9 @@ final class AppState: ObservableObject {
 
     // MARK: Settings
 
-    /// Present the Settings window from the menu-bar popover.
+    /// Present the Settings window from the menu-bar popover. The focus and
+    /// ordering mechanics live in `SettingsWindowController.show()` and the
+    /// settings button.
     func showSettings() {
         settingsWindow.show()
     }

@@ -380,14 +380,21 @@ private struct ScheduleRuleEditor: View {
                 footnote("未安装后台 Helper，日程无法自动开启合盖档。")
             }
         }
+        // Grouped-Form rows size custom content to its ideal width, which
+        // wraps the long footnotes well short of the row's real width.
+        // Claiming the full width hands the row's proposal straight through.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 2)
     }
 
+    /// Plain Text on purpose — no `fixedSize`: it lays the text out at its
+    /// ideal (unwrapped) width instead of the row's, which is exactly the
+    /// early-wrap this row used to have. Same pattern as the keep-alive
+    /// footnotes, which fill the row width fine.
     private func footnote(_ text: String) -> some View {
         Text(text)
             .font(.callout)
             .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -423,13 +430,12 @@ private struct WeekdayChips: View {
         } label: {
             Text(calendar.veryShortWeekdaySymbols[weekday - 1])
                 .font(.callout)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 4)
+                .frame(width: 28, height: 28)
                 .background(
-                    Capsule().fill(selected ? Color.accentColor.opacity(0.18) : Color.primary.opacity(0.05))
+                    Circle().fill(selected ? Color.accentColor.opacity(0.18) : Color.primary.opacity(0.05))
                 )
                 .overlay(
-                    Capsule().strokeBorder(selected ? Color.accentColor.opacity(0.5) : Color.primary.opacity(0.12))
+                    Circle().strokeBorder(selected ? Color.accentColor.opacity(0.5) : Color.primary.opacity(0.12))
                 )
                 .foregroundStyle(selected ? Color.accentColor : Color.primary.opacity(0.7))
         }

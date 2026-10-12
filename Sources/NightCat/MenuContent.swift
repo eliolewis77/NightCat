@@ -826,10 +826,16 @@ private struct SettingsButton: View {
 
     var body: some View {
         Button {
-            // The popover won't close on its own: SwiftUI's `dismiss()` can't
-            // reach it, and an accessory app can't reliably take key away from it.
-            MenuBarExtraPanel.dismiss()
+            // Order matters: the window is shown while the panel is still up,
+            // so the panel's dismissal teardown (a simulated status-item
+            // click, settling after this event) can't land on a freshly
+            // ordered window — dismissing first made the very first click
+            // read as "did nothing". Focus itself is won by
+            // `SettingsWindowController.show()`'s activation promotion.
             state.showSettings()
+            DispatchQueue.main.async {
+                MenuBarExtraPanel.dismiss()
+            }
         } label: {
             Label("设置", systemImage: "gearshape")
                 .foregroundStyle(.primary.opacity(0.85))

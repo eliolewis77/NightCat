@@ -21,6 +21,12 @@ final class SettingsWindowController {
     private let makeContent: () -> AnyView
 
     private(set) var window: NSWindow?
+    /// Whether `show` switched the app to `.regular` for this window (see
+    /// there), so closing it goes back to `.accessory`. Never set in a host
+    /// that is already regular — the unit-test runner — which keeps the tests
+    /// policy-free.
+    private var promotedToRegular = false
+    private var closeObserver: NSObjectProtocol?
 
     init(title: String = "NightCat Settings",
          contentSize: CGSize,
@@ -55,27 +61,65 @@ final class SettingsWindowController {
             win.center()
             win.setFrameAutosaveName(frameAutosaveName)
             window = win
+            closeObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification, object: win, queue: .main
+            ) { [weak self] _ in
+                self?.releaseActivationPromotion()
+            }
         }
 
+        // An accessory app cannot reliably win key any other way on modern
+        // macOS: cooperative `activate()` declines requests that don't ride a
+        // user event on the app itself, and by the time the settings button
+        // runs, the menu-bar panel is about to hand activation to whatever
+        // app had it before. Momentarily becoming a regular app makes the
+        // request land — the standard menu-bar-app pattern for surfacing one
+        // real window. The Dock icon and Cmd+Tab entry exist for exactly as
+        // long as the window is up, and `releaseActivationPromotion` takes
+        // them back on close.
+        if NSApp.activationPolicy() == .accessory {
+            NSApp.setActivationPolicy(.regular)
+            promotedToRegular = true
+        }
+
+        window?.makeKeyAndOrderFront(nil)
+
         if #available(macOS 14.0, *) {
-            // `ignoringOtherApps:` is deprecated here, and since Sonoma macOS
-            // declines to activate an accessory app through it anyway.
             NSApplication.shared.activate()
         } else {
             NSApplication.shared.activate(ignoringOtherApps: true)
         }
 
-        // Activation alone doesn't reliably front the window for an accessory
-        // app, so order it front regardless of whether we won activation, then
-        // take key separately. `makeKeyAndOrderFront` does neither dependably
-        // here. Taking key isn't guaranteed either — without activation the
-        // window may never become key — which is why dismissing the menu-bar
-        // popover is `MenuBarExtraPanel`'s job rather than a side effect of this.
-        window?.orderFrontRegardless()
-        window?.makeKey()
+        // The policy change registers with the window server across a
+        // runloop tick; re-asserting once it has keeps first-open focus from
+        // falling into that gap.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.window, window.isVisible else { return }
+            window.makeKeyAndOrderFront(nil)
+            if #available(macOS 14.0, *) {
+                NSApplication.shared.activate()
+            } else {
+                NSApplication.shared.activate(ignoringOtherApps: true)
+            }
+        }
     }
 
     func close() {
         window?.close()
+    }
+
+    deinit {
+        if let closeObserver {
+            NotificationCenter.default.removeObserver(closeObserver)
+        }
+    }
+
+    /// Undo `show`'s policy promotion when the window goes away — a menu-bar
+    /// app that stayed regular would keep a Dock icon and a Cmd+Tab entry
+    /// for nothing.
+    private func releaseActivationPromotion() {
+        guard promotedToRegular else { return }
+        promotedToRegular = false
+        NSApp.setActivationPolicy(.accessory)
     }
 }
