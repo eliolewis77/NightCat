@@ -28,6 +28,12 @@ public enum NightCatHelper {
     /// The Apple Developer Team ID the app and helper are signed with.
     public static let teamID = "UAT3Y8UXCQ"
 
+    /// What the helper's `version()` reports: the protocol generation this
+    /// binary implements. Bump in lockstep with
+    /// `RepeatingWake.minimumHelperVersion` when a capability is added — the
+    /// daemon self-reports this; the app gates on the minimum.
+    public static let protocolVersion = "0.2.0"
+
     /// Code signing requirement the helper demands of anything connecting to it.
     ///
     /// The Mach service an `SMAppService` daemon registers is reachable by every
@@ -59,6 +65,12 @@ public enum NightCatHelper {
 /// `SleepDisabled` flag without an admin prompt. A heartbeat watchdog inside the
 /// helper auto-restores normal sleep if the app stops checking in — so the Mac
 /// can never get stuck awake if the app crashes or is force-quit.
+///
+/// `setRepeatingWake` is the one deliberate exception to "nothing here
+/// outlives the call": it writes a *persistent* system wake event that no
+/// watchdog bounds and nothing cleans up automatically — by design, so a wake
+/// survives the app not running. Deleting the app with the schedule on leaves
+/// the event; removing it is one manual `pmset repeat cancel`.
 @objc public protocol NightCatHelperProtocol {
     /// Enable/disable lid-close sleep prevention. reply: (success, errorMessage?).
     func setKeepAwake(_ enabled: Bool, withReply reply: @escaping (Bool, String?) -> Void)

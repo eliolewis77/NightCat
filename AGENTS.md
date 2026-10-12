@@ -26,6 +26,9 @@ xcodebuild build -scheme NightCat -destination 'platform=macOS' -configuration D
 
 - **不要删除 `LICENSE` 里的原始版权声明**（MIT 要求保留上游作者版权）。
 - **不要把状态机搬进 helper。** helper 保持「薄」：只翻 `disablesleep` 标志 + 心跳。
+  （2026-10 经所有者同意的一次明示扩展：`setRepeatingWake` 让 helper 无状态执行
+  `pmset repeat`——参数域封闭、App 侧决策、helper 只复验后执行；唤醒事件是持久
+  系统配置，App 卸载不会自动清理，用户需手动 `pmset repeat cancel`。）
 - **不要动 helper 的 90 秒看门狗语义**：App 停止心跳超 90 秒自动恢复睡眠，
   是防「卡在永远不睡」的核心安全网。
 - 不要在未明确要求的前提下引入第三方依赖。

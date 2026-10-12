@@ -28,6 +28,7 @@ public struct SettingsStore {
         static let scheduleStart     = "weeklyScheduleStartMinute"
         static let scheduleEnd       = "weeklyScheduleEndMinute"
         static let scheduleHandled   = "weeklyScheduleHandledWindowStart"
+        static let believedWakeState = "believedRepeatingWakeState"
     }
 
     public init(defaults: UserDefaults = .standard) {
@@ -137,6 +138,24 @@ public struct SettingsStore {
             defaults.set(date, forKey: Key.scheduleHandled)
         } else {
             defaults.removeObject(forKey: Key.scheduleHandled)
+        }
+    }
+
+    /// The wake event the app last *successfully* wrote (`RepeatingWake
+    /// .Decision`, JSON-encoded) — the cross-session belief of what the system
+    /// holds. nil = nothing believed armed. Persisted so a schedule toggled
+    /// off in a later session still learns that a previous session armed the
+    /// event and its cancel must actually run.
+    public func loadBelievedWakeState() -> RepeatingWake.Decision? {
+        guard let data = defaults.data(forKey: Key.believedWakeState) else { return nil }
+        return try? JSONDecoder().decode(RepeatingWake.Decision.self, from: data)
+    }
+
+    public func saveBelievedWakeState(_ decision: RepeatingWake.Decision?) {
+        if let decision {
+            defaults.set(try? JSONEncoder().encode(decision), forKey: Key.believedWakeState)
+        } else {
+            defaults.removeObject(forKey: Key.believedWakeState)
         }
     }
 

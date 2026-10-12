@@ -116,4 +116,39 @@ final class RepeatingWakeTests: XCTestCase {
         XCTAssertEqual(RepeatingWake.decision(enabled: false, autoModeOn: false, schedule: workdays), .cancel)
         XCTAssertEqual(RepeatingWake.decision(enabled: false, autoModeOn: true, schedule: nil), .cancel)
     }
+
+    // MARK: Decision persistence
+
+    func testDecisionCodableRoundTrip() throws {
+        // The believed wake state persists as JSON across launches.
+        let register = RepeatingWake.Decision.register(weekdayMask: 0b0111110, minutes: 540)
+        let data = try JSONEncoder().encode(register)
+        XCTAssertEqual(try JSONDecoder().decode(RepeatingWake.Decision.self, from: data), register)
+        let cancel = RepeatingWake.Decision.cancel
+        XCTAssertEqual(try JSONDecoder().decode(RepeatingWake.Decision.self,
+                                                from: JSONEncoder().encode(cancel)), cancel)
+        // register and cancel must not decode into each other.
+        XCTAssertNotEqual(try JSONDecoder().decode(RepeatingWake.Decision.self, from: data), cancel)
+    }
+
+    // MARK: pmset -g sched read-back
+
+    func testArmedDetectionInSchedOutput() {
+        let armed = """
+        Scheduled power events:
+         [0] wake at 10/11/2026 11:11:41 by 'com.apple.alarm.user-invisible-com.apple.calaccessd.travelEngine.periodicRefreshTimer'
+        Repeating power events:
+          wake at 9:00:00 every MTWRF
+        """
+        XCTAssertTrue(RepeatingWake.isArmed(inSchedOutput: armed))
+    }
+
+    func testUnarmedDetectionInSchedOutput() {
+        let oneShotOnly = """
+        Scheduled power events:
+         [0] wake at 10/11/2026 11:11:41 by 'com.apple.alarm.user-invisible-com.apple.calaccessd.travelEngine.periodicRefreshTimer'
+        """
+        XCTAssertFalse(RepeatingWake.isArmed(inSchedOutput: oneShotOnly))
+        XCTAssertFalse(RepeatingWake.isArmed(inSchedOutput: ""))
+    }
 }

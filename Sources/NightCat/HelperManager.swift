@@ -108,21 +108,17 @@ final class HelperManager {
     /// `checkReachable` (which discards the reply), this is what gates the
     /// `setRepeatingWake` call: `version` exists in every helper generation,
     /// so probing it can never crash an old daemon.
+    ///
+    /// Built on `callWithTimeout` — the version string rides home in its error
+    /// slot, which for this one call means "payload", not "error".
     func fetchVersion(completion: @escaping (String?) -> Void) {
-        var finished = false
-        let finish: (String?) -> Void = { version in
-            DispatchQueue.main.async {
-                guard !finished else { return }
-                finished = true
-                completion(version)
+        callWithTimeout(timeout: 5, completion: { ok, payload in
+            completion(ok ? payload : nil)
+        }) { proxy, done in
+            proxy.version { version in
+                done(!version.isEmpty, version)
             }
         }
-        guard let proxy = remote({ _ in finish(nil) }) else {
-            finish(nil)
-            return
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { finish(nil) }
-        proxy.version { version in finish(version) }
     }
 
     // No `getState` wrapper: the helper's reply is a plain `Bool`, so a failed

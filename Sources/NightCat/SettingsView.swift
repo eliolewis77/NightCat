@@ -114,8 +114,8 @@ struct SettingsView: View {
                     }
                     if !state.helperInstalled {
                         ScheduleHintRow("未安装后台 Helper，日程无法自动开启合盖档。")
-                        ScheduleHintRow("未安装后台 Helper 时，设置定时唤醒需输入管理员密码。")
                     }
+                    ScheduleHintRow("后台 Helper 未安装或版本过旧时，设置定时唤醒需输入管理员密码。")
                 }
             }
 

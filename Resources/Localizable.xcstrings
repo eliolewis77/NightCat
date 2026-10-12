@@ -521,6 +521,16 @@
         }
       }
     },
+    "后台 Helper 未安装或版本过旧时，设置定时唤醒需输入管理员密码。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With the background Helper missing or outdated, setting the wake event asks for the administrator password."
+          }
+        }
+      }
+    },
     "启动恢复合盖档已开启，但「登录时启动」已关闭——重启后 NightCat 不会自启，合盖机器将无法远程唤醒。" : {
       "localizations" : {
         "en" : {
@@ -1117,16 +1127,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Helper not installed · Lid tier unavailable"
-          }
-        }
-      }
-    },
-    "未安装后台 Helper 时，设置定时唤醒需输入管理员密码。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Without the background Helper, setting the wake event asks for the administrator password."
           }
         }
       }

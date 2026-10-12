@@ -278,13 +278,24 @@ final class AppState: ObservableObject {
     private var persistedHandledWindowStart: Date?
 
     /// Whether the helper is known to understand `setRepeatingWake`. Probed
-    /// via `version` on the first sync and re-probed after helper (re)installs;
-    /// dispatching that selector at a pre-0.2.0 daemon would crash it.
-    private enum WakeSyncSupport { case unknown, supported, unsupported }
-    private var wakeSyncSupport: WakeSyncSupport = .unknown
-    /// The decision last successfully written to the system, so unchanged
-    /// rules don't re-run pmset.
-    private var lastSyncedWake: RepeatingWake.Decision?
+    /// via `version` on the first sync. A NEGATIVE verdict is deliberately
+    /// never cached — the next sync re-probes — so a cold daemon, a transient
+    /// timeout, or a mid-session helper upgrade self-heals instead of
+    /// poisoning the whole session into the admin-password path. Only a
+    /// positive verdict is cached: it can only come from a capable daemon.
+    private enum WakeCapability { case unprobed, supported }
+    private var wakeCapability: WakeCapability = .unprobed
+    /// Bumped whenever the daemon may have been replaced, invalidating any
+    /// version probe still in flight — its verdict describes a daemon that
+    /// may no longer exist.
+    private var wakeProbeGeneration = 0
+    /// The decision last dispatched this session, success or not: the dedup
+    /// that keeps a cancelled admin prompt from re-firing on every edit.
+    private var lastAttemptedWake: RepeatingWake.Decision?
+    /// The decision last successfully written, persisted — the cross-session
+    /// belief of what the system holds. A schedule toggled off in a later
+    /// session must still learn that an earlier session armed the event.
+    private var believedWakeState: RepeatingWake.Decision?
     /// Single-flight for wake syncs: one pmset write at a time; a change
     /// landing mid-flight replays once the current write settles, so the
     /// DatePicker's rapid-fire edits converge on the final rule and the
@@ -300,6 +311,7 @@ final class AppState: ObservableObject {
         schedule = store.loadSchedule()
         scheduleDirector = ScheduleDirector(lastHandledWindowStart: store.loadHandledWindowStart())
         persistedHandledWindowStart = scheduleDirector.lastHandledWindowStart
+        believedWakeState = store.loadBelievedWakeState()
         onboardingComplete = store.loadOnboardingComplete()
         appLanguage = UserDefaults.standard.string(forKey: "AppLanguageOverride") ?? "auto"
         displayAlwaysOn = UserDefaults.standard.bool(forKey: "DisplayAlwaysOn")
@@ -800,7 +812,7 @@ final class AppState: ObservableObject {
         refreshState()
         // The daemon may be a different generation than the last probe —
         // re-check its capabilities and bring the wake event along.
-        wakeSyncSupport = .unknown
+        resetWakeCapability()
         syncRepeatingWake()
         promptRestartAfterHelperEnabled()
     }
@@ -855,7 +867,7 @@ final class AppState: ObservableObject {
                 // it as the same enable transition the approval path would hit.
                 if !wasUsable, usingHelper {
                     refreshState()
-                    wakeSyncSupport = .unknown
+                    resetWakeCapability()
                     syncRepeatingWake()
                     promptRestartAfterHelperEnabled()
                 }
@@ -1319,10 +1331,11 @@ final class AppState: ObservableObject {
                 self.helper.openLoginItemsSettings()
             } else {
                 self.lastError = NSLocalizedString("后台 Helper 已重新安装——请重试切换。", comment: "helper reinstalled")
-                // Fresh binary: re-probe what it supports, then bring the wake
-                // event over if the schedule wants one.
-                self.wakeSyncSupport = .unknown
-                self.syncRepeatingWake()
+                // Fresh binary: forget the old capability verdict so the next
+                // sync re-probes. Deliberately no sync here — this completion
+                // runs on the launch-time auto-repair path too, and a wake
+                // sync must never surface an admin prompt at launch.
+                self.resetWakeCapability()
             }
         }
     }
@@ -1521,41 +1534,88 @@ final class AppState: ObservableObject {
         let decision = RepeatingWake.decision(enabled: scheduleEnabled,
                                               autoModeOn: settings.autoEnableWhenCharging,
                                               schedule: schedule)
-        guard decision != lastSyncedWake else { return }
+        // Nothing was ever armed by us — this session or a previous one. A
+        // .cancel would be a no-op write at best, and via the fallback an
+        // admin prompt for it: never worth it. (Also keeps helper (re)install
+        // transitions from wiping repeating events the user set themselves.)
+        if case .cancel = decision, lastAttemptedWake == nil, believedWakeState == nil {
+            return
+        }
+        // Whatever is in flight may no longer match the latest state — even a
+        // decision that equals the last synced one can be stale (the user
+        // reverted mid-write). A replay on landing re-dedups, so requesting
+        // one unconditionally costs nothing when it was already right.
         guard !wakeSyncInFlight else {
             wakeSyncPending = true
             return
         }
+        guard decision != lastAttemptedWake, decision != believedWakeState else { return }
         runWakeSync(decision)
     }
 
     private func runWakeSync(_ decision: RepeatingWake.Decision) {
         wakeSyncInFlight = true
-        switch wakeSyncSupport {
-        case .unknown:
-            // Probe once per session (and again after helper reinstalls).
-            // `version` exists in every helper generation, so this probe is
-            // safe against old daemons — unlike the new selector itself.
+        switch wakeCapability {
+        case .unprobed:
+            let generation = wakeProbeGeneration
             helper.fetchVersion { [weak self] version in
                 guard let self else { return }
-                self.wakeSyncSupport = RepeatingWake.isHelperSupported(version: version ?? "")
-                    ? .supported
-                    : .unsupported
-                self.runWakeSync(decision)
+                // A reinstall may have swapped the daemon while this probe
+                // was in flight; its verdict then describes a daemon that no
+                // longer exists — discard it and re-evaluate from scratch.
+                guard generation == self.wakeProbeGeneration else {
+                    self.concludeWakeStep()
+                    return
+                }
+                if RepeatingWake.isHelperSupported(version: version ?? "") {
+                    self.wakeCapability = .supported
+                    self.writeWake(decision)
+                } else {
+                    // A negative verdict is deliberately not cached: the next
+                    // sync re-probes, so a cold daemon, a transient timeout,
+                    // or a later helper upgrade self-heals. THIS decision is
+                    // written now through the admin-prompt fallback.
+                    self.writeWakeFallback(decision)
+                }
             }
         case .supported:
-            let params = wakeParameters(for: decision)
-            helper.setRepeatingWake(params.mask, minutes: params.minutes, enabled: params.enabled) { [weak self] ok, err in
-                self?.finishWakeSync(decision,
-                                     error: ok ? nil : (err ?? NSLocalizedString("后台 Helper 未响应。", comment: "helper error")))
-            }
-        case .unsupported:
-            let params = wakeParameters(for: decision)
-            power.setRepeatingWake(weekdayMask: params.mask, minutes: params.minutes, enabled: params.enabled) { [weak self] error in
-                let message = error?.localizedDescription
-                DispatchQueue.main.async {
-                    self?.finishWakeSync(decision, error: message)
+            writeWake(decision)
+        }
+    }
+
+    private func writeWake(_ decision: RepeatingWake.Decision) {
+        lastAttemptedWake = decision
+        let params = wakeParameters(for: decision)
+        helper.setRepeatingWake(params.mask, minutes: params.minutes, enabled: params.enabled) { [weak self] ok, err in
+            guard let self else { return }
+            if ok {
+                self.finishWakeSync(decision, error: nil)
+            } else {
+                // The daemon may have gone away or been swapped — forget the
+                // capability so the next sync re-probes.
+                self.resetWakeCapability()
+                // Failure to CANCEL is the dangerous direction: a stale event
+                // keeps waking the Mac with the schedule off, and the user
+                // just acted on it — fall through to the admin-prompt path
+                // rather than leave it armed. A failed register changes
+                // nothing on the system, so it stays an error the next edit
+                // can retry.
+                if case .cancel = decision {
+                    self.writeWakeFallback(decision)
+                } else {
+                    self.finishWakeSync(decision, error: err ?? NSLocalizedString("后台 Helper 未响应。", comment: "helper error"))
                 }
+            }
+        }
+    }
+
+    private func writeWakeFallback(_ decision: RepeatingWake.Decision) {
+        lastAttemptedWake = decision
+        let params = wakeParameters(for: decision)
+        power.setRepeatingWake(weekdayMask: params.mask, minutes: params.minutes, enabled: params.enabled) { [weak self] error in
+            let message = error?.localizedDescription
+            DispatchQueue.main.async {
+                self?.finishWakeSync(decision, error: message)
             }
         }
     }
@@ -1567,12 +1627,28 @@ final class AppState: ObservableObject {
                 format: NSLocalizedString("定时唤醒设置失败：%@", comment: "repeating wake error"),
                 error)
         } else {
-            lastSyncedWake = decision
+            believedWakeState = decision
+            store.saveBelievedWakeState(decision)
         }
         if wakeSyncPending {
             wakeSyncPending = false
             syncRepeatingWake()
         }
+    }
+
+    /// The daemon may have been replaced: forget the capability verdict and
+    /// invalidate any probe in flight.
+    private func resetWakeCapability() {
+        wakeCapability = .unprobed
+        wakeProbeGeneration += 1
+    }
+
+    /// One async step of the sync (probe or write) concluded: re-evaluate the
+    /// latest state from scratch.
+    private func concludeWakeStep() {
+        wakeSyncInFlight = false
+        wakeSyncPending = false
+        syncRepeatingWake()
     }
 
     /// `.cancel` carries no rule — pmset's cancel form ignores the parameters,

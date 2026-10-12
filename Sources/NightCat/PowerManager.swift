@@ -56,7 +56,7 @@ struct PowerManager {
             completion(NSError(
                 domain: "NightCat.PowerManager",
                 code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "invalid repeating wake arguments"]
+                userInfo: [NSLocalizedDescriptionKey: RepeatingWake.invalidArgumentsMessage]
             ))
             return
         }

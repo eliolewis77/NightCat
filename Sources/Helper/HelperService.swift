@@ -71,7 +71,11 @@ final class HelperService: NSObject, NightCatHelperProtocol {
     }
 
     func version(withReply reply: @escaping (String) -> Void) {
-        reply("0.2.0")
+        // The daemon is bundle-less, so a Shared constant is the only single
+        // source of truth for "what does this helper implement". Must move in
+        // lockstep with `RepeatingWake.minimumHelperVersion` when a capability
+        // is added — see the discipline note there.
+        reply(NightCatHelper.protocolVersion)
     }
 
     func setRepeatingWake(_ weekdayMask: Int, minutes: Int, enabled: Bool,
