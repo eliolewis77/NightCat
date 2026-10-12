@@ -92,7 +92,27 @@ struct SettingsView: View {
                     set: { state.setScheduleEnabled($0) }
                 ))
                 if state.scheduleEnabled {
-                    ScheduleRuleEditor()
+                    // The controls share one row; each hint is its own row.
+                    // A custom VStack row gets sized to its content's ideal
+                    // width, which wrapped the long hints well short of the
+                    // card — while bare Text rows (like the helper section's)
+                    // always get the full width.
+                    ScheduleRuleRow()
+                    if state.schedule.crossesMidnight {
+                        ScheduleHintRow("窗口跨过午夜：从当天开始，持续到次日凌晨结束。")
+                    }
+                    if state.schedule.weekdayMask == 0 {
+                        ScheduleHintRow("未选择任何星期，日程不会触发。")
+                    } else if state.schedule.startMinute == state.schedule.endMinute {
+                        ScheduleHintRow("开始与结束相同，日程不会触发。")
+                    }
+                    ScheduleHintRow("窗口开始时自动开启合盖档；窗口内手动关闭后，本窗口不再自动开启。")
+                    if state.settings.autoEnableWhenCharging {
+                        ScheduleHintRow("自动模式开启时日程暂停。")
+                    }
+                    if !state.helperInstalled {
+                        ScheduleHintRow("未安装后台 Helper，日程无法自动开启合盖档。")
+                    }
                 }
             }
 
@@ -333,10 +353,10 @@ private struct NetworkKeepAliveRow: View {
     }
 }
 
-/// The weekly schedule's rule editor, shown while the feature's toggle is on:
-/// weekday chips, start/end time pickers, and the caveats that change with the
-/// rule. Lives in Settings — a set-and-forget control, not a panel staple.
-private struct ScheduleRuleEditor: View {
+/// The schedule's controls, sharing one row: weekday chips and the start/end
+/// time pickers. The explanatory hints live in their own rows (see the
+/// Section) — this row holds only content whose natural width fits.
+private struct ScheduleRuleRow: View {
     @EnvironmentObject var state: AppState
 
     private var startBinding: Binding<Date> {
@@ -364,37 +384,28 @@ private struct ScheduleRuleEditor: View {
                 DatePicker("开始", selection: startBinding, displayedComponents: .hourAndMinute)
                 DatePicker("结束", selection: endBinding, displayedComponents: .hourAndMinute)
             }
-            if state.schedule.crossesMidnight {
-                footnote("窗口跨过午夜：从当天开始，持续到次日凌晨结束。")
-            }
-            if state.schedule.weekdayMask == 0 {
-                footnote("未选择任何星期，日程不会触发。")
-            } else if state.schedule.startMinute == state.schedule.endMinute {
-                footnote("开始与结束相同，日程不会触发。")
-            }
-            footnote("窗口开始时自动开启合盖档；窗口内手动关闭后，本窗口不再自动开启。")
-            if state.settings.autoEnableWhenCharging {
-                footnote("自动模式开启时日程暂停。")
-            }
-            if !state.helperInstalled {
-                footnote("未安装后台 Helper，日程无法自动开启合盖档。")
-            }
         }
-        // Grouped-Form rows size custom content to its ideal width, which
-        // wraps the long footnotes well short of the row's real width.
-        // Claiming the full width hands the row's proposal straight through.
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 2)
     }
+}
 
-    /// Plain Text on purpose — no `fixedSize`: it lays the text out at its
-    /// ideal (unwrapped) width instead of the row's, which is exactly the
-    /// early-wrap this row used to have. Same pattern as the keep-alive
-    /// footnotes, which fill the row width fine.
-    private func footnote(_ text: String) -> some View {
+/// One hint line as a standalone row. The `minWidth` is load-bearing: the
+/// grouped Form sizes its whole column to the widest row *ideal*, which was
+/// the DatePicker row (~330pt) — leaving every card short of the window with
+/// the long hints wrapping early. Anchoring one row's ideal to the window's
+/// full content width widens the column for every row.
+private struct ScheduleHintRow: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
         Text(text)
             .font(.callout)
             .foregroundStyle(.secondary)
+            .frame(minWidth: SettingsView.preferredSize.width - 40, alignment: .leading)
     }
 }
 
