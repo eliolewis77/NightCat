@@ -60,6 +60,11 @@ final class SettingsWindowController {
             // the user drags it. Setting the name last means a saved frame wins.
             win.center()
             win.setFrameAutosaveName(frameAutosaveName)
+            // Without this, AppKit's initial key-view walk lands on a control —
+            // observed: the schedule's time picker, its hour segment selected
+            // and the Form auto-scrolled down to reveal it. Pointing the walk
+            // at the hosting view means no control owns focus until clicked.
+            win.initialFirstResponder = win.contentView
             window = win
             closeObserver = NotificationCenter.default.addObserver(
                 forName: NSWindow.willCloseNotification, object: win, queue: .main
@@ -89,6 +94,12 @@ final class SettingsWindowController {
         window?.makeFirstResponder(nil)
 
         window?.makeKeyAndOrderFront(nil)
+        // SwiftUI's Form assigns initial focus to a control of its own
+        // choosing once the window keys — observed: the schedule's time
+        // picker, hour segment selected, the form auto-scrolled to reveal it.
+        // The hosting view is the neutral first responder: no control owns
+        // focus until the user clicks one.
+        window?.makeFirstResponder(window?.contentView)
 
         if #available(macOS 14.0, *) {
             NSApplication.shared.activate()
@@ -102,6 +113,7 @@ final class SettingsWindowController {
         DispatchQueue.main.async { [weak self] in
             guard let self, let window = self.window, window.isVisible else { return }
             window.makeKeyAndOrderFront(nil)
+            window.makeFirstResponder(window.contentView)
             if #available(macOS 14.0, *) {
                 NSApplication.shared.activate()
             } else {
