@@ -86,6 +86,16 @@ struct SettingsView: View {
                 ))
             }
 
+            Section("日程") {
+                Toggle("按周计划定时开启合盖档", isOn: Binding(
+                    get: { state.scheduleEnabled },
+                    set: { state.setScheduleEnabled($0) }
+                ))
+                if state.scheduleEnabled {
+                    ScheduleRuleEditor()
+                }
+            }
+
             Section("网络") {
                 NetworkKeepAliveRow()
             }
@@ -320,5 +330,111 @@ private struct NetworkKeepAliveRow: View {
                 .padding(.vertical, 4)
             }
         }
+    }
+}
+
+/// The weekly schedule's rule editor, shown while the feature's toggle is on:
+/// weekday chips, start/end time pickers, and the caveats that change with the
+/// rule. Lives in Settings — a set-and-forget control, not a panel staple.
+private struct ScheduleRuleEditor: View {
+    @EnvironmentObject var state: AppState
+
+    private var startBinding: Binding<Date> {
+        Binding(get: { WeeklySchedule.date(fromMinute: state.schedule.startMinute) },
+                set: {
+                    var rule = state.schedule
+                    rule.startMinute = WeeklySchedule.minute(of: $0)
+                    state.setSchedule(rule)
+                })
+    }
+
+    private var endBinding: Binding<Date> {
+        Binding(get: { WeeklySchedule.date(fromMinute: state.schedule.endMinute) },
+                set: {
+                    var rule = state.schedule
+                    rule.endMinute = WeeklySchedule.minute(of: $0)
+                    state.setSchedule(rule)
+                })
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            WeekdayChips()
+            HStack(spacing: 16) {
+                DatePicker("开始", selection: startBinding, displayedComponents: .hourAndMinute)
+                DatePicker("结束", selection: endBinding, displayedComponents: .hourAndMinute)
+            }
+            if state.schedule.crossesMidnight {
+                footnote("窗口跨过午夜：从当天开始，持续到次日凌晨结束。")
+            }
+            if state.schedule.weekdayMask == 0 {
+                footnote("未选择任何星期，日程不会触发。")
+            } else if state.schedule.startMinute == state.schedule.endMinute {
+                footnote("开始与结束相同，日程不会触发。")
+            }
+            footnote("窗口开始时自动开启合盖档；窗口内手动关闭后，本窗口不再自动开启。")
+            if state.settings.autoEnableWhenCharging {
+                footnote("自动模式开启时日程暂停。")
+            }
+            if !state.helperInstalled {
+                footnote("未安装后台 Helper，日程无法自动开启合盖档。")
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func footnote(_ text: String) -> some View {
+        Text(text)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// Weekday multi-select as a row of capsule chips. macOS has no native
+/// multi-weekday picker; the capsule row fits the 420pt window on one line
+/// and echoes the panel's chip language. Order follows the locale's first
+/// weekday; each chip is one bit of `weekdayMask`.
+private struct WeekdayChips: View {
+    @EnvironmentObject var state: AppState
+
+    private let calendar = Calendar.current
+
+    /// Weekday values (1 = Sunday … 7 = Saturday) in display order.
+    private var orderedWeekdays: [Int] {
+        let first = calendar.firstWeekday
+        return (0..<7).map { (first - 1 + $0) % 7 + 1 }
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(orderedWeekdays, id: \.self) { weekday in
+                chip(weekday)
+            }
+        }
+    }
+
+    private func chip(_ weekday: Int) -> some View {
+        let selected = state.schedule.weekdayMask & WeeklySchedule.mask(forWeekday: weekday) != 0
+        return Button {
+            var rule = state.schedule
+            rule.weekdayMask ^= WeeklySchedule.mask(forWeekday: weekday)
+            state.setSchedule(rule)
+        } label: {
+            Text(calendar.veryShortWeekdaySymbols[weekday - 1])
+                .font(.callout)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule().fill(selected ? Color.accentColor.opacity(0.18) : Color.primary.opacity(0.05))
+                )
+                .overlay(
+                    Capsule().strokeBorder(selected ? Color.accentColor.opacity(0.5) : Color.primary.opacity(0.12))
+                )
+                .foregroundStyle(selected ? Color.accentColor : Color.primary.opacity(0.7))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(calendar.shortWeekdaySymbols[weekday - 1])
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
 }

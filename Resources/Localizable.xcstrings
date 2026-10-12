@@ -181,6 +181,16 @@
         }
       }
     },
+    "下次日程：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next window: %@"
+          }
+        }
+      }
+    },
     "不限" : {
       "localizations" : {
         "en" : {
@@ -841,6 +851,26 @@
         }
       }
     },
+    "开始" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        }
+      }
+    },
+    "开始与结束相同，日程不会触发。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start and end are equal; the schedule never fires."
+          }
+        }
+      }
+    },
     "当前由 %@控制。" : {
       "localizations" : {
         "en" : {
@@ -867,6 +897,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ignore"
+          }
+        }
+      }
+    },
+    "按周计划定时开启合盖档" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the lid tier on by weekly schedule"
           }
         }
       }
@@ -951,6 +991,66 @@
         }
       }
     },
+    "日程" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule"
+          }
+        }
+      }
+    },
+    "日程保持中 · %@ 结束" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled hold · ends %@"
+          }
+        }
+      }
+    },
+    "日程窗口内 · 手动控制优先" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inside schedule window · manual control first"
+          }
+        }
+      }
+    },
+    "日程窗口开始，合盖保持唤醒已开启。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule window started; lid keep-awake is on."
+          }
+        }
+      }
+    },
+    "日程窗口结束，保持唤醒已关闭。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule window ended; keep-awake is off."
+          }
+        }
+      }
+    },
+    "日程窗口结束，已自动关闭。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule window ended; turned off automatically."
+          }
+        }
+      }
+    },
     "更改未生效——系统显示保持唤醒仍处于开启。" : {
       "localizations" : {
         "en" : {
@@ -1001,6 +1101,16 @@
         }
       }
     },
+    "未安装后台 Helper，日程无法自动开启合盖档。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background Helper not installed — the schedule cannot turn on the lid tier."
+          }
+        }
+      }
+    },
     "未知错误" : {
       "localizations" : {
         "en" : {
@@ -1037,6 +1147,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No network"
+          }
+        }
+      }
+    },
+    "未选择任何星期，日程不会触发。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No weekdays selected; the schedule never fires."
           }
         }
       }
@@ -1281,6 +1401,26 @@
         }
       }
     },
+    "窗口开始时自动开启合盖档；窗口内手动关闭后，本窗口不再自动开启。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The lid tier turns on when a window starts. If you turn keep-awake off manually, it stays off until the next window."
+          }
+        }
+      }
+    },
+    "窗口跨过午夜：从当天开始，持续到次日凌晨结束。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This window crosses midnight, running from tonight into the following morning."
+          }
+        }
+      }
+    },
     "立即重启" : {
       "localizations" : {
         "en" : {
@@ -1317,6 +1457,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The system won't idle-sleep · the display may turn off"
+          }
+        }
+      }
+    },
+    "结束" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End"
           }
         }
       }
@@ -1417,6 +1567,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto mode is on, but conditions aren't met right now: %@."
+          }
+        }
+      }
+    },
+    "自动模式开启时日程暂停。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The schedule pauses while auto mode is on."
           }
         }
       }

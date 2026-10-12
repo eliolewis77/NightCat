@@ -103,6 +103,15 @@ final class AppState: ObservableObject {
     /// Human countdown (e.g. `1:05:09`) shown while a timer is active.
     @Published var autoOffRemaining = ""
 
+    /// Weekly schedule: whether it drives keep-awake at window boundaries,
+    /// and the window rule itself. Both persisted as domain state alongside
+    /// `autoOffMinutes` — not inside `SafetySettings`, whose memberwise init
+    /// and round-trip tests cover safety knobs only.
+    @Published var scheduleEnabled = false
+    @Published var schedule = WeeklySchedule.default
+    /// One-line status for the panel's schedule row, refreshed by the tick.
+    @Published var scheduleStatusText = ""
+
     /// System thermal pressure, refreshed with the battery sample. Shown in
     /// the panel's battery row so the overheat-pause has a visible cause.
     @Published var thermalState: ProcessInfo.ThermalState = .nominal
@@ -260,10 +269,22 @@ final class AppState: ObservableObject {
     /// would nag the user about a decision they just made.
     private var lastBatteryOnAC: Bool?
 
+    /// The schedule's runtime half: window edges + hold ownership. Session-
+    /// scoped except `lastHandledWindowStart`, which is persisted and restored
+    /// in `init` so a relaunch can't replay a window it already handled.
+    private var scheduleDirector = ScheduleDirector()
+    /// Mirror of the marker as last written to UserDefaults, so the write only
+    /// happens when the director's marker actually moves.
+    private var persistedHandledWindowStart: Date?
+
     init() {
         settings = store.load()
         armed = store.loadArmed()
         autoOffMinutes = store.loadAutoOffMinutes()
+        scheduleEnabled = store.loadScheduleEnabled()
+        schedule = store.loadSchedule()
+        scheduleDirector = ScheduleDirector(lastHandledWindowStart: store.loadHandledWindowStart())
+        persistedHandledWindowStart = scheduleDirector.lastHandledWindowStart
         onboardingComplete = store.loadOnboardingComplete()
         appLanguage = UserDefaults.standard.string(forKey: "AppLanguageOverride") ?? "auto"
         displayAlwaysOn = UserDefaults.standard.bool(forKey: "DisplayAlwaysOn")
@@ -915,6 +936,7 @@ final class AppState: ObservableObject {
             caffeinate.apply(mode)
             manageHeartbeat()
             updateAutoOff(for: false)
+            scheduleDirector.noteAdopted(active: false)
             AppNotifier.post(NSLocalizedString("保持唤醒被其他程序反复关闭，已停止自动恢复。", comment: "restore gave up"))
             return
         }
@@ -950,6 +972,7 @@ final class AppState: ObservableObject {
                 self.caffeinate.apply(self.mode)
                 self.manageHeartbeat()
                 self.updateAutoOff(for: false)
+                self.scheduleDirector.noteAdopted(active: false)
                 AppNotifier.post(NSLocalizedString("保持唤醒被其他程序关闭，自动恢复失败。", comment: "restore failed"))
             }
         }
@@ -995,6 +1018,11 @@ final class AppState: ObservableObject {
         sync.beginMutation()            // supersede every read and write still in flight
         manageHeartbeat()
         updateAutoOff(for: mode != .off)
+        // An adopted state wasn't written through `setEnabled`, so the
+        // schedule's ownership bookkeeping needs this side door: an observed
+        // off clears its claim (see `ScheduleDirector.noteAdopted`).
+        scheduleDirector.noteAdopted(active: enabled)
+        refreshScheduleStatus()
         // Auto mode owns the live state, so route through `reconcile()` rather
         // than the manual safety pass: adopting an outside change must be settled
         // by the same rule that set the state in the first place, or the toggle
@@ -1115,6 +1143,8 @@ final class AppState: ObservableObject {
                     self.keepAwakeStartedAt = land == .lidClosed ? Date() : nil
                     self.manageHeartbeat()
                     self.updateAutoOff(for: land != .off)
+                    self.scheduleDirector.noteWrite(origin: origin, landedActive: land != .off)
+                    self.refreshScheduleStatus()
                     // Deliberately not `hasConfirmedState`: the helper's success
                     // reply is a claim about the flag, not a reading of it.
                     self.pendingVerification = PendingVerification(target: target)
@@ -1173,6 +1203,8 @@ final class AppState: ObservableObject {
                     self.lastError = note
                     self.keepAwakeStartedAt = landingMode == .lidClosed ? Date() : nil
                     self.updateAutoOff(for: landingMode != .off)
+                    self.scheduleDirector.noteWrite(origin: origin, landedActive: landingMode != .off)
+                    self.refreshScheduleStatus()
                     self.pendingVerification = PendingVerification(target: target)
                     self.verifySetApplied(target: target)
                 }
@@ -1341,6 +1373,104 @@ final class AppState: ObservableObject {
         autoOffRemaining = AutoOff.formatCountdown(AutoOff.remaining(deadline: deadline, now: Date()))
     }
 
+    // MARK: Weekly schedule
+
+    /// One scheduling beat, folded into the 30-second tick. Window-boundary
+    /// precision is minutes, not seconds, so the shared tick is enough — and
+    /// the first beat lands ~30s after launch, clear of the launch restore's
+    /// asynchronous write (both intents say "on", but they must not race).
+    ///
+    /// Auto mode suspends the director entirely: two states deciding the same
+    /// tier would fight, exactly why the auto-off countdown is inert there.
+    private func scheduleTick() {
+        defer { refreshScheduleStatus() }
+        guard scheduleEnabled, !settings.autoEnableWhenCharging else { return }
+        let directive = scheduleDirector.tick(now: .now,
+                                              schedule: schedule,
+                                              tierActive: isActive,
+                                              autoModeOn: false)
+        persistHandledWindowStartIfNeeded()
+        switch directive {
+        case .none:
+            break
+        case .enableLid:
+            // Without the helper the write falls through to an admin password
+            // prompt — pointless with nobody at the machine, which is exactly
+            // when a schedule runs. The edge stays recorded; the window stays
+            // dark until the next one.
+            guard helperInstalled else { break }
+            setMode(.lidClosed, origin: .schedule)
+            AppNotifier.post(NSLocalizedString("日程窗口开始，合盖保持唤醒已开启。",
+                                              comment: "schedule enable"))
+        case .disableLid:
+            guard mode == .lidClosed else { break }
+            setMode(.off,
+                    note: NSLocalizedString("日程窗口结束，已自动关闭。", comment: "schedule end"),
+                    origin: .schedule)
+            AppNotifier.post(NSLocalizedString("日程窗口结束，保持唤醒已关闭。",
+                                              comment: "schedule end"))
+        }
+    }
+
+    private func persistHandledWindowStartIfNeeded() {
+        guard scheduleDirector.lastHandledWindowStart != persistedHandledWindowStart else { return }
+        persistedHandledWindowStart = scheduleDirector.lastHandledWindowStart
+        store.saveHandledWindowStart(persistedHandledWindowStart)
+    }
+
+    /// The panel's schedule row, in three states: holding inside the window
+    /// (ours), inside the window (someone else's hold), or waiting for the
+    /// next one. Empty while the feature is off or auto mode owns the state.
+    private func refreshScheduleStatus() {
+        guard scheduleEnabled, !settings.autoEnableWhenCharging else {
+            scheduleStatusText = ""
+            return
+        }
+        let now = Date()
+        if schedule.contains(now) {
+            if scheduleDirector.ownsActivation {
+                let end = WeeklySchedule.date(fromMinute: schedule.endMinute)
+                scheduleStatusText = String(
+                    format: NSLocalizedString("日程保持中 · %@ 结束", comment: "schedule row; end time"),
+                    end.formatted(date: .omitted, time: .shortened))
+            } else {
+                scheduleStatusText = NSLocalizedString("日程窗口内 · 手动控制优先",
+                                                       comment: "schedule row; a manual hold wins")
+            }
+        } else if let next = schedule.nextStart(after: now) {
+            scheduleStatusText = String(
+                format: NSLocalizedString("下次日程：%@", comment: "schedule row; next window"),
+                next.formatted(.dateTime.weekday(.abbreviated).hour().minute()))
+        } else {
+            scheduleStatusText = ""
+        }
+    }
+
+    /// The schedule's switch. Turning it on evaluates immediately — enabling
+    /// mid-window *is* the request; turning it off only gives up any hold
+    /// claim, it never touches the running tier.
+    func setScheduleEnabled(_ on: Bool) {
+        guard on != scheduleEnabled else { return }
+        scheduleEnabled = on
+        store.saveScheduleEnabled(on)
+        if on {
+            scheduleTick()
+        } else {
+            scheduleDirector.relinquish()
+            refreshScheduleStatus()
+        }
+    }
+
+    /// A new window rule. Evaluated right away, so the panel's schedule row
+    /// and the tier agree with what the user just set rather than a beat later.
+    func setSchedule(_ newSchedule: WeeklySchedule) {
+        let clean = newSchedule.sanitized
+        guard clean != schedule else { return }
+        schedule = clean
+        store.saveSchedule(clean)
+        if scheduleEnabled { scheduleTick() }
+    }
+
     // MARK: Battery + safety guard
 
     func tick() {
@@ -1363,6 +1493,7 @@ final class AppState: ObservableObject {
             refreshBattery()
             evaluateSafety()
         }
+        scheduleTick()
         updateThermalNotification()
         refreshKeepAwakeDuration()
         updatePurchaseNudge()

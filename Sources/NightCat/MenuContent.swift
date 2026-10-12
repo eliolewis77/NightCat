@@ -44,6 +44,8 @@ struct MenuContent: View {
 
             TimerSection()
 
+            ScheduleStatusRow()
+
             Divider()
                 .padding(.horizontal, hInset)
                 .padding(.top, 13)
@@ -590,6 +592,29 @@ private struct FlowLayout: Layout {
             width = max(width, x - spacing)
         }
         return (frames, CGSize(width: width, height: y + rowHeight))
+    }
+}
+
+// MARK: - Schedule status
+
+/// The weekly schedule's one-line status: holding / inside the window /
+/// waiting for the next one. It lives with the timer section — both answer
+/// "what does the app plan to do with the tier" — not with the about-this-Mac
+/// rows below the divider. Hidden unless the feature is on and has something
+/// to say.
+private struct ScheduleStatusRow: View {
+    @EnvironmentObject var state: AppState
+
+    var body: some View {
+        if state.scheduleEnabled,
+           !state.settings.autoEnableWhenCharging,
+           !state.scheduleStatusText.isEmpty {
+            Label(state.scheduleStatusText, systemImage: "calendar.badge.clock")
+                .font(PanelFont.footnote)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, hInset)
+                .padding(.top, 8)
+        }
     }
 }
 
