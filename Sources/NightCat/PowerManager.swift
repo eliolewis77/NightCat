@@ -20,8 +20,15 @@ struct PowerManager {
     /// Reading needs no privileges, so this is the app's read path whether or not
     /// the helper is installed; the helper is only needed to *change* the flag.
     func isSleepDisabled() -> Bool? {
-        guard let out = Shell.capture("/usr/bin/pmset", ["-g"]) else { return nil }
-        return PowerParsers.sleepDisabled(pmsetG: out)
+        readPowerState().observed
+    }
+
+    /// One `pmset -g` reading: the flag plus the raw output — the output also
+    /// carries the repeating-power-events section the wake-belief
+    /// reconciliation checks, so one spawn serves both readers.
+    func readPowerState() -> (observed: Bool?, schedOutput: String) {
+        let out = Shell.capture("/usr/bin/pmset", ["-g"]) ?? ""
+        return (PowerParsers.sleepDisabled(pmsetG: out), out)
     }
 
     /// Set or clear the flag. Calls `completion` exactly once with the

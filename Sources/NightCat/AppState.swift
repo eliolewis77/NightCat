@@ -896,7 +896,26 @@ final class AppState: ObservableObject {
     /// by routing it through root — and an unknown stays an unknown.
     func refreshState() {
         let token = sync.beginRead()
-        applyObserved(power.isSleepDisabled(), token)
+        let reading = power.readPowerState()
+        reconcileWakeBelief(with: reading.schedOutput)
+        applyObserved(reading.observed, token)
+    }
+
+    /// The 30-second `pmset -g` poll doubles as the wake event's reality
+    /// check: if the event we believe is armed has vanished (a manual
+    /// `pmset repeat cancel`, NVRAM reset, another tool's overwrite), forget
+    /// the belief so the next schedule change re-arms — and re-arm right now
+    /// when the helper can do it silently. A tick must never surface the
+    /// admin-prompt fallback, so with no capable helper the divergence is
+    /// left for the next user action to heal.
+    private func reconcileWakeBelief(with schedOutput: String) {
+        guard believedWakeState != nil else { return }
+        guard !RepeatingWake.isArmed(inSchedOutput: schedOutput) else { return }
+        believedWakeState = nil
+        store.saveBelievedWakeState(nil)
+        if wakeCapability == .supported {
+            syncRepeatingWake()
+        }
     }
 
     private func applyObserved(_ observed: Bool?, _ token: StateSync.ReadToken) {
@@ -1534,11 +1553,11 @@ final class AppState: ObservableObject {
         let decision = RepeatingWake.decision(enabled: scheduleEnabled,
                                               autoModeOn: settings.autoEnableWhenCharging,
                                               schedule: schedule)
-        // Nothing was ever armed by us — this session or a previous one. A
+        // Nothing believed armed (never armed, or the poll saw it gone): a
         // .cancel would be a no-op write at best, and via the fallback an
-        // admin prompt for it: never worth it. (Also keeps helper (re)install
+        // admin prompt for it — never worth it. (Also keeps helper (re)install
         // transitions from wiping repeating events the user set themselves.)
-        if case .cancel = decision, lastAttemptedWake == nil, believedWakeState == nil {
+        if case .cancel = decision, believedWakeState == nil {
             return
         }
         // Whatever is in flight may no longer match the latest state — even a
@@ -1584,7 +1603,10 @@ final class AppState: ObservableObject {
     }
 
     private func writeWake(_ decision: RepeatingWake.Decision) {
-        lastAttemptedWake = decision
+        // Only register attempts are recorded: a cancelled or failed cancel
+        // must stay retryable — a stale armed event is the dangerous
+        // direction, and the next toggle-off should prompt again.
+        if case .register = decision { lastAttemptedWake = decision }
         let params = wakeParameters(for: decision)
         helper.setRepeatingWake(params.mask, minutes: params.minutes, enabled: params.enabled) { [weak self] ok, err in
             guard let self else { return }
@@ -1610,7 +1632,7 @@ final class AppState: ObservableObject {
     }
 
     private func writeWakeFallback(_ decision: RepeatingWake.Decision) {
-        lastAttemptedWake = decision
+        if case .register = decision { lastAttemptedWake = decision }
         let params = wakeParameters(for: decision)
         power.setRepeatingWake(weekdayMask: params.mask, minutes: params.minutes, enabled: params.enabled) { [weak self] error in
             let message = error?.localizedDescription
