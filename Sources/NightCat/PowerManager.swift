@@ -1,4 +1,5 @@
 import Foundation
+import IOKit
 
 /// Controls the macOS `SleepDisabled` flag (IOPMrootDomain).
 ///
@@ -23,11 +24,25 @@ struct PowerManager {
         readPowerState().observed
     }
 
-    /// Whether the lid is closed, from the IOPMrootDomain clamshell key.
+    /// Whether the lid is closed, read in-process from IOPMrootDomain's
+    /// `AppleClamshellState` property — microseconds, no `ioreg` spawn, so
+    /// callers can poll it on a fast cadence while waiting for a lid close.
     /// nil when the machine has no lid (desktops) or the read failed.
     func isLidClosed() -> Bool? {
-        guard let out = Shell.capture("/usr/sbin/ioreg", ["-r", "-k", "AppleClamshellState"]) else { return nil }
-        return PowerParsers.isLidClosed(ioregOutput: out)
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMrootDomain"))
+        guard service != 0 else { return nil }
+        defer { IOObjectRelease(service) }
+        guard let raw = IORegistryEntryCreateCFProperty(service,
+                                                        "AppleClamshellState" as CFString,
+                                                        kCFAllocatorDefault, 0)?
+            .takeRetainedValue()
+        else { return nil }
+        // CFBoolean is a two-value singleton type, so pointer equality with
+        // its constants is the check.
+        let flag = raw as! CFBoolean
+        if flag == kCFBooleanTrue { return true }
+        if flag == kCFBooleanFalse { return false }
+        return nil
     }
 
     /// One `pmset -g` reading: the flag plus the raw output — the output also

@@ -273,6 +273,10 @@ final class AppState: ObservableObject {
     /// waking the display afterwards stays lit (that's the user's choice),
     /// and reopening the lid or dropping the tier re-arms it.
     private var displaySleepServedForLidClose = false
+    /// Fast lid-state poll (2s) while the lid tier holds and the close hasn't
+    /// been served yet. Uses an in-process IOKit property read; stopped once
+    /// the close is served or the tier drops.
+    private var lidPollTimer: Timer?
 
     /// The schedule's runtime half: window edges + hold ownership. Session-
     /// scoped except `lastHandledWindowStart`, which is persisted and restored
@@ -1691,26 +1695,47 @@ final class AppState: ObservableObject {
 
     /// `disablesleep` suppresses the lid-close path that normally turns the
     /// internal display off, so a Mac running the lid tier keeps its panel lit
-    /// indefinitely. When the tier holds and the lid is closed, ask the
-    /// display to sleep once per lid-close: the system keeps running (that's
-    /// the tier's job) while the panel goes dark. Edge-triggered — a remote
-    /// session that wakes the display afterwards keeps it lit deliberately,
-    /// and reopening the lid or dropping the tier re-arms for the next close.
+    /// indefinitely. While the tier holds, poll the lid on a fast cadence —
+    /// an in-process IOKit property read, cheap enough for seconds — and ask
+    /// the display to sleep the moment the lid closes, so closing reads as
+    /// instantly as it does without the tier. One sleep per close: a remote
+    /// session that wakes the panel afterwards keeps it lit deliberately.
     /// 「保持屏幕常亮」 is the user explicitly asking for a lit panel; it wins.
-    private func checkLidForDisplaySleep() {
+    private func updateLidDisplaySleepPolling() {
+        let lidPollInterval: TimeInterval = 2
         guard mode == .lidClosed, !displayAlwaysOn else {
+            stopLidPolling()
             displaySleepServedForLidClose = false
             return
         }
-        guard let lidClosed = power.isLidClosed() else { return }   // desktops: no lid
-        if lidClosed {
-            if !displaySleepServedForLidClose {
-                displaySleepServedForLidClose = true
-                Shell.capture("/usr/bin/pmset", ["displaysleepnow"])
-            }
-        } else {
-            displaySleepServedForLidClose = false
+        if displaySleepServedForLidClose {
+            // Served for this close. Nothing to poll; the 30-second tick
+            // re-reads the lid and re-arms once it's open again.
+            stopLidPolling()
+            return
         }
+        guard let lidClosed = power.isLidClosed() else {
+            // No lid (desktop) or unreadable: nothing to watch for.
+            stopLidPolling()
+            return
+        }
+        if lidClosed {
+            displaySleepServedForLidClose = true
+            Shell.capture("/usr/bin/pmset", ["displaysleepnow"])
+            stopLidPolling()
+            return
+        }
+        // Lid open, tier on, waiting for the close — keep the fast cadence.
+        if lidPollTimer == nil {
+            lidPollTimer = Timer.scheduledTimer(withTimeInterval: lidPollInterval, repeats: true) { [weak self] _ in
+                Task { @MainActor in self?.updateLidDisplaySleepPolling() }
+            }
+        }
+    }
+
+    private func stopLidPolling() {
+        lidPollTimer?.invalidate()
+        lidPollTimer = nil
     }
 
     // MARK: Battery + safety guard
@@ -1736,7 +1761,7 @@ final class AppState: ObservableObject {
             evaluateSafety()
         }
         scheduleTick()
-        checkLidForDisplaySleep()
+        updateLidDisplaySleepPolling()
         updateThermalNotification()
         refreshKeepAwakeDuration()
         updatePurchaseNudge()

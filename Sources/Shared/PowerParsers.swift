@@ -33,26 +33,6 @@ public enum PowerParsers {
         sleepDisabled(pmsetG: output) ?? false
     }
 
-    /// Lid state from `ioreg -r -k AppleClamshellState`. The relevant line
-    /// looks like: ` |   "AppleClamshellState" = No` — note the tree-drawing
-    /// pipe that survives any whitespace trimming, so the match is by
-    /// substring, not prefix.
-    ///
-    /// Returns true closed, false open, nil when the machine states no lid
-    /// (desktops have no such key) or the output doesn't state it. The match
-    /// string includes both quotes so `AppleClamshellCausesSleep` — a
-    /// different key with a shared prefix — can never match.
-    public static func isLidClosed(ioregOutput output: String) -> Bool? {
-        for raw in output.split(separator: "\n") {
-            let line = String(raw).trimmingCharacters(in: .whitespaces)
-            guard line.contains("\"AppleClamshellState\" =") else { continue }
-            if line.hasSuffix("Yes") { return true }
-            if line.hasSuffix("No") { return false }
-            return nil
-        }
-        return nil
-    }
-
     // MARK: Sleep-preventing assertion holders (`pmset -g assertions`)
 
     /// Assertion types that stop the system from sleeping on its own. Only an
