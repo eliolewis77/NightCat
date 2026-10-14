@@ -62,6 +62,35 @@ final class SharedLogicTests: XCTestCase {
         XCTAssertTrue(PowerParsers.isSleepDisabled(pmsetG: " SleepDisabled        1"))
     }
 
+    // MARK: PowerParsers.isLidClosed
+
+    func testLidClosedReadsClamshellState() {
+        let open = """
+        +-o IOPMrootDomain  <class IOPMrootDomain, id 0x10000027f, registered, matched, active, busy 0>
+          |   "AppleClamshellCausesSleep" = Yes
+          |   "AppleClamshellState" = No
+        """
+        XCTAssertEqual(PowerParsers.isLidClosed(ioregOutput: open), false)
+    }
+
+    func testLidOpenDetectionIgnoresTheCausesSleepSibling() {
+        let closed = """
+        +-o IOPMrootDomain  <class IOPMrootDomain, id 0x10000027f, registered, matched, active, busy 0>
+          |   "AppleClamshellCausesSleep" = Yes
+          |   "AppleClamshellState" = Yes
+        """
+        XCTAssertEqual(PowerParsers.isLidClosed(ioregOutput: closed), true)
+    }
+
+    func testLidStateUnknownWithoutTheKey() {
+        // Desktops: no clamshell key at all — nil, never a guessed lid.
+        XCTAssertNil(PowerParsers.isLidClosed(ioregOutput: ""))
+        let causesSleepOnly = "\"AppleClamshellCausesSleep\" = Yes"
+        XCTAssertNil(PowerParsers.isLidClosed(ioregOutput: causesSleepOnly))
+        let malformed = "\"AppleClamshellState\" = banana"
+        XCTAssertNil(PowerParsers.isLidClosed(ioregOutput: malformed))
+    }
+
     // MARK: BatteryParsers
 
     func testBatteryOnAC() {

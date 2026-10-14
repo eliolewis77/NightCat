@@ -23,6 +23,13 @@ struct PowerManager {
         readPowerState().observed
     }
 
+    /// Whether the lid is closed, from the IOPMrootDomain clamshell key.
+    /// nil when the machine has no lid (desktops) or the read failed.
+    func isLidClosed() -> Bool? {
+        guard let out = Shell.capture("/usr/sbin/ioreg", ["-r", "-k", "AppleClamshellState"]) else { return nil }
+        return PowerParsers.isLidClosed(ioregOutput: out)
+    }
+
     /// One `pmset -g` reading: the flag plus the raw output — the output also
     /// carries the repeating-power-events section the wake-belief
     /// reconciliation checks, so one spawn serves both readers.

@@ -268,6 +268,11 @@ final class AppState: ObservableObject {
     /// tier. Level-triggered checks can't: re-asking every 30-second tick
     /// would nag the user about a decision they just made.
     private var lastBatteryOnAC: Bool?
+    /// Whether the display has already been put to sleep for the current
+    /// lid-close under the lid tier — edge-triggered, so a remote session
+    /// waking the display afterwards stays lit (that's the user's choice),
+    /// and reopening the lid or dropping the tier re-arms it.
+    private var displaySleepServedForLidClose = false
 
     /// The schedule's runtime half: window edges + hold ownership. Session-
     /// scoped except `lastHandledWindowStart`, which is persisted and restored
@@ -1682,6 +1687,32 @@ final class AppState: ObservableObject {
         }
     }
 
+    // MARK: Display sleep on closed lid
+
+    /// `disablesleep` suppresses the lid-close path that normally turns the
+    /// internal display off, so a Mac running the lid tier keeps its panel lit
+    /// indefinitely. When the tier holds and the lid is closed, ask the
+    /// display to sleep once per lid-close: the system keeps running (that's
+    /// the tier's job) while the panel goes dark. Edge-triggered — a remote
+    /// session that wakes the display afterwards keeps it lit deliberately,
+    /// and reopening the lid or dropping the tier re-arms for the next close.
+    /// 「保持屏幕常亮」 is the user explicitly asking for a lit panel; it wins.
+    private func checkLidForDisplaySleep() {
+        guard mode == .lidClosed, !displayAlwaysOn else {
+            displaySleepServedForLidClose = false
+            return
+        }
+        guard let lidClosed = power.isLidClosed() else { return }   // desktops: no lid
+        if lidClosed {
+            if !displaySleepServedForLidClose {
+                displaySleepServedForLidClose = true
+                Shell.capture("/usr/bin/pmset", ["displaysleepnow"])
+            }
+        } else {
+            displaySleepServedForLidClose = false
+        }
+    }
+
     // MARK: Battery + safety guard
 
     func tick() {
@@ -1705,6 +1736,7 @@ final class AppState: ObservableObject {
             evaluateSafety()
         }
         scheduleTick()
+        checkLidForDisplaySleep()
         updateThermalNotification()
         refreshKeepAwakeDuration()
         updatePurchaseNudge()
