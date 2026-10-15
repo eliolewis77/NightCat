@@ -44,6 +44,8 @@ struct MenuContent: View {
 
             TimerSection()
 
+            DisplayAlwaysOnRow()
+
             ScheduleStatusRow()
 
             Divider()
@@ -594,6 +596,38 @@ private struct FlowLayout: Layout {
         }
         return (frames, CGSize(width: width, height: y + rowHeight))
     }
+}
+
+// MARK: - Display always-on
+
+/// 「屏幕常亮」:独立于档位的面板常亮开关(`caffeinate -d`),演示、
+/// 展示类场景用。开启时合盖熄屏策略让位——用户明确要亮屏。
+private struct DisplayAlwaysOnRow: View {
+    @EnvironmentObject var state: AppState
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Image(systemName: "sun.max.fill")
+                .font(PanelFont.micro)
+                .foregroundStyle(warmAmber(colorScheme))
+                .accessibilityHidden(true)
+            Text("屏幕常亮")
+                .font(PanelFont.footnote)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            Toggle("", isOn: Binding(
+                get: { state.displayAlwaysOn },
+                set: { state.displayAlwaysOn = $0 }
+            ))
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+            .labelsHidden()
+            .accessibilityLabel(Text("屏幕常亮"))
+        }
+        .padding(.horizontal, hInset)
+        .padding(.top, 10)
+    }
+    @Environment(\.colorScheme) private var colorScheme
 }
 
 // MARK: - Schedule status

@@ -133,6 +133,19 @@ final class AppState: ObservableObject {
     /// Whether the user has finished first-run onboarding (persisted).
     @Published var onboardingComplete = false
 
+    /// Independent display keep-awake: on means a `caffeinate -d` assertion
+    /// lives in every tier, orthogonal to the mode switches. Persisted. The
+    /// control lives in the panel (面板常亮行); while it's on, the lid-closed
+    /// display sleep policy stands down — the user is explicitly asking for
+    /// a lit panel.
+    @Published var displayAlwaysOn: Bool {
+        didSet {
+            guard displayAlwaysOn != oldValue else { return }
+            UserDefaults.standard.set(displayAlwaysOn, forKey: "DisplayAlwaysOn")
+            caffeinate.setDisplayAlwaysOn(displayAlwaysOn)
+        }
+    }
+
     /// Buyer email once a Gumroad license key has been verified, else `nil`.
     /// Cached locally after the first online activation; background
     /// re-verification only *removes* it on an explicit revoked verdict —
@@ -327,6 +340,8 @@ final class AppState: ObservableObject {
         lidDisplaySleepGraceMinutes = store.loadLidDisplaySleepGraceMinutes()
         onboardingComplete = store.loadOnboardingComplete()
         appLanguage = UserDefaults.standard.string(forKey: "AppLanguageOverride") ?? "auto"
+        displayAlwaysOn = UserDefaults.standard.bool(forKey: "DisplayAlwaysOn")
+        if displayAlwaysOn { caffeinate.setDisplayAlwaysOn(true) }
         licensedEmail = store.loadLicensedEmail()
         // Quiet background re-verification of the cached license; tolerance
         // for network failure is the point — an offline launch keeps working.
@@ -1706,7 +1721,7 @@ final class AppState: ObservableObject {
     /// instantly as it does without the tier. One sleep per close: a remote
     /// session that wakes the panel afterwards keeps it lit deliberately.
     private func updateLidDisplaySleepPolling() {
-        guard mode == .lidClosed else {
+        guard mode == .lidClosed, !displayAlwaysOn else {
             power.setDisplayWakeAssertion(false)
             stopLidPolling()
             displaySleepServedForLidClose = false
@@ -1754,7 +1769,7 @@ final class AppState: ObservableObject {
     /// `pmset displaysleepnow` on an already-dark panel is a harmless no-op,
     /// and the crossed flag keeps the poll from re-firing it every 30 s.
     private func checkLidDisplaySleepInactivity() {
-        guard mode == .lidClosed, displaySleepServedForLidClose else {
+        guard mode == .lidClosed, !displayAlwaysOn, displaySleepServedForLidClose else {
             displayIdleCrossedGrace = false
             return
         }
