@@ -1419,10 +1419,6 @@ final class AppState: ObservableObject {
         // Auto mode manages activation on its own; a countdown would disarm the
         // feature out from under it, so auto-off is inert while auto mode is on.
         guard isActive, autoOffMinutes > 0, !settings.autoEnableWhenCharging else { return }
-        // The batch-run helper (SPEC §6): only reached once the timer is
-        // genuinely armed (past the guard above), so a refused or auto-mode
-        // arming never locks anything.
-        if settings.autoLockOnTimerStart { isModeLocked = true }
         let deadline = AutoOff.deadline(from: Date(), minutes: autoOffMinutes)
         autoOffDeadline = deadline
         refreshAutoOffRemaining()

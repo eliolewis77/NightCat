@@ -20,11 +20,6 @@ public struct SafetySettings: Equatable {
     /// When true, keep-awake automatically (re-)activates while the Mac is on
     /// external power and every enabled safety check passes. See `AutoEnablePolicy`.
     public var autoEnableWhenCharging: Bool
-    /// When true, a genuinely-armed auto-off timer also locks the current mode
-    /// (SPEC §6's batch-run helper: a countdown running means something is
-    /// mid-run, so pin the tier against stray clicks). The lock itself stays
-    /// session-only — this only automates setting it.
-    public var autoLockOnTimerStart: Bool
     /// When true, the app turns the Lid tier on by itself at launch — so a Mac
     /// that rebooted with the lid closed (auto-update, remote restart) is
     /// reachable again instead of sitting on Off until someone opens the lid.
@@ -45,7 +40,6 @@ public struct SafetySettings: Equatable {
         onlyWhileCharging: false,
         thermalPolicy: .pause,
         autoEnableWhenCharging: false,
-        autoLockOnTimerStart: false,
         restoreLidTierOnLaunch: false
     )
 
@@ -53,7 +47,6 @@ public struct SafetySettings: Equatable {
                 onlyWhileCharging: Bool,
                 thermalPolicy: ThermalPolicy,
                 autoEnableWhenCharging: Bool = false,
-                autoLockOnTimerStart: Bool = false,
                 restoreLidTierOnLaunch: Bool = false,
                 networkKeepAliveEnabled: Bool = false,
                 networkKeepAliveIntervalMinutes: Int = NetworkKeepAlivePolicy.defaultMinutes) {
@@ -61,7 +54,6 @@ public struct SafetySettings: Equatable {
         self.onlyWhileCharging = onlyWhileCharging
         self.thermalPolicy = thermalPolicy
         self.autoEnableWhenCharging = autoEnableWhenCharging
-        self.autoLockOnTimerStart = autoLockOnTimerStart
         self.restoreLidTierOnLaunch = restoreLidTierOnLaunch
         self.networkKeepAliveEnabled = networkKeepAliveEnabled
         self.networkKeepAliveIntervalMinutes = networkKeepAliveIntervalMinutes

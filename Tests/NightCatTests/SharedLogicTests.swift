@@ -233,31 +233,6 @@ final class SharedLogicTests: XCTestCase {
         XCTAssertTrue(SettingsStore(defaults: defaults).loadOnboardingComplete())
     }
 
-    // MARK: SettingsStore autoLockOnTimerStart
-
-    /// An install from before the setting existed has `settingsSeeded` set but
-    /// no `autoLockOnTimerStart` key; loading must fall back to off (the lock
-    /// is opt-in), never to a zero-initialised `true`-adjacent default.
-    func testAutoLockSettingFallsBackToFalseForOldInstalls() {
-        let suite = "lidless.test.autolck.old"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
-        defaults.set(true, forKey: "settingsSeeded")   // seeded before the key existed
-        let store = SettingsStore(defaults: defaults)
-        XCTAssertFalse(store.load().autoLockOnTimerStart)
-    }
-
-    func testAutoLockSettingRoundTrips() {
-        let suite = "lidless.test.autolck.roundtrip"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
-        var settings = SafetySettings.default
-        settings.autoLockOnTimerStart = true
-        SettingsStore(defaults: defaults).save(settings)
-        XCTAssertTrue(SettingsStore(defaults: defaults).load().autoLockOnTimerStart)
-        XCTAssertEqual(SettingsStore(defaults: defaults).load(), settings)
-    }
-
     // MARK: SettingsStore license cache
 
     func testLicenseDefaultsToAbsent() {

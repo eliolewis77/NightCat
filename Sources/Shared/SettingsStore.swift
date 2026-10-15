@@ -12,7 +12,6 @@ public struct SettingsStore {
         static let thermalPolicy = "thermalPolicy"
         static let restoreLid  = "restoreLidTierOnLaunch"
         static let autoEnable   = "autoEnableWhenCharging"
-        static let autoLock     = "autoLockOnTimerStart"
         static let armed        = "keepAwakeArmed"
         static let seeded       = "settingsSeeded"
         static let autoOff      = "autoOffMinutes"
@@ -39,7 +38,7 @@ public struct SettingsStore {
     public func load() -> SafetySettings {
         guard defaults.bool(forKey: Key.seeded) else { return .default }
         // `bool(forKey:)` is false when the key is absent, so an install from
-        // before `autoLockOnTimerStart` existed falls back to off on its own.
+        // before a boolean setting existed falls back to off on its own.
         // Thermal policy: read the new enum key; fall back to a one-shot
         // migration from the old boolean (absent → default). The old key is
         // left in place and simply stops being consulted once the new one
@@ -57,7 +56,6 @@ public struct SettingsStore {
             onlyWhileCharging: defaults.bool(forKey: Key.onlyCharging),
             thermalPolicy: thermal,
             autoEnableWhenCharging: defaults.bool(forKey: Key.autoEnable),
-            autoLockOnTimerStart: defaults.bool(forKey: Key.autoLock),
             restoreLidTierOnLaunch: defaults.bool(forKey: Key.restoreLid),
             networkKeepAliveEnabled: defaults.bool(forKey: Key.keepAliveEnabled),
             // Absent key reads as 0, which `clampedMinutes` folds back to the
@@ -73,7 +71,6 @@ public struct SettingsStore {
         defaults.set(settings.thermalPolicy.rawValue, forKey: Key.thermalPolicy)
         defaults.set(settings.restoreLidTierOnLaunch, forKey: Key.restoreLid)
         defaults.set(settings.autoEnableWhenCharging, forKey: Key.autoEnable)
-        defaults.set(settings.autoLockOnTimerStart, forKey: Key.autoLock)
         defaults.set(settings.networkKeepAliveEnabled, forKey: Key.keepAliveEnabled)
         defaults.set(settings.networkKeepAliveIntervalMinutes, forKey: Key.keepAliveMinutes)
         defaults.set(true, forKey: Key.seeded)

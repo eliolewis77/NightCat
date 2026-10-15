@@ -24,10 +24,6 @@ struct SettingsView: View {
                     get: { state.launchAtLogin },
                     set: { state.setLaunchAtLogin($0) }
                 ))
-                Toggle("定时开始时锁定档位", isOn: Binding(
-                    get: { state.settings.autoLockOnTimerStart },
-                    set: { v in var s = state.settings; s.autoLockOnTimerStart = v; state.updateSettings(s) }
-                ))
                 Picker("语言", selection: Binding(
                     get: { state.appLanguage },
                     set: { code in

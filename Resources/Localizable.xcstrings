@@ -671,16 +671,6 @@
         }
       }
     },
-    "定时开始时锁定档位" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lock the tier when a timer starts"
-          }
-        }
-      }
-    },
     "屏幕保持点亮 · 系统仍可睡眠" : {
       "localizations" : {
         "en" : {
