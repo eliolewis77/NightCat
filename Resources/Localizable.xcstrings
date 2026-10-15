@@ -291,16 +291,6 @@
         }
       }
     },
-    "保持屏幕常亮" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep the display awake"
-          }
-        }
-      }
-    },
     "保活中" : {
       "localizations" : {
         "en" : {
@@ -677,16 +667,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Display stays lit · the system may still sleep"
-          }
-        }
-      }
-    },
-    "屏幕常亮" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Display always on"
           }
         }
       }
