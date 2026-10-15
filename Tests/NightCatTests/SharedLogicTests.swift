@@ -151,41 +151,29 @@ final class SharedLogicTests: XCTestCase {
     /// keep-awake on. Before, it only armed a countdown for a switch the user
     /// still had to find and flip themselves.
     func testRequestEnablesKeepAwakeWhenNoTierIsActive() {
-        XCTAssertEqual(AutoOff.request(minutes: 15, anyTierActive: false, autoModeOn: false),
+        XCTAssertEqual(AutoOff.request(minutes: 15, anyTierActive: false),
                        .enableThenArmTimer(minutes: 15))
     }
 
     /// Any tier counts: the gesture extends whatever is running, not just the
     /// lid tier the old `isEnabled` flag described.
     func testRequestJustArmsTimerWhenAnyTierIsActive() {
-        XCTAssertEqual(AutoOff.request(minutes: 30, anyTierActive: true, autoModeOn: false),
+        XCTAssertEqual(AutoOff.request(minutes: 30, anyTierActive: true),
                        .armTimer(minutes: 30))
     }
 
     /// "No limit" removes the countdown. It must not also turn every tier off —
     /// that's a different request, and the mode picker already expresses it.
     func testRequestForNoLimitCancelsTimerWithoutDisabling() {
-        XCTAssertEqual(AutoOff.request(minutes: 0, anyTierActive: true, autoModeOn: false),
+        XCTAssertEqual(AutoOff.request(minutes: 0, anyTierActive: true),
                        .cancelTimer)
-        XCTAssertEqual(AutoOff.request(minutes: 0, anyTierActive: false, autoModeOn: false),
+        XCTAssertEqual(AutoOff.request(minutes: 0, anyTierActive: false),
                        .cancelTimer)
-    }
-
-    /// Auto mode owns activation; a countdown there would disarm the feature
-    /// behind its back. Nothing happens, including no persisted change.
-    func testRequestIsIgnoredInAutoModeWhateverElseIsTrue() {
-        for minutes in [0, 15, 240] {
-            for active in [true, false] {
-                XCTAssertEqual(AutoOff.request(minutes: minutes, anyTierActive: active, autoModeOn: true),
-                               .ignoredInAutoMode,
-                               "minutes=\(minutes) active=\(active)")
-            }
-        }
     }
 
     func testRequestCoversEveryPreset() {
         for minutes in AutoOff.presetMinutes {
-            XCTAssertEqual(AutoOff.request(minutes: minutes, anyTierActive: false, autoModeOn: false),
+            XCTAssertEqual(AutoOff.request(minutes: minutes, anyTierActive: false),
                            .enableThenArmTimer(minutes: minutes))
         }
     }

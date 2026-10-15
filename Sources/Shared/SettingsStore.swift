@@ -11,8 +11,6 @@ public struct SettingsStore {
         static let pauseThermal = "pauseOnHighThermal"
         static let thermalPolicy = "thermalPolicy"
         static let restoreLid  = "restoreLidTierOnLaunch"
-        static let autoEnable   = "autoEnableWhenCharging"
-        static let armed        = "keepAwakeArmed"
         static let seeded       = "settingsSeeded"
         static let autoOff      = "autoOffMinutes"
         static let onboarded    = "onboardingComplete"
@@ -55,7 +53,6 @@ public struct SettingsStore {
             lowBatteryThreshold: defaults.integer(forKey: Key.lowBattery),
             onlyWhileCharging: defaults.bool(forKey: Key.onlyCharging),
             thermalPolicy: thermal,
-            autoEnableWhenCharging: defaults.bool(forKey: Key.autoEnable),
             restoreLidTierOnLaunch: defaults.bool(forKey: Key.restoreLid),
             networkKeepAliveEnabled: defaults.bool(forKey: Key.keepAliveEnabled),
             // Absent key reads as 0, which `clampedMinutes` folds back to the
@@ -70,20 +67,9 @@ public struct SettingsStore {
         defaults.set(settings.onlyWhileCharging, forKey: Key.onlyCharging)
         defaults.set(settings.thermalPolicy.rawValue, forKey: Key.thermalPolicy)
         defaults.set(settings.restoreLidTierOnLaunch, forKey: Key.restoreLid)
-        defaults.set(settings.autoEnableWhenCharging, forKey: Key.autoEnable)
         defaults.set(settings.networkKeepAliveEnabled, forKey: Key.keepAliveEnabled)
         defaults.set(settings.networkKeepAliveIntervalMinutes, forKey: Key.keepAliveMinutes)
         defaults.set(true, forKey: Key.seeded)
-    }
-
-    /// The master-toggle intent in auto mode: whether the user wants keep-awake
-    /// armed (the live state is then gated by power + safety). Defaults to false.
-    public func loadArmed() -> Bool {
-        defaults.bool(forKey: Key.armed)
-    }
-
-    public func saveArmed(_ armed: Bool) {
-        defaults.set(armed, forKey: Key.armed)
     }
 
     /// Auto-off duration in minutes (`0` = no auto-off). Defaults to 0.

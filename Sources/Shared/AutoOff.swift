@@ -15,11 +15,6 @@ public enum AutoOff {
     /// asking them to do the app's bookkeeping. So choosing a duration turns
     /// keep-awake on (at the lid tier) if no tier is active.
     public enum Request: Equatable {
-        /// Auto mode decides activation from power and safety; a countdown would
-        /// disarm the feature out from under it, so the control does nothing
-        /// while that's on. (The UI disables it and says why rather than letting
-        /// it look live.)
-        case ignoredInAutoMode
         /// "No limit" — drop any countdown. Deliberately does *not* turn every
         /// tier off: removing the time limit is not the same request as
         /// stopping, and the mode picker is right there for stopping.
@@ -37,8 +32,7 @@ public enum AutoOff {
     /// - Parameter anyTierActive: whether *any* tier is currently keeping the
     ///   Mac awake (`mode != .off`), not the old on/off-lid flag — the gesture
     ///   applies to whichever tier is running.
-    public static func request(minutes: Int, anyTierActive: Bool, autoModeOn: Bool) -> Request {
-        if autoModeOn { return .ignoredInAutoMode }
+    public static func request(minutes: Int, anyTierActive: Bool) -> Request {
         guard minutes > 0 else { return .cancelTimer }
         return anyTierActive ? .armTimer(minutes: minutes) : .enableThenArmTimer(minutes: minutes)
     }

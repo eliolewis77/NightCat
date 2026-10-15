@@ -172,7 +172,7 @@ final class WeeklyScheduleTests: XCTestCase {
     }
 
     func testForeignWriteClearsOwnership() {
-        for origin in [SetOrigin.safety, .autoOff, .auto] {
+        for origin in [SetOrigin.safety, .autoOff, .user] {
             var director = makeDirector()
             XCTAssertEqual(tick(&director, date(dayOffset: 2, hour: 9)), .enableLid)
             director.noteWrite(origin: origin, landedActive: false)

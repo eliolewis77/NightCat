@@ -68,12 +68,6 @@ struct MenuContent: View {
             // error or safety note) sit at the panel's quiet end now. Above the
             // picker they turned the panel's cleanest band into a wall of small
             // print — the status header is meant to be read first, and alone.
-            if !state.autoWarningReasons.isEmpty {
-                NoticeBanner(text: String(format: NSLocalizedString("自动模式已开启，但当前条件不满足：%@", comment: "auto-mode warning"), state.autoWarningReasons.map { $0.localizedCheckLabel() }.joined(separator: NSLocalizedString("、", comment: "list separator"))),
-                             systemImage: "exclamationmark.circle.fill",
-                             tint: Color(nsColor: .systemYellow))
-            }
-
             if let notice = state.externalNotice {
                 NoticeBanner(text: notice, systemImage: "exclamationmark.triangle.fill",
                              tint: Color(nsColor: .systemYellow))
@@ -179,7 +173,7 @@ private struct StatusHeader: View {
     @EnvironmentObject var state: AppState
     @Environment(\.colorScheme) private var colorScheme
 
-    private var accent: Color { tierAccent(state.controlMode, colorScheme) }
+    private var accent: Color { tierAccent(state.mode, colorScheme) }
 
     var body: some View {
         HStack(alignment: .center, spacing: 11) {
@@ -293,7 +287,7 @@ private struct TierSegmentRow: View {
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             Picker("档位", selection: Binding(
-                get: { state.controlMode },
+                get: { state.mode },
                 set: { state.setControlMode($0) }
             )) {
                 ForEach(KeepAwakeMode.allCases) { mode in
@@ -411,8 +405,6 @@ private struct TimerSection: View {
     @State private var isEditingCustom = false
     @State private var customDraft = ""
 
-    private var autoMode: Bool { state.settings.autoEnableWhenCharging }
-
     private var isPreset: Bool {
         state.autoOffMinutes == 0 || AutoOff.presetMinutes.contains(state.autoOffMinutes)
     }
@@ -437,8 +429,7 @@ private struct TimerSection: View {
                         .foregroundStyle(Color.accentColor)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
-                        .hoverHighlight(in: Capsule(), isEnabled: !autoMode)
-                        .disabled(autoMode)
+                        .hoverHighlight(in: Capsule())
                 } else {
                     Text("不限时")
                         .font(PanelFont.footnote)
@@ -464,14 +455,7 @@ private struct TimerSection: View {
                     isEditingCustom = true
                     customDraft = isPreset ? "" : String(state.autoOffMinutes)
                 }
-                .disabled(autoMode)
 
-                if autoMode {
-                    Text("自动模式下定时不可用")
-                        .font(PanelFont.footnote)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
             }
         }
         .padding(.horizontal, hInset)
@@ -503,10 +487,6 @@ private struct FlowChips: View {
     private var isCustomActive: Bool {
         state.autoOffMinutes > 0 && !AutoOff.presetMinutes.contains(state.autoOffMinutes)
     }
-
-    /// Hovering a disabled chip must not light it up — the fill would promise
-    /// a click that auto mode has taken away.
-    private var chipsEnabled: Bool { !state.settings.autoEnableWhenCharging }
 
     var body: some View {
         FlowLayout(spacing: 6) {
@@ -542,7 +522,7 @@ private struct FlowChips: View {
             chipFace(label, lit: selected == minutes)
         }
         .buttonStyle(.plain)
-        .hoverHighlight(in: Capsule(), opacity: 0.06, isEnabled: chipsEnabled)
+        .hoverHighlight(in: Capsule(), opacity: 0.06)
     }
 
     private func customChip() -> some View {
@@ -550,7 +530,7 @@ private struct FlowChips: View {
             chipFace("自定义", lit: isCustomActive)
         }
         .buttonStyle(.plain)
-        .hoverHighlight(in: Capsule(), opacity: 0.06, isEnabled: chipsEnabled)
+        .hoverHighlight(in: Capsule(), opacity: 0.06)
     }
 }
 
@@ -608,7 +588,6 @@ private struct ScheduleStatusRow: View {
 
     var body: some View {
         if state.scheduleEnabled,
-           !state.settings.autoEnableWhenCharging,
            !state.scheduleStatusText.isEmpty {
             Label(state.scheduleStatusText, systemImage: "calendar.badge.clock")
                 .font(PanelFont.footnote)

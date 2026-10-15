@@ -90,31 +90,27 @@ final class RepeatingWakeTests: XCTestCase {
     // MARK: decision
 
     func testRegisterForAnActiveValidRule() {
-        XCTAssertEqual(RepeatingWake.decision(enabled: true, autoModeOn: false, schedule: workdays),
+        XCTAssertEqual(RepeatingWake.decision(enabled: true, schedule: workdays),
                        .register(weekdayMask: 0b0111110, minutes: 9 * 60))
     }
 
     func testOvernightWindowWakesAtItsStartDay() {
         let overnight = WeeklySchedule(weekdayMask: 0b0000010, startMinute: 22 * 60, endMinute: 6 * 60)
-        XCTAssertEqual(RepeatingWake.decision(enabled: true, autoModeOn: false, schedule: overnight),
+        XCTAssertEqual(RepeatingWake.decision(enabled: true, schedule: overnight),
                        .register(weekdayMask: 0b0000010, minutes: 22 * 60))
     }
 
     func testRulesThatCanNeverFireCancel() {
         let noDays = WeeklySchedule(weekdayMask: 0, startMinute: 9 * 60, endMinute: 17 * 60)
         let zeroLength = WeeklySchedule(weekdayMask: 0b0111110, startMinute: 9 * 60, endMinute: 9 * 60)
-        XCTAssertEqual(RepeatingWake.decision(enabled: true, autoModeOn: false, schedule: noDays), .cancel)
-        XCTAssertEqual(RepeatingWake.decision(enabled: true, autoModeOn: false, schedule: zeroLength), .cancel)
-        XCTAssertEqual(RepeatingWake.decision(enabled: true, autoModeOn: false, schedule: nil), .cancel)
-    }
-
-    func testAutoModeSuspendsTheWake() {
-        XCTAssertEqual(RepeatingWake.decision(enabled: true, autoModeOn: true, schedule: workdays), .cancel)
+        XCTAssertEqual(RepeatingWake.decision(enabled: true, schedule: noDays), .cancel)
+        XCTAssertEqual(RepeatingWake.decision(enabled: true, schedule: zeroLength), .cancel)
+        XCTAssertEqual(RepeatingWake.decision(enabled: true, schedule: nil), .cancel)
     }
 
     func testDisabledScheduleCancelsWhateverIsThere() {
-        XCTAssertEqual(RepeatingWake.decision(enabled: false, autoModeOn: false, schedule: workdays), .cancel)
-        XCTAssertEqual(RepeatingWake.decision(enabled: false, autoModeOn: true, schedule: nil), .cancel)
+        XCTAssertEqual(RepeatingWake.decision(enabled: false, schedule: workdays), .cancel)
+        XCTAssertEqual(RepeatingWake.decision(enabled: false, schedule: nil), .cancel)
     }
 
     // MARK: Decision persistence

@@ -66,32 +66,6 @@ final class AppState: ObservableObject {
     /// User-tunable safety preferences (persisted).
     @Published var settings: SafetySettings = .default
 
-    /// Auto-mode master-toggle intent (persisted): whether the user wants
-    /// keep-awake armed. In auto mode the *live* state (`isEnabled`) is derived
-    /// from `armed` gated by power + safety — see `reconcile()`. Unused in manual
-    /// mode, where the toggle drives `isEnabled` directly; it's (re-)seeded on the
-    /// way into auto mode rather than tracked continuously.
-    @Published var armed = false
-
-    /// The currently-unmet checks to surface in the popover's auto-mode warning,
-    /// or empty when there's nothing to warn about. Non-empty only when auto mode
-    /// is on, the feature is armed, but keep-awake isn't live right now.
-    var autoWarningReasons: [SafetyReason] {
-        guard settings.autoEnableWhenCharging, armed, !isEnabled else { return [] }
-        return SafetyEvaluator.allUnmetReasons(battery: currentBattery,
-                                               thermalSerious: thermalSerious(),
-                                               settings: settings,
-                                               requirePower: true)
-    }
-
-    /// What the mode picker displays. Auto mode operates the lid tier only,
-    /// so the picker collapses to lid-armed/off there; screen and idle are
-    /// manual-mode tiers.
-    var controlMode: KeepAwakeMode {
-        guard settings.autoEnableWhenCharging else { return mode }
-        return armed ? .lidClosed : .off
-    }
-
     /// Launch-at-login state (the app itself).
     @Published var launchAtLogin = false
 
@@ -317,7 +291,6 @@ final class AppState: ObservableObject {
 
     init() {
         settings = store.load()
-        armed = store.loadArmed()
         autoOffMinutes = store.loadAutoOffMinutes()
         scheduleEnabled = store.loadScheduleEnabled()
         schedule = store.loadSchedule()
@@ -355,16 +328,6 @@ final class AppState: ObservableObject {
         helperWasUsable = usingHelper
         refreshState()
         refreshBattery()
-        // Auto mode owns the live state at launch: (re-)activate if armed and
-        // conditions allow, or turn it off if a prior session left it on with
-        // conditions since lapsed. `refreshState()` above reads the flag
-        // synchronously, so `isEnabled` is already the real state to compare
-        // against and there's nothing to force.
-        //
-        // Plainly `reconcile()`, not `reconcileNow()`: adopting the state that
-        // read just established may already have dispatched a write, and clearing
-        // that claim here would dispatch a second one for the same decision.
-        reconcile()
         batteryTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
@@ -448,67 +411,15 @@ final class AppState: ObservableObject {
     }
 
     func updateSettings(_ new: SafetySettings) {
-        let wasAuto = settings.autoEnableWhenCharging
         settings = new
         store.save(new)
-        // Outside every auto-mode branch on purpose: keep-alive is orthogonal
+        // Outside every other concern on purpose: keep-alive is orthogonal
         // to tiers and must react to its own switch, nothing else.
         syncKeepAlive()
-        if new.autoEnableWhenCharging {
-            if !wasAuto {
-                // Opting into auto mode *is* the request to have keep-awake on, so
-                // arm it rather than inheriting the current live state — otherwise
-                // switching on "Automatically enable when charging" while
-                // keep-awake happens to be off (the very case this feature exists
-                // for) would visibly do nothing. Also drop any manual auto-off
-                // countdown, which would just fight auto mode's own activation.
-                armed = true
-                store.saveArmed(armed)
-                cancelAutoOff()
-            }
-            reconcileNow()
-        } else if let pending = autoWrite.inFlightTarget {
-            // Leaving auto mode with a write still travelling. Its target is where
-            // the system is heading, so that's what manual mode inherits — but the
-            // transition has to own that outcome with a write of its own, or the
-            // auto reply lands afterwards and moves the state in a mode the user
-            // has already left.
-            //
-            // Quiet origin deliberately: the user toggled a mode, not the switch,
-            // so a modal about keep-awake would be about a write they never asked
-            // for. It also can't be `.user` for a second reason — that origin
-            // clears `externalNotice`, which this isn't entitled to do.
-            //
-            // The reply to this write runs `updateAutoOff`, and auto mode is off
-            // in `settings` by now, so the countdown arms exactly as manual mode
-            // expects.
-            refreshBattery()
-            let conditions = SafetySnapshot(battery: currentBattery,
-                                            thermalSerious: thermalSerious())
-            let settled = AutoEnablePolicy.handoffToManual(pendingTarget: pending,
-                                                           conditions: conditions,
-                                                           settings: settings)
-            autoWrite.clear()
-            // Same snapshot to decide and to write: whichever way `settled` went,
-            // the check on the way out is guaranteed to permit it, so this write
-            // always claims a mutation and always supersedes the auto reply.
-            setEnabled(settled, note: nil, origin: .auto, conditions: conditions)
-        } else {
-            // Leaving auto mode hands activation back to the user, so the auto-off
-            // countdown becomes applicable again — re-arm it if one is configured
-            // and keep-awake is currently on.
-            if wasAuto, isEnabled { armAutoOff() }
-            evaluateSafety()
-        }
-        if wasAuto != settings.autoEnableWhenCharging {
-            // Auto mode suspends the schedule — including its wake event.
-            syncRepeatingWake()
-        }
+        evaluateSafety()
     }
 
-    /// The mode picker's set action. In auto mode a lid/off selection maps to
-    /// the armed intent; screen and idle aren't auto-mode tiers, so the picker
-    /// snaps back (its `get` re-derives from `armed`) and a note explains why.
+    /// The mode picker's set action.
     ///
     /// Guarded by the session lock: when locked, any selection other than the
     /// currently displayed mode — off included — is parked on
@@ -517,20 +428,11 @@ final class AppState: ObservableObject {
     /// don't come through here and are never blocked: the lock protects
     /// against *user* mis-clicks, not against the app's own machinery.
     func setControlMode(_ newMode: KeepAwakeMode) {
-        if isModeLocked, newMode != controlMode {
+        if isModeLocked, newMode != mode {
             pendingLockedSwitch = newMode
             return
         }
-        guard settings.autoEnableWhenCharging else {
-            setMode(newMode, origin: .user)
-            return
-        }
-        switch newMode {
-        case .lidClosed: setArmed(true)
-        case .off:       setArmed(false)
-        case .screen, .preventIdle:
-            lastError = NSLocalizedString("自动模式开启时不使用常亮与防空闲档——它只驱动合盖档。", comment: "auto mode notice")
-        }
+        setMode(newMode, origin: .user)
     }
 
     /// Toggle the session lock from the panel's lock button. Unlocking also
@@ -556,78 +458,7 @@ final class AppState: ObservableObject {
         pendingLockedSwitch = nil
     }
 
-    /// Set the auto-mode armed intent, persist it, and reconcile the live state.
-    private func setArmed(_ on: Bool) {
-        armed = on
-        store.saveArmed(on)
-        reconcileNow()
-    }
-
-    /// Auto mode: derive the live keep-awake state from `armed` gated by external
-    /// power + safety, flipping only the live state (never the `armed` intent).
-    /// When conditions aren't met the feature stays armed and the popover's
-    /// warning explains why it isn't currently active.
-    ///
-    /// The poll's entry point. No-ops when auto mode is off, when the effective
-    /// state already matches, or while an earlier write is still outstanding or
-    /// has already concluded this turn — see `autoWrite`. `origin: .auto` because
-    /// this fires unprompted on the timer and must stay silent.
-    func reconcile() { reconcile(userDriven: false) }
-
-    /// Reconcile now on behalf of something the user just did — arming, changing
-    /// settings — where waiting for the next tick would read as the control doing
-    /// nothing.
-    ///
-    /// Unlike the poll, this may write over a request still in flight, because
-    /// the user has since said something newer. It does *not* simply drop the
-    /// claim: dropping it loses the pending target, and the decision is then
-    /// taken against a state the system has already left. Disarming while an
-    /// "on" write is travelling would compare `false` against a still-`false`
-    /// `isEnabled`, conclude there was nothing to do, and leave the earlier write
-    /// to land unopposed — turning keep-awake on moments after the user turned it
-    /// off. Deciding against the effective state instead yields a corrective
-    /// write, which supersedes the old reply and, because the helper serialises,
-    /// lands last.
-    private func reconcileNow() { reconcile(userDriven: true) }
-
-    /// Derive the live keep-awake state from `armed` gated by external power +
-    /// safety, flipping only the live state (never the `armed` intent). When
-    /// conditions aren't met the feature stays armed and the popover's warning
-    /// explains why it isn't currently active.
-    ///
-    /// Refreshes the battery cache first so the decision and the warning list the
-    /// popover renders from it are read off the same sample.
-    private func reconcile(userDriven: Bool) {
-        guard settings.autoEnableWhenCharging else { return }
-        guard userDriven || autoWrite.mayWrite else { return }
-        refreshBattery()
-        // One sample, used to decide *and* handed to the write, so the check on
-        // the way out can't disagree with the decision that authorised it. A
-        // disagreement there would be a refusal, and a refusal claims no mutation
-        // — leaving a superseded write in force.
-        let conditions = SafetySnapshot(battery: currentBattery,
-                                        thermalSerious: thermalSerious())
-        let effective = AutoEnablePolicy.effectiveState(pendingTarget: autoWrite.inFlightTarget,
-                                                        live: isEnabled)
-        // No target means the outstanding write is already heading where we want
-        // it to. Leave the claim standing rather than clearing it — clearing
-        // would let the next tick dispatch a duplicate alongside a live request.
-        guard let target = AutoEnablePolicy.target(armed: armed,
-                                                   currentlyEnabled: effective,
-                                                   battery: conditions.battery,
-                                                   thermalSerious: conditions.thermalSerious,
-                                                   settings: settings) else { return }
-        autoWrite.issued(target: target)
-        setEnabled(target, note: nil, origin: .auto, conditions: conditions)
-    }
-
-    /// The claim on auto mode's outstanding write. Held across the helper's async
-    /// round trip, so a reply that reads back wrong can't immediately provoke
-    /// another write. See `AutoWriteCoordinator`.
-    private var autoWrite = AutoWriteCoordinator()
-
-    /// The last-sampled battery state, refreshed by `refreshBattery()`. Shared by
-    /// `reconcile()` and `autoWarningReasons` so the two can't disagree.
+    /// The last-sampled battery state, refreshed by `refreshBattery()`.
     private var currentBattery: BatteryInfo {
         BatteryInfo(percent: batteryPercent, onAC: batteryOnAC)
     }
@@ -646,15 +477,10 @@ final class AppState: ObservableObject {
     func keepAwakeFor(minutes: Int) {
         // Timed runs apply to whatever tier is active; from `off`, the gesture
         // enables the lid tier (the upstream "keep awake" meaning).
-        let request = AutoOff.request(minutes: minutes,
-                                      anyTierActive: isActive,
-                                      autoModeOn: settings.autoEnableWhenCharging)
-        guard request != .ignoredInAutoMode else { return }
+        let request = AutoOff.request(minutes: minutes, anyTierActive: isActive)
         autoOffMinutes = minutes
         store.saveAutoOffMinutes(minutes)
         switch request {
-        case .ignoredInAutoMode:
-            break
         case .cancelTimer:
             cancelAutoOff()
         case .armTimer:
@@ -947,15 +773,10 @@ final class AppState: ObservableObject {
             case .stillUnverified:
                 break
             case .confirmed:
-                autoWrite.resolved()
                 pendingVerification = nil
                 verificationNotice = nil
                 hasConfirmedState = true
             case .writeMismatch(let actual):
-                // Same ordering rule as `applyVerification`: settle the claim
-                // before adopting, so the reconcile that adopting triggers can't
-                // chase the mismatch with another write in this turn.
-                autoWrite.resolved()
                 pendingVerification = nil
                 verificationNotice = StateReconciler.writeMismatchMessage(actual: actual)
                 hasConfirmedState = true
@@ -1099,13 +920,7 @@ final class AppState: ObservableObject {
         // off clears its claim (see `ScheduleDirector.noteAdopted`).
         scheduleDirector.noteAdopted(active: enabled)
         refreshScheduleStatus()
-        // Auto mode owns the live state, so route through `reconcile()` rather
-        // than the manual safety pass: adopting an outside change must be settled
-        // by the same rule that set the state in the first place, or the toggle
-        // visibly jumps and then falls back a tick later.
-        if settings.autoEnableWhenCharging {
-            reconcile()
-        } else if enabled {
+        if enabled {
             evaluateSafety()
         }
     }
@@ -1173,8 +988,6 @@ final class AppState: ObservableObject {
         // and its reply, if one is still in flight, will be rejected as superseded
         // below. Leaving the claim standing would stall auto mode for a tick or
         // two on a reply that is never coming.
-        if origin != .auto { autoWrite.clear() }
-
         // Refuse to enable if it would immediately violate the safety policy.
         // Returns before claiming a mutation, so nothing in flight is disturbed —
         // which is exactly why a caller correcting an outstanding write must pass
@@ -1189,9 +1002,6 @@ final class AppState: ObservableObject {
                 if origin == .user {
                     presentFailureAlert(target: target, message: blocker.localizedBlockedMessage())
                 }
-                // Nothing was dispatched, so release the claim rather than holding
-                // it for a write that never happened.
-                if origin == .auto { autoWrite.clear() }
                 return
             }
             // About to write 1: snapshot the flag for the exit restore (SPEC
@@ -1297,10 +1107,6 @@ final class AppState: ObservableObject {
     /// the flag did move, that was our own failed write, and blaming an external
     /// actor for it would be plainly wrong.
     private func recoverStateAfterFailedWrite() {
-        // Resolve before re-reading: that read can adopt a state and ask auto mode
-        // to reconcile, which must not turn into an immediate second attempt at
-        // the write that just failed.
-        autoWrite.resolved()
         hasConfirmedState = false
         refreshState()
     }
@@ -1317,12 +1123,6 @@ final class AppState: ObservableObject {
     /// Verification never writes to `lastError`: it keeps its own channel so
     /// clearing a caveat can't wipe a safety note or a helper error.
     private func applyVerification(_ outcome: StateReconciler.VerifyOutcome, target: Bool) {
-        // Whatever the outcome, auto mode's write is over. Resolving up front
-        // matters most for `.mismatch`, where adopting the contradicting state
-        // reconciles again: without this, that reconcile would dispatch a fresh
-        // write, whose read-back could mismatch in turn, with no bound but the
-        // stack. Deferring costs a tick and cannot loop.
-        autoWrite.resolved()
         switch outcome {
         case .verified:
             pendingVerification = nil
@@ -1406,7 +1206,7 @@ final class AppState: ObservableObject {
         cancelAutoOff()
         // Auto mode manages activation on its own; a countdown would disarm the
         // feature out from under it, so auto-off is inert while auto mode is on.
-        guard isActive, autoOffMinutes > 0, !settings.autoEnableWhenCharging else { return }
+        guard isActive, autoOffMinutes > 0 else { return }
         let deadline = AutoOff.deadline(from: Date(), minutes: autoOffMinutes)
         autoOffDeadline = deadline
         refreshAutoOffRemaining()
@@ -1461,7 +1261,7 @@ final class AppState: ObservableObject {
     /// tier would fight, exactly why the auto-off countdown is inert there.
     private func scheduleTick() {
         defer { refreshScheduleStatus() }
-        guard scheduleEnabled, !settings.autoEnableWhenCharging else { return }
+        guard scheduleEnabled else { return }
         let directive = scheduleDirector.tick(now: .now,
                                               schedule: schedule,
                                               tierActive: isActive,
@@ -1499,7 +1299,7 @@ final class AppState: ObservableObject {
     /// (ours), inside the window (someone else's hold), or waiting for the
     /// next one. Empty while the feature is off or auto mode owns the state.
     private func refreshScheduleStatus() {
-        guard scheduleEnabled, !settings.autoEnableWhenCharging else {
+        guard scheduleEnabled else {
             scheduleStatusText = ""
             return
         }
@@ -1565,7 +1365,6 @@ final class AppState: ObservableObject {
     /// the event must outlive the app to be worth anything.
     func syncRepeatingWake() {
         let decision = RepeatingWake.decision(enabled: scheduleEnabled,
-                                              autoModeOn: settings.autoEnableWhenCharging,
                                               schedule: schedule)
         // Nothing believed armed (never armed, or the poll saw it gone): a
         // .cancel would be a no-op write at best, and via the fallback an
@@ -1782,22 +1581,12 @@ final class AppState: ObservableObject {
         // Backstop for the didBecomeActive observer: catch a helper approval even
         // if the app never lost/regained active state.
         recheckHelper()
-        // Advance auto mode's write claim. A concluded write reopens here — this
-        // is where its retry comes from. One still outstanding does not: this tick
-        // may be landing moments after the dispatch, and reopening would put a
-        // second write alongside a live first. It reopens a tick later instead,
-        // which also bounds how long a lost reply can hold the feature.
-        autoWrite.advanceTick()
         // Reconcile with the real flag every tick, not only while enabled:
         // polling only when we think it's on would structurally miss the case
         // where it was turned on behind our back.
         refreshState()
-        if settings.autoEnableWhenCharging {
-            reconcile()             // refreshes the battery sample itself
-        } else {
-            refreshBattery()
-            evaluateSafety()
-        }
+        refreshBattery()
+        evaluateSafety()
         scheduleTick()
         updateLidDisplaySleepPolling()
         checkLidDisplaySleepInactivity()

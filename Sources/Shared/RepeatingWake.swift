@@ -110,15 +110,12 @@ public enum RepeatingWake {
         case cancel
     }
 
-    /// The single decision point every sync site routes through. Auto mode
-    /// suspends the schedule, so it also suspends the wake — waking the Mac
-    /// for a tier that auto mode would then decide about is not this
-    /// feature's call. An empty rule (no weekdays, or start == end) never
-    /// fires, so its wake event must not linger.
+    /// The single decision point every sync site routes through. An empty
+    /// rule (no weekdays, or start == end) never fires, so its wake event
+    /// must not linger.
     public static func decision(enabled: Bool,
-                                autoModeOn: Bool,
                                 schedule: WeeklySchedule?) -> Decision {
-        guard enabled, !autoModeOn, let schedule, !schedule.isEmpty else { return .cancel }
+        guard enabled, let schedule, !schedule.isEmpty else { return .cancel }
         return .register(weekdayMask: schedule.weekdayMask, minutes: schedule.startMinute)
     }
 

@@ -20,8 +20,7 @@ struct NightCatApp: App {
         } label: {
             // Panel-mockup §1: tier color + optional countdown + lock badge.
             // `mode` (the live tier), not `controlMode`: the bar shows what
-            // the Mac is actually doing, and in auto mode that can differ
-            // from the armed intent the picker displays.
+            // the Mac is actually doing.
             MenubarIndicator(mode: state.mode,
                              autoOffRemaining: state.autoOffRemaining,
                              isModeLocked: state.isModeLocked)

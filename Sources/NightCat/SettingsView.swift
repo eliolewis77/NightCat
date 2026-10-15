@@ -79,13 +79,6 @@ struct SettingsView: View {
                 LowBatteryCutoffRow()
             }
 
-            Section("自动") {
-                Toggle("充电时自动开启合盖档", isOn: Binding(
-                    get: { state.settings.autoEnableWhenCharging },
-                    set: { v in var s = state.settings; s.autoEnableWhenCharging = v; state.updateSettings(s) }
-                ))
-            }
-
             Section("日程") {
                 Toggle("按周计划定时开启合盖档", isOn: Binding(
                     get: { state.scheduleEnabled },
@@ -106,9 +99,6 @@ struct SettingsView: View {
                     if state.schedule.weekdayMask == 0
                         || state.schedule.startMinute == state.schedule.endMinute {
                         ScheduleHintRow("未选星期或起止相同，日程不会触发。")
-                    }
-                    if state.settings.autoEnableWhenCharging {
-                        ScheduleHintRow("自动模式开启时日程暂停。")
                     }
                     if !state.helperInstalled {
                         ScheduleHintRow("未安装 Helper，日程无法自动开启。")
