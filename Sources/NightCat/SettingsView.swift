@@ -395,9 +395,9 @@ private struct ScheduleRuleRow: View {
 /// the long hints wrapping early. Anchoring one row's ideal to the window's
 /// full content width widens the column for every row.
 private struct ScheduleHintRow: View {
-    let text: String
+    let text: LocalizedStringKey
 
-    init(_ text: String) {
+    init(_ text: LocalizedStringKey) {
         self.text = text
     }
 

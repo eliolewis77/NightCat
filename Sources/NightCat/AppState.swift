@@ -736,7 +736,14 @@ final class AppState: ObservableObject {
         let reading = power.readPowerState()
         applyObserved(reading.observed, token)
         // 熄屏阻止者透明化:同一份 pmset -g 里顺带解析,不新增进程。
-        let blocker = PowerParsers.displaySleepPreventer(pmsetG: reading.schedOutput) ?? ""
+        // 合盖期我们自己持有的断言也会被点名——那不是第三方,过滤掉。
+        let own = ProcessInfo.processInfo.processName
+        let blocker = PowerParsers.displaySleepPreventer(pmsetG: reading.schedOutput)
+            .map { raw in
+                raw.components(separatedBy: ", ")
+                    .filter { $0.caseInsensitiveCompare(own) != .orderedSame }
+                    .joined(separator: ", ")
+            } ?? ""
         // Same-value @Published writes still fire objectWillChange, and this
         // runs on every 30-second tick — only write on an actual flip.
         if displaySleepBlocker != blocker {
@@ -1038,15 +1045,20 @@ final class AppState: ObservableObject {
                     self.pendingVerification = PendingVerification(target: target)
                     self.verifySetApplied(target: target)
                 } else {
-                    // Report it, then try the password path rather than leaving the
-                    // click with no effect at all. No blocking alert here: if the
-                    // fallback runs, its own prompt is the thing the user needs to
-                    // see, and two dialogs stacked on top of each other is worse
-                    // than one.
+                    // Report it, then — for a user click — try the password path
+                    // rather than leaving the click with no effect at all. A
+                    // background origin (timer, safety, schedule) must NOT: its
+                    // failures happen unattended, and an osascript password prompt
+                    // nobody is there to answer is exactly the hazard, not a
+                    // fallback. Those land as a visible error instead.
                     let message = err ?? NSLocalizedString("后台 Helper 未响应。", comment: "helper timeout")
                     self.lastError = message
-                    self.writeViaAdminPrompt(target: target, note: resultMessage,
-                                             landingMode: land, origin: origin, token: token)
+                    if origin == .user {
+                        self.writeViaAdminPrompt(target: target, note: resultMessage,
+                                                 landingMode: land, origin: origin, token: token)
+                    } else {
+                        self.recoverStateAfterFailedWrite()
+                    }
                 }
             }
         } else {
@@ -1347,6 +1359,11 @@ final class AppState: ObservableObject {
         scheduleEnabled = on
         store.saveScheduleEnabled(on)
         if on {
+            // Flipping the master switch back on is a fresh authorization:
+            // clear the attempt marker so a rule whose earlier write failed
+            // (cancelled password, stale helper) gets a real retry instead of
+            // being swallowed by the dedup.
+            lastAttemptedWake = nil
             scheduleTick()
         } else {
             scheduleDirector.relinquish()

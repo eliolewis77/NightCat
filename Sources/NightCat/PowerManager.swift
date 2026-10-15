@@ -75,11 +75,11 @@ final class PowerManager {
             .takeRetainedValue()
         else { return nil }
         // CFBoolean is a two-value singleton type, so pointer equality with
-        // its constants is the check.
-        let flag = raw as! CFBoolean
-        if flag == kCFBooleanTrue { return true }
-        if flag == kCFBooleanFalse { return false }
-        return nil
+        // its constants is the check. Type-checked rather than force-cast:
+        // virtualization layers may expose the key as a different CFType,
+        // and this runs on a timer — a trap here is a crash loop.
+        guard CFGetTypeID(raw) == CFBooleanGetTypeID() else { return nil }
+        return raw as! CFBoolean == kCFBooleanTrue
     }
 
     /// One `pmset -g` reading: the flag plus the raw output — the output also
