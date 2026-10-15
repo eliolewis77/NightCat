@@ -671,6 +671,16 @@
         }
       }
     },
+    "屏幕常亮" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen Always On"
+          }
+        }
+      }
+    },
     "工作原理" : {
       "localizations" : {
         "en" : {

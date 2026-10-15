@@ -220,8 +220,14 @@ public struct ScheduleDirector: Equatable, Codable {
     }
 
     /// The schedule was switched off. Turning the schedule off is not the
-    /// request "turn keep-awake off" — it only gives up any hold claim.
+    /// request "turn keep-awake off" — it only gives up any hold claim, and
+    /// forgets the in-window marker: while off, the director is frozen, so a
+    /// window boundary passing unobserved must not leave a stale
+    /// `wasInWindow` behind (or the next enable inside a window would never
+    /// fire). `lastHandledWindowStart` deliberately survives — one action per
+    /// window instance holds across off/on toggles.
     public mutating func relinquish() {
         ownsActivation = false
+        wasInWindow = false
     }
 }

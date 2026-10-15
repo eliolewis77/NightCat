@@ -1219,7 +1219,11 @@ final class AppState: ObservableObject {
 
     private func armAutoOff() {
         cancelAutoOff()
-        guard isActive, autoOffMinutes > 0 else { return }
+        // A hold the schedule started runs for the schedule's window, not for
+        // a countdown: arming the persisted auto-off inside a window would
+        // kill the scheduled hold mid-flight on every occurrence. A timer the
+        // user explicitly picks during a window still arms (their call).
+        guard isActive, autoOffMinutes > 0, !scheduleDirector.ownsActivation else { return }
         let deadline = AutoOff.deadline(from: Date(), minutes: autoOffMinutes)
         autoOffDeadline = deadline
         refreshAutoOffRemaining()
@@ -1445,12 +1449,17 @@ final class AppState: ObservableObject {
                     // self-heals. THIS decision is written now through the
                     // admin-prompt fallback (the user is mid-edit, present).
                     self.writeWakeFallback(decision, params: params)
-                } else {
-                    // Probe failed entirely (cold daemon, timeout). Falling
-                    // back here would pop an admin password out of nowhere —
-                    // surface the condition instead; the next sync re-probes.
+                } else if helperInstalled {
+                    // Helper present but the probe got nothing (cold daemon,
+                    // timeout): falling back would pop an admin password out
+                    // of nowhere despite a helper that should work — surface
+                    // it instead; the next sync re-probes.
                     self.finishWakeSync(decision, error: NSLocalizedString(
                         "无法探测后台 Helper 版本，定时唤醒未设置。", comment: "version probe failed"))
+                } else {
+                    // No helper at all: the wake event is still registrable,
+                    // via the same admin prompt a lid-tier click would show.
+                    self.writeWakeFallback(decision, params: params)
                 }
             }
         case .supported:
