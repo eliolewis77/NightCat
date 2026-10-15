@@ -1723,33 +1723,36 @@ final class AppState: ObservableObject {
     /// session that wakes the panel afterwards keeps it lit deliberately.
     /// 「保持屏幕常亮」 is the user explicitly asking for a lit panel; it wins.
     private func updateLidDisplaySleepPolling() {
-        let lidPollInterval: TimeInterval = 2
         guard mode == .lidClosed, !displayAlwaysOn else {
+            power.setDisplayWakeAssertion(false)
             stopLidPolling()
             displaySleepServedForLidClose = false
             return
         }
-        if displaySleepServedForLidClose {
-            // Served for this close. Nothing to poll; the 30-second tick
-            // re-reads the lid and re-arms once it's open again.
-            stopLidPolling()
-            return
-        }
         guard let lidClosed = power.isLidClosed() else {
             // No lid (desktop) or unreadable: nothing to watch for.
+            power.setDisplayWakeAssertion(false)
             stopLidPolling()
             return
         }
         if lidClosed {
-            displaySleepServedForLidClose = true
-            Shell.capture("/usr/bin/pmset", ["displaysleepnow"])
+            // 合盖期:熄屏策略归本 App。断言压住系统熄屏定时器——否则它
+            // 每隔设定时长熄屏一次并把会话锁掉,和远程使用正面冲突;熄屏
+            // 时点改由合盖边缘与宽限重熄决定。
+            power.setDisplayWakeAssertion(true)
+            if !displaySleepServedForLidClose {
+                displaySleepServedForLidClose = true
+                _ = Shell.capture("/usr/bin/pmset", ["displaysleepnow"])
+            }
             stopLidPolling()
-            return
-        }
-        // Lid open, tier on, waiting for the close — keep the fast cadence.
-        if lidPollTimer == nil {
-            lidPollTimer = Timer.scheduledTimer(withTimeInterval: lidPollInterval, repeats: true) { [weak self] _ in
-                Task { @MainActor in self?.updateLidDisplaySleepPolling() }
+        } else {
+            // 盖子开着:空闲熄屏归系统定时器,不持断言;快轮询守着合盖边缘。
+            power.setDisplayWakeAssertion(false)
+            displaySleepServedForLidClose = false
+            if lidPollTimer == nil {
+                lidPollTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+                    Task { @MainActor in self?.updateLidDisplaySleepPolling() }
+                }
             }
         }
     }

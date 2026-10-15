@@ -10,7 +10,9 @@ import IOKit
 /// The primary path is `HelperManager`, which sets the flag over XPC through a
 /// root helper installed via `SMAppService` — password-less, plus a heartbeat
 /// watchdog that auto-clears the flag if the app dies.
-struct PowerManager {
+/// (A class on purpose: the wake-assertion token is mutable state, and
+/// AppState holds one shared instance.)
+final class PowerManager {
 
     /// Read the current `SleepDisabled` flag from `pmset -g`.
     ///
@@ -22,6 +24,25 @@ struct PowerManager {
     /// the helper is installed; the helper is only needed to *change* the flag.
     func isSleepDisabled() -> Bool? {
         readPowerState().observed
+    }
+
+    /// Hold (or release) a `PreventUserIdleDisplaySleep` activity. While held,
+    /// the system's own display idle timer cannot sleep the panel — used while
+    /// the lid tier runs with the lid closed, so display sleep policy belongs
+    /// to NightCat (sleep at lid close, re-sleep after grace) instead of a
+    /// system timer that fires mid-remote-session and locks it. Foundation
+    /// activities die with the process, so a crash leaks at most one interval.
+    private var displayWakeActivity: NSObjectProtocol?
+
+    func setDisplayWakeAssertion(_ on: Bool) {
+        if on, displayWakeActivity == nil {
+            displayWakeActivity = ProcessInfo.processInfo.beginActivity(
+                options: [.idleDisplaySleepDisabled],
+                reason: "NightCat lid tier: display sleep policy owned by app")
+        } else if !on, let activity = displayWakeActivity {
+            ProcessInfo.processInfo.endActivity(activity)
+            displayWakeActivity = nil
+        }
     }
 
     /// Whether the lid is closed, read in-process from IOPMrootDomain's
