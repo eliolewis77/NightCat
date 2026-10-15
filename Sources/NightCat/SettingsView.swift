@@ -37,10 +37,6 @@ struct SettingsView: View {
                     Text("简体中文").tag("zh-Hans")
                     Text("English").tag("en")
                 }
-                Toggle("保持屏幕常亮", isOn: Binding(
-                    get: { state.displayAlwaysOn },
-                    set: { state.displayAlwaysOn = $0 }
-                ))
                 Picker("远程熄屏宽限", selection: Binding(
                     get: { state.lidDisplaySleepGraceMinutes },
                     set: { state.setLidDisplaySleepGraceMinutes($0) }
