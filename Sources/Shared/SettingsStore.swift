@@ -29,6 +29,7 @@ public struct SettingsStore {
         static let scheduleEnd       = "weeklyScheduleEndMinute"
         static let scheduleHandled   = "weeklyScheduleHandledWindowStart"
         static let believedWakeState = "believedRepeatingWakeState"
+        static let lidDisplaySleepGrace = "lidDisplaySleepGraceMinutes"
     }
 
     public init(defaults: UserDefaults = .standard) {
@@ -157,6 +158,17 @@ public struct SettingsStore {
         } else {
             defaults.removeObject(forKey: Key.believedWakeState)
         }
+    }
+
+    /// Grace period (minutes) before re-sleeping the display after something
+    /// (a remote session) re-lit it under the lid tier. Defaults to 10.
+    public func loadLidDisplaySleepGraceMinutes() -> Int {
+        let minutes = defaults.integer(forKey: Key.lidDisplaySleepGrace)
+        return (5...15).contains(minutes) ? minutes : 10
+    }
+
+    public func saveLidDisplaySleepGraceMinutes(_ minutes: Int) {
+        defaults.set(minutes, forKey: Key.lidDisplaySleepGrace)
     }
 
     /// Whether the user has been through first-run onboarding. Defaults to false.

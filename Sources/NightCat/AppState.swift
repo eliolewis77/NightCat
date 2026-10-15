@@ -277,6 +277,14 @@ final class AppState: ObservableObject {
     /// been served yet. Uses an in-process IOKit property read; stopped once
     /// the close is served or the tier drops.
     private var lidPollTimer: Timer?
+    /// Grace period before re-sleeping a display that a remote session
+    /// re-lit (persisted). While the session is active — pauses included —
+    /// the screen stays lit; this many minutes of input silence ends it.
+    @Published var lidDisplaySleepGraceMinutes = 10
+    /// Whether input idle time has already crossed the grace threshold for
+    /// the current idle stretch — so the re-sleep fires once per stretch,
+    /// not on every 30-second poll.
+    private var displayIdleCrossedGrace = false
 
     /// Process holding the display awake (from `pmset -g`'s displaysleep
     /// line), or empty when the screen is free to sleep. Published so the
@@ -326,6 +334,7 @@ final class AppState: ObservableObject {
         scheduleDirector = ScheduleDirector(lastHandledWindowStart: store.loadHandledWindowStart())
         persistedHandledWindowStart = scheduleDirector.lastHandledWindowStart
         believedWakeState = store.loadBelievedWakeState()
+        lidDisplaySleepGraceMinutes = store.loadLidDisplaySleepGraceMinutes()
         onboardingComplete = store.loadOnboardingComplete()
         appLanguage = UserDefaults.standard.string(forKey: "AppLanguageOverride") ?? "auto"
         displayAlwaysOn = UserDefaults.standard.bool(forKey: "DisplayAlwaysOn")
@@ -1750,6 +1759,37 @@ final class AppState: ObservableObject {
         lidPollTimer = nil
     }
 
+    /// The re-sleep half of the closed-lid story: the immediate sleep on lid
+    /// close gets undone the moment a remote session lights the panel (its
+    /// capture needs frames), and while that session is in use — pauses
+    /// included — the panel must stay lit. This re-sleeps it only after
+    /// `lidDisplaySleepGraceMinutes` of input silence. Remote-injected input
+    /// resets the same idle clock, so an actively driven screen never sleeps;
+    /// `pmset displaysleepnow` on an already-dark panel is a harmless no-op,
+    /// and the crossed flag keeps the poll from re-firing it every 30 s.
+    private func checkLidDisplaySleepInactivity() {
+        guard mode == .lidClosed, !displayAlwaysOn, displaySleepServedForLidClose else {
+            displayIdleCrossedGrace = false
+            return
+        }
+        let idle = CGEventSource.secondsSinceLastEventType(
+            .combinedSessionState,
+            eventType: CGEventType(rawValue: ~0)!)   // every input kind
+        if idle >= TimeInterval(lidDisplaySleepGraceMinutes * 60) {
+            guard !displayIdleCrossedGrace else { return }
+            displayIdleCrossedGrace = true
+            _ = Shell.capture("/usr/bin/pmset", ["displaysleepnow"])
+        } else {
+            displayIdleCrossedGrace = false
+        }
+    }
+
+    func setLidDisplaySleepGraceMinutes(_ minutes: Int) {
+        guard (5...15).contains(minutes), minutes != lidDisplaySleepGraceMinutes else { return }
+        lidDisplaySleepGraceMinutes = minutes
+        store.saveLidDisplaySleepGraceMinutes(minutes)
+    }
+
     // MARK: Battery + safety guard
 
     func tick() {
@@ -1774,6 +1814,7 @@ final class AppState: ObservableObject {
         }
         scheduleTick()
         updateLidDisplaySleepPolling()
+        checkLidDisplaySleepInactivity()
         updateThermalNotification()
         refreshKeepAwakeDuration()
         updatePurchaseNudge()

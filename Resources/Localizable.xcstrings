@@ -1801,6 +1801,16 @@
         }
       }
     },
+    "远程熄屏宽限" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remote display sleep grace"
+          }
+        }
+      }
+    },
     "退出" : {
       "localizations" : {
         "en" : {
