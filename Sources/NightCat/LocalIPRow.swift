@@ -24,34 +24,39 @@ struct LocalIPRow: View {
     var body: some View {
         Group {
             if let ip {
-                Button {
-                    copyIP(ip)
-                } label: {
-                    HStack(spacing: 9) {
-                        Image(systemName: copied ? "checkmark" : "wifi")
-                            .font(PanelFont.micro.weight(copied ? .semibold : .regular))
-                            .foregroundStyle(copied ? Color.green : Color.secondary)
-                            .accessibilityHidden(true)
-                        Text(copied
-                             ? NSLocalizedString("已复制", comment: "IP copied feedback")
-                             : String(format: NSLocalizedString("本机 IP %@", comment: "local IP row"), ip))
-                            .font(PanelFont.footnote)
-                            .foregroundStyle(.secondary)
-                        if state.keepAliveRunning {
-                            Text("保活中")
-                                .font(PanelFont.micro)
-                                .foregroundStyle(.tertiary)
-                        }
-                        Spacer(minLength: 0)
+                HStack(spacing: 9) {
+                    Image(systemName: copied ? "checkmark" : "wifi")
+                        .font(PanelFont.micro.weight(copied ? .semibold : .regular))
+                        .foregroundStyle(copied ? Color.green : Color.secondary)
+                        .accessibilityHidden(true)
+                    Text(copied
+                         ? NSLocalizedString("已复制", comment: "IP copied feedback")
+                         : String(format: NSLocalizedString("本机 IP %@", comment: "local IP row"), ip))
+                        .font(PanelFont.footnote)
+                        .foregroundStyle(.secondary)
+                    if state.keepAliveRunning {
+                        Text("保活中")
+                            .font(PanelFont.micro)
+                            .foregroundStyle(.tertiary)
+                    }
+                    Spacer(minLength: 0)
+                    Button {
+                        copyIP(ip)
+                    } label: {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                            .accessibilityHidden(true)
+                            .foregroundStyle(copied ? Color.green : Color.secondary)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 3)
+                            .contentShape(RoundedRectangle(cornerRadius: 4))
                     }
+                    .buttonStyle(.plain)
+                    // 只有复制按钮是交互元素:hover 高亮、tooltip、无障碍
+                    // 标签都挂在它身上;行的其余部分是纯展示,不给点击面。
+                    .hoverHighlight(in: RoundedRectangle(cornerRadius: 4), opacity: 0.06)
+                    .help(NSLocalizedString("点击复制本机 IP 地址", comment: "IP copy help"))
+                    .accessibilityLabel(Text("复制本机 IP 地址"))
                 }
-                .buttonStyle(.plain)
-                .hoverHighlight(in: RoundedRectangle(cornerRadius: 5), opacity: 0.06)
-                .help(NSLocalizedString("点击复制本机 IP 地址", comment: "IP copy help"))
             }
         }
         .onAppear { fallbackIP = Self.primaryIPv4() }
