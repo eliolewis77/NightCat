@@ -278,6 +278,11 @@ final class AppState: ObservableObject {
     /// the close is served or the tier drops.
     private var lidPollTimer: Timer?
 
+    /// Process holding the display awake (from `pmset -g`'s displaysleep
+    /// line), or empty when the screen is free to sleep. Published so the
+    /// panel can name it — the usual answer to「合盖了怎么还亮着」.
+    @Published var displaySleepBlocker = ""
+
     /// The schedule's runtime half: window edges + hold ownership. Session-
     /// scoped except `lastHandledWindowStart`, which is persisted and restored
     /// in `init` so a relaunch can't replay a window it already handled.
@@ -908,6 +913,13 @@ final class AppState: ObservableObject {
         let reading = power.readPowerState()
         reconcileWakeBelief(with: reading.schedOutput)
         applyObserved(reading.observed, token)
+        // 熄屏阻止者透明化:同一份 pmset -g 里顺带解析,不新增进程。
+        let blocker = PowerParsers.displaySleepPreventer(pmsetG: reading.schedOutput) ?? ""
+        // Same-value @Published writes still fire objectWillChange, and this
+        // runs on every 30-second tick — only write on an actual flip.
+        if displaySleepBlocker != blocker {
+            displaySleepBlocker = blocker
+        }
     }
 
     /// The 30-second `pmset -g` poll doubles as the wake event's reality

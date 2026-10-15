@@ -55,6 +55,7 @@ struct MenuContent: View {
             // each claiming a full row of the panel's attention.
             VStack(alignment: .leading, spacing: 7) {
                 BatteryRow()
+                DisplaySleepBlockerRow()
                 HelperRow()
                 NetworkStatusRow()
                 LocalIPRow()
@@ -815,6 +816,29 @@ private struct NetworkStatusRow: View {
     }
 }
 
+
+/// Names whoever is holding the display awake (remote tools commonly hold
+/// this assertion around the clock). The usual answer to「合盖了怎么还
+/// 亮着」— only present when something actually blocks display sleep.
+private struct DisplaySleepBlockerRow: View {
+    @EnvironmentObject var state: AppState
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        if !state.displaySleepBlocker.isEmpty {
+            HStack(spacing: 9) {
+                Image(systemName: "moon.zzz.fill")
+                    .font(PanelFont.micro)
+                    .foregroundStyle(warmAmber(colorScheme))
+                    .accessibilityHidden(true)
+                Text(String(format: NSLocalizedString("熄屏被 %@ 阻止", comment: "display sleep blocker row"),
+                            state.displaySleepBlocker))
+                    .font(PanelFont.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
 
 // MARK: - Footer
 

@@ -33,6 +33,23 @@ public enum PowerParsers {
         sleepDisabled(pmsetG: output) ?? false
     }
 
+    /// Who (if anyone) is holding the display awake, from `pmset -g`'s
+    /// displaysleep line: ` displaysleep 5 (display sleep prevented by
+    /// UURemoteServer)`. Remote tools commonly hold this assertion around the
+    /// clock so their capture pipeline always has frames — which is why a
+    /// Mac's screen can sit lit for days. nil when nothing is preventing it.
+    public static func displaySleepPreventer(pmsetG output: String) -> String? {
+        for raw in output.split(separator: "\n") {
+            let line = String(raw).trimmingCharacters(in: .whitespaces)
+            guard line.hasPrefix("displaysleep"), line.contains("prevented by") else { continue }
+            guard let by = line.range(of: "prevented by ") else { return nil }
+            var name = String(line[by.upperBound...])
+            if name.hasSuffix(")") { name.removeLast() }
+            return name.isEmpty ? nil : name
+        }
+        return nil
+    }
+
     // MARK: Sleep-preventing assertion holders (`pmset -g assertions`)
 
     /// Assertion types that stop the system from sleeping on its own. Only an

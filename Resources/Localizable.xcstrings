@@ -1341,6 +1341,16 @@
         }
       }
     },
+    "熄屏被 %@ 阻止" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display sleep is blocked by %@"
+          }
+        }
+      }
+    },
     "版本 %@" : {
       "localizations" : {
         "en" : {
