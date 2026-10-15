@@ -734,7 +734,6 @@ final class AppState: ObservableObject {
     func refreshState() {
         let token = sync.beginRead()
         let reading = power.readPowerState()
-        reconcileWakeBelief(with: reading.schedOutput)
         applyObserved(reading.observed, token)
         // 熄屏阻止者透明化:同一份 pmset -g 里顺带解析,不新增进程。
         let blocker = PowerParsers.displaySleepPreventer(pmsetG: reading.schedOutput) ?? ""
@@ -754,9 +753,15 @@ final class AppState: ObservableObject {
     /// left for the next user action to heal.
     private func reconcileWakeBelief(with schedOutput: String) {
         guard believedWakeState != nil else { return }
+        // An empty capture is a failed read, not an unarmed system — unknown
+        // must never clear the belief.
+        guard !schedOutput.isEmpty else { return }
         guard !RepeatingWake.isArmed(inSchedOutput: schedOutput) else { return }
         believedWakeState = nil
         store.saveBelievedWakeState(nil)
+        // The attempt marker must go too, or the dedup guard would swallow the
+        // immediate re-arm this function's doc promises.
+        lastAttemptedWake = nil
         if wakeCapability == .supported {
             syncRepeatingWake()
         }
@@ -984,10 +989,6 @@ final class AppState: ObservableObject {
                     landingMode: KeepAwakeMode? = nil) {
         let land = landingMode ?? (target ? .lidClosed : .off)
         if StateReconciler.clearsExternalNotice(origin) { externalNotice = nil }
-        // Any other origin takes the flag away from auto mode: its claim is void
-        // and its reply, if one is still in flight, will be rejected as superseded
-        // below. Leaving the claim standing would stall auto mode for a tick or
-        // two on a reply that is never coming.
         // Refuse to enable if it would immediately violate the safety policy.
         // Returns before claiming a mutation, so nothing in flight is disturbed —
         // which is exactly why a caller correcting an outstanding write must pass
@@ -1031,6 +1032,7 @@ final class AppState: ObservableObject {
                     self.updateAutoOff(for: land != .off)
                     self.scheduleDirector.noteWrite(origin: origin, landedActive: land != .off)
                     self.refreshScheduleStatus()
+                    if land == .lidClosed { self.updateLidDisplaySleepPolling() }
                     // Deliberately not `hasConfirmedState`: the helper's success
                     // reply is a claim about the flag, not a reading of it.
                     self.pendingVerification = PendingVerification(target: target)
@@ -1091,6 +1093,7 @@ final class AppState: ObservableObject {
                     self.updateAutoOff(for: landingMode != .off)
                     self.scheduleDirector.noteWrite(origin: origin, landedActive: landingMode != .off)
                     self.refreshScheduleStatus()
+                    if landingMode == .lidClosed { self.updateLidDisplaySleepPolling() }
                     self.pendingVerification = PendingVerification(target: target)
                     self.verifySetApplied(target: target)
                 }
@@ -1204,8 +1207,6 @@ final class AppState: ObservableObject {
 
     private func armAutoOff() {
         cancelAutoOff()
-        // Auto mode manages activation on its own; a countdown would disarm the
-        // feature out from under it, so auto-off is inert while auto mode is on.
         guard isActive, autoOffMinutes > 0 else { return }
         let deadline = AutoOff.deadline(from: Date(), minutes: autoOffMinutes)
         autoOffDeadline = deadline
@@ -1276,7 +1277,19 @@ final class AppState: ObservableObject {
             // when a schedule runs. The edge stays recorded; the window stays
             // dark until the next one.
             guard helperInstalled else { break }
-            setMode(.lidClosed, origin: .schedule)
+            // Activation gate first: on a refused window (battery, heat) the
+            // user gets the real reason, not a success notification for a
+            // write that never happened.
+            let conditions = SafetySnapshot(battery: battery.read(),
+                                            thermalSerious: thermalSerious())
+            if let blocker = SafetyEvaluator.reasonToBlockActivation(
+                battery: conditions.battery,
+                thermalSerious: conditions.thermalSerious,
+                settings: settings) {
+                lastError = blocker.localizedBlockedMessage()
+                break
+            }
+            setMode(.lidClosed, origin: .schedule, conditions: conditions)
             AppNotifier.post(NSLocalizedString("日程窗口开始，合盖保持唤醒已开启。",
                                               comment: "schedule enable"))
         case .disableLid:
@@ -1299,27 +1312,30 @@ final class AppState: ObservableObject {
     /// (ours), inside the window (someone else's hold), or waiting for the
     /// next one. Empty while the feature is off or auto mode owns the state.
     private func refreshScheduleStatus() {
+        // Same-value @Published writes still fire objectWillChange, and this
+        // runs on every 30-second tick — build first, assign only on change.
+        func set(_ text: String) {
+            if scheduleStatusText != text { scheduleStatusText = text }
+        }
         guard scheduleEnabled else {
-            scheduleStatusText = ""
+            set("")
             return
         }
         let now = Date()
         if schedule.contains(now) {
             if scheduleDirector.ownsActivation {
                 let end = WeeklySchedule.date(fromMinute: schedule.endMinute)
-                scheduleStatusText = String(
-                    format: NSLocalizedString("日程保持中 · %@ 结束", comment: "schedule row; end time"),
-                    end.formatted(date: .omitted, time: .shortened))
+                set(String(format: NSLocalizedString("日程保持中 · %@ 结束", comment: "schedule row; end time"),
+                           end.formatted(date: .omitted, time: .shortened)))
             } else {
-                scheduleStatusText = NSLocalizedString("日程窗口内 · 手动控制优先",
-                                                       comment: "schedule row; a manual hold wins")
+                set(NSLocalizedString("日程窗口内 · 手动控制优先",
+                                      comment: "schedule row; a manual hold wins"))
             }
         } else if let next = schedule.nextStart(after: now) {
-            scheduleStatusText = String(
-                format: NSLocalizedString("下次日程：%@", comment: "schedule row; next window"),
-                next.formatted(.dateTime.weekday(.abbreviated).hour().minute()))
+            set(String(format: NSLocalizedString("下次日程：%@", comment: "schedule row; next window"),
+                       next.formatted(.dateTime.weekday(.abbreviated).hour().minute())))
         } else {
-            scheduleStatusText = ""
+            set("")
         }
     }
 
@@ -1366,19 +1382,19 @@ final class AppState: ObservableObject {
     func syncRepeatingWake() {
         let decision = RepeatingWake.decision(enabled: scheduleEnabled,
                                               schedule: schedule)
+        // Whatever is in flight may no longer match the latest state — checked
+        // BEFORE any dedup, so a schedule turned off mid-register still queues
+        // the cancel instead of letting the stale rule land unopposed. A replay
+        // on landing re-dedups, so this costs nothing when it was already right.
+        guard !wakeSyncInFlight else {
+            wakeSyncPending = true
+            return
+        }
         // Nothing believed armed (never armed, or the poll saw it gone): a
         // .cancel would be a no-op write at best, and via the fallback an
         // admin prompt for it — never worth it. (Also keeps helper (re)install
         // transitions from wiping repeating events the user set themselves.)
         if case .cancel = decision, believedWakeState == nil {
-            return
-        }
-        // Whatever is in flight may no longer match the latest state — even a
-        // decision that equals the last synced one can be stale (the user
-        // reverted mid-write). A replay on landing re-dedups, so requesting
-        // one unconditionally costs nothing when it was already right.
-        guard !wakeSyncInFlight else {
-            wakeSyncPending = true
             return
         }
         guard decision != lastAttemptedWake, decision != believedWakeState else { return }
@@ -1387,6 +1403,10 @@ final class AppState: ObservableObject {
 
     private func runWakeSync(_ decision: RepeatingWake.Decision) {
         wakeSyncInFlight = true
+        // One bookkeeping site for both write paths: the attempt marker (only
+        // registers — a failed cancel must stay retryable) and the wire params.
+        if case .register = decision { lastAttemptedWake = decision }
+        let params = wakeParameters(for: decision)
         switch wakeCapability {
         case .unprobed:
             let generation = wakeProbeGeneration
@@ -1401,26 +1421,27 @@ final class AppState: ObservableObject {
                 }
                 if RepeatingWake.isHelperSupported(version: version ?? "") {
                     self.wakeCapability = .supported
-                    self.writeWake(decision)
+                    self.writeWake(decision, params: params)
+                } else if version != nil {
+                    // A definite old verdict is deliberately not cached: the
+                    // next sync re-probes, so a later helper upgrade
+                    // self-heals. THIS decision is written now through the
+                    // admin-prompt fallback (the user is mid-edit, present).
+                    self.writeWakeFallback(decision, params: params)
                 } else {
-                    // A negative verdict is deliberately not cached: the next
-                    // sync re-probes, so a cold daemon, a transient timeout,
-                    // or a later helper upgrade self-heals. THIS decision is
-                    // written now through the admin-prompt fallback.
-                    self.writeWakeFallback(decision)
+                    // Probe failed entirely (cold daemon, timeout). Falling
+                    // back here would pop an admin password out of nowhere —
+                    // surface the condition instead; the next sync re-probes.
+                    self.finishWakeSync(decision, error: NSLocalizedString(
+                        "无法探测后台 Helper 版本，定时唤醒未设置。", comment: "version probe failed"))
                 }
             }
         case .supported:
-            writeWake(decision)
+            writeWake(decision, params: params)
         }
     }
 
-    private func writeWake(_ decision: RepeatingWake.Decision) {
-        // Only register attempts are recorded: a cancelled or failed cancel
-        // must stay retryable — a stale armed event is the dangerous
-        // direction, and the next toggle-off should prompt again.
-        if case .register = decision { lastAttemptedWake = decision }
-        let params = wakeParameters(for: decision)
+    private func writeWake(_ decision: RepeatingWake.Decision, params: (mask: Int, minutes: Int, enabled: Bool)) {
         helper.setRepeatingWake(params.mask, minutes: params.minutes, enabled: params.enabled) { [weak self] ok, err in
             guard let self else { return }
             if ok {
@@ -1436,7 +1457,7 @@ final class AppState: ObservableObject {
                 // nothing on the system, so it stays an error the next edit
                 // can retry.
                 if case .cancel = decision {
-                    self.writeWakeFallback(decision)
+                    self.writeWakeFallback(decision, params: params)
                 } else {
                     self.finishWakeSync(decision, error: err ?? NSLocalizedString("后台 Helper 未响应。", comment: "helper error"))
                 }
@@ -1444,9 +1465,8 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func writeWakeFallback(_ decision: RepeatingWake.Decision) {
-        if case .register = decision { lastAttemptedWake = decision }
-        let params = wakeParameters(for: decision)
+    private func writeWakeFallback(_ decision: RepeatingWake.Decision,
+                                   params: (mask: Int, minutes: Int, enabled: Bool)) {
         power.setRepeatingWake(weekdayMask: params.mask, minutes: params.minutes, enabled: params.enabled) { [weak self] error in
             let message = error?.localizedDescription
             DispatchQueue.main.async {
@@ -1524,7 +1544,7 @@ final class AppState: ObservableObject {
             power.setDisplayWakeAssertion(true)
             if !displaySleepServedForLidClose {
                 displaySleepServedForLidClose = true
-                _ = Shell.capture("/usr/bin/pmset", ["displaysleepnow"])
+                _ = power.sleepDisplayNow()
             }
             stopLidPolling()
         } else {
@@ -1563,7 +1583,7 @@ final class AppState: ObservableObject {
         if idle >= TimeInterval(lidDisplaySleepGraceMinutes * 60) {
             guard !displayIdleCrossedGrace else { return }
             displayIdleCrossedGrace = true
-            _ = Shell.capture("/usr/bin/pmset", ["displaysleepnow"])
+            _ = power.sleepDisplayNow()
         } else {
             displayIdleCrossedGrace = false
         }
@@ -1587,6 +1607,7 @@ final class AppState: ObservableObject {
         refreshState()
         refreshBattery()
         evaluateSafety()
+        reconcileWakeBelief(with: power.readSched())
         scheduleTick()
         updateLidDisplaySleepPolling()
         checkLidDisplaySleepInactivity()

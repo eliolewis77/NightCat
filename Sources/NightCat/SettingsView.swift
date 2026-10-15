@@ -41,9 +41,9 @@ struct SettingsView: View {
                     get: { state.lidDisplaySleepGraceMinutes },
                     set: { state.setLidDisplaySleepGraceMinutes($0) }
                 )) {
-                    Text(String(format: NSLocalizedString("%lld 分钟", comment: "duration; minutes"), 5)).tag(5)
-                    Text(String(format: NSLocalizedString("%lld 分钟", comment: "duration; minutes"), 10)).tag(10)
-                    Text(String(format: NSLocalizedString("%lld 分钟", comment: "duration; minutes"), 15)).tag(15)
+                    Text(AutoOff.optionLabel(minutes: 5)).tag(5)
+                    Text(AutoOff.optionLabel(minutes: 10)).tag(10)
+                    Text(AutoOff.optionLabel(minutes: 15)).tag(15)
                 }
                 Toggle("启动时恢复合盖档", isOn: Binding(
                     get: { state.settings.restoreLidTierOnLaunch },

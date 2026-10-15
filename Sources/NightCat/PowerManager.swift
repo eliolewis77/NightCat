@@ -45,6 +45,22 @@ final class PowerManager {
         }
     }
 
+    /// The `pmset -g sched` output — where repeating power events (the wake
+    /// schedule this app manages) actually live. `pmset -g` does NOT contain
+    /// them; feeding that to the wake reconciliation cleared the belief on
+    /// every poll.
+    func readSched() -> String {
+        Shell.capture("/usr/bin/pmset", ["-g", "sched"]) ?? ""
+    }
+
+    /// Put the display to sleep right now. Works regardless of display-sleep
+    /// prevention assertions (they only gate the idle timer, not explicit
+    /// requests). No-op on an already-dark panel.
+    @discardableResult
+    func sleepDisplayNow() -> String? {
+        Shell.capture("/usr/bin/pmset", ["displaysleepnow"])
+    }
+
     /// Whether the lid is closed, read in-process from IOPMrootDomain's
     /// `AppleClamshellState` property — microseconds, no `ioreg` spawn, so
     /// callers can poll it on a fast cadence while waiting for a lid close.

@@ -256,21 +256,22 @@ final class SharedLogicTests: XCTestCase {
         XCTAssertNil(SettingsStore(defaults: defaults).loadLicenseKey())
         XCTAssertNil(SettingsStore(defaults: defaults).loadLicensedEmail())
     }
+    // MARK: PowerParsers.displaySleepPreventer
+
+    func testDisplaySleepPreventerNamedInTheConfigLine() {
+        let output = """
+         hibernatefile        /var/vm/sleepimage
+         displaysleep         5 (display sleep prevented by UURemoteServer)
+         sleep                0
+        """
+        XCTAssertEqual(PowerParsers.displaySleepPreventer(pmsetG: output), "UURemoteServer")
+    }
+
+    func testNoDisplaySleepPreventerWhenTimerIsFree() {
+        let output = " displaysleep         5"
+        XCTAssertNil(PowerParsers.displaySleepPreventer(pmsetG: output))
+        XCTAssertNil(PowerParsers.displaySleepPreventer(pmsetG: ""))
+    }
+
 }
 
-// MARK: PowerParsers.displaySleepPreventer
-
-func testDisplaySleepPreventerNamedInTheConfigLine() {
-    let output = """
-     hibernatefile        /var/vm/sleepimage
-     displaysleep         5 (display sleep prevented by UURemoteServer)
-     sleep                0
-    """
-    XCTAssertEqual(PowerParsers.displaySleepPreventer(pmsetG: output), "UURemoteServer")
-}
-
-func testNoDisplaySleepPreventerWhenTimerIsFree() {
-    let output = " displaysleep         5"
-    XCTAssertNil(PowerParsers.displaySleepPreventer(pmsetG: output))
-    XCTAssertNil(PowerParsers.displaySleepPreventer(pmsetG: ""))
-}

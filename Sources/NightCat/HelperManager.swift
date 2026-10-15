@@ -134,9 +134,7 @@ final class HelperManager {
     /// (connection error or no reply within the timeout). Used to detect a
     /// registered-but-unlaunchable helper after an app update.
     func checkReachable(completion: @escaping (Bool) -> Void) {
-        callWithTimeout(timeout: 5, completion: { ok, _ in completion(ok) }) { proxy, done in
-            proxy.version { _ in done(true, nil) }
-        }
+        fetchVersion { version in completion(version != nil) }
     }
 
     /// Run a single XPC call, guaranteeing `completion` fires exactly once on the

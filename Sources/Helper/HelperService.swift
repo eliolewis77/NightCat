@@ -88,7 +88,7 @@ final class HelperService: NSObject, NightCatHelperProtocol {
             guard let args = RepeatingWake.pmsetArguments(
                 weekdayMask: weekdayMask, minutes: minutes, enabled: enabled)
             else {
-                reply(false, "invalid repeating wake arguments")
+                reply(false, RepeatingWake.invalidArgumentsMessage)
                 return
             }
             let result = self.runPmset(arguments: args)
